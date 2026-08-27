@@ -1,0 +1,33 @@
+import { useMemo } from "react";
+import { AdaptationSection } from "./components/AdaptationSection.tsx";
+import { FaqSection } from "./components/FaqSection.tsx";
+import { Footer } from "./components/Footer.tsx";
+import { Header } from "./components/Header.tsx";
+import { Hero } from "./components/Hero.tsx";
+import { InputsSection } from "./components/InputsSection.tsx";
+import { PipelineSection } from "./components/PipelineSection.tsx";
+import { PrivacySection } from "./components/PrivacySection.tsx";
+import { Simulator, defaultInput } from "./components/Simulator.tsx";
+import { simulate } from "./coach/engine.ts";
+
+export function App() {
+  // L'aperçu du téléphone en tête de page montre de vrais chiffres, produits
+  // par le même moteur que le simulateur plus bas.
+  const preview = useMemo(() => simulate(defaultInput), []);
+
+  return (
+    <>
+      <Header />
+      <main>
+        <Hero preview={preview} />
+        <InputsSection />
+        <PipelineSection />
+        <Simulator />
+        <AdaptationSection />
+        <PrivacySection />
+        <FaqSection />
+      </main>
+      <Footer />
+    </>
+  );
+}
