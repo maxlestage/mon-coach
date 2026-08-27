@@ -252,3 +252,49 @@ struct ReadinessTests {
         #expect(adapted.score > penalised.score)
     }
 }
+
+@Suite("Affichage")
+struct FormattingTests {
+
+    @Test("Les kilos deviennent des livres quand l'athlète l'a demandé")
+    func weightUnits() {
+        #expect(Format.weight(80, unit: .metric, decimals: 0) == "80 kg")
+        #expect(Format.weight(80, unit: .imperial, decimals: 0) == "176 lb")
+    }
+
+    @Test("Les conversions font l'aller-retour sans dérive")
+    func conversionsRoundTrip() {
+        for kg in [45.0, 62.5, 100.0, 137.5] {
+            let displayed = kg / Format.kgPerLb
+            #expect(abs(Format.kilograms(fromDisplayed: displayed, unit: .imperial) - kg) < 0.0001)
+        }
+        for cm in [155.0, 178.0, 195.0] {
+            let displayed = cm / Format.cmPerInch
+            #expect(abs(Format.centimetres(fromDisplayed: displayed, unit: .imperial) - cm) < 0.0001)
+        }
+    }
+
+    @Test("Les nombres sont écrits à la française")
+    func frenchDecimals() {
+        #expect(Format.number(72.45, decimals: 1) == "72,5")
+        #expect(Format.signed(-0.3, decimals: 1, suffix: " kg") == "-0,3 kg")
+        #expect(Format.signed(0.3, decimals: 1, suffix: " kg") == "+0,3 kg")
+    }
+
+    @Test("Les durées et le chrono restent lisibles")
+    func durationsAndClocks() {
+        #expect(Format.duration(minutes: 45) == "45 min")
+        #expect(Format.duration(minutes: 60) == "1 h")
+        #expect(Format.duration(minutes: 75) == "1 h 15")
+        #expect(Format.clock(seconds: 150) == "2:30")
+        #expect(Format.clock(seconds: 0) == "0:00")
+        #expect(Format.clock(seconds: -5) == "0:00")
+    }
+
+    @Test("Une charge inconnue s'affiche comme telle plutôt qu'en zéro")
+    func unknownLoad() {
+        #expect(Format.load(nil, unit: .metric) == "—")
+        #expect(Format.load(62.5, unit: .metric) == "62,5 kg")
+        #expect(Format.load(60, unit: .metric) == "60 kg")
+    }
+}

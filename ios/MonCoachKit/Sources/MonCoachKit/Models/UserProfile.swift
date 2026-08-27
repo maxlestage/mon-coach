@@ -129,7 +129,9 @@ public struct UserProfile: Codable, Sendable, Equatable, Identifiable {
 }
 
 extension Comparable {
-    func clamped(to range: ClosedRange<Self>) -> Self {
+    /// Keeps a value inside a range. Used everywhere a slider, a form field or
+    /// a formula could otherwise produce something absurd.
+    public func clamped(to range: ClosedRange<Self>) -> Self {
         min(max(self, range.lowerBound), range.upperBound)
     }
 }

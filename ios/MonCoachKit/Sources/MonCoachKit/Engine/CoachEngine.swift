@@ -60,6 +60,28 @@ public enum CoachEngine {
         )
     }
 
+    /// Rebuilds a program around a plan that was already generated.
+    ///
+    /// Persistence stores the profile and the mesocycle, never the derived
+    /// numbers: metrics and macros are cheap to recompute and must never
+    /// drift from the formulas. The plan itself is stored rather than rebuilt
+    /// because its session identifiers are what the training log points at.
+    public static func program(
+        profile: UserProfile,
+        plan: Mesocycle,
+        on date: Date = Date()
+    ) -> CoachingProgram {
+        let metrics = BodyMetricsEngine.metrics(for: profile, on: date)
+        let nutrition = NutritionEngine.target(for: profile, metrics: metrics)
+        return CoachingProgram(
+            profile: profile,
+            metrics: metrics,
+            nutrition: nutrition,
+            plan: plan,
+            weeksToGoal: NutritionEngine.weeksToTarget(profile: profile, target: nutrition)
+        )
+    }
+
     // MARK: - A day
 
     public static func briefing(
