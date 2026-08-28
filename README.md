@@ -92,6 +92,10 @@ bun run typecheck  # TypeScript en mode strict
 bun run build      # site statique dans web/dist
 ```
 
+Le site est une PWA : il s'installe comme une application et fonctionne
+hors ligne, simulateur compris. Pages légales, tarifs (modèle freemium
+documenté dans `docs/MODELE-ECONOMIQUE.md`) et pied de page complet.
+
 Le simulateur de la page d'accueil exécute un portage TypeScript du moteur
 Swift. Pour que ce ne soit pas une promesse en l'air, le moteur Swift produit
 un fichier de valeurs de référence que les tests du site rejouent :
