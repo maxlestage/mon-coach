@@ -39,7 +39,7 @@ export function PricingSection() {
             <span className="plan__badge">Recommandé</span>
             <h3 className="plan__name">Mon Coach+</h3>
             <p className="plan__price">14,99 €<span> / mois</span></p>
-            <p className="plan__period">ou 89,99 € par an, soit deux mois sur douze</p>
+            <p className="plan__period">ou 119,99 € par an, soit quatre mois offerts</p>
             <ul className="plan__features">
               <li>Tout le gratuit, évidemment</li>
               <li>Les blocs suivants, reconstruits d'après tes séances réelles</li>
