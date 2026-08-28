@@ -12,6 +12,7 @@ const copy = {
     engine: "Le moteur",
     simulator: "Simulateur",
     running: "Course à pied",
+    analysis: "Analyse — face à Strava",
     food: "Alimentation",
     gym: "Salle",
     watch: "Apple Watch",
@@ -39,6 +40,7 @@ const copy = {
     engine: "The engine",
     simulator: "Simulator",
     running: "Running",
+    analysis: "Analysis — vs Strava",
     food: "Food",
     gym: "Gym",
     watch: "Apple Watch",
@@ -66,6 +68,7 @@ const copy = {
     engine: "El motor",
     simulator: "Simulador",
     running: "Carrera a pie",
+    analysis: "Análisis — frente a Strava",
     food: "Alimentación",
     gym: "Sala",
     watch: "Apple Watch",
@@ -116,6 +119,7 @@ export function Footer() {
             <a href="/#moteur">{t.engine}</a>
             <a href="/#simulateur">{t.simulator}</a>
             <a href="/#course">{t.running}</a>
+            <a href="/#analyse">{t.analysis}</a>
             <a href="/#alimentation">{t.food}</a>
             <a href="/#salle">{t.gym}</a>
             <a href="/#montre">{t.watch}</a>
