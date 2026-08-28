@@ -201,6 +201,11 @@ export const faq: FaqEntry[] = [
       "Si tu renseignes un maximum, il en déduit la charge exacte pour la fourchette de répétitions et le RPE prévus. Sinon, il part des repères de force publiés pour ton poids, ton sexe, ton âge et ton niveau — puis corrige dès la première série que tu enregistres.",
   },
   {
+    question: "Je peux m'entraîner sans emporter mon téléphone ?",
+    answer:
+      "Oui. L'application Apple Watch reçoit la séance du jour déjà prescrite — exercices, fourchettes de répétitions, charges — et permet de tout enregistrer au poignet, couronne comprise. Hors de portée du téléphone, elle continue sur le dernier état reçu, et le journal se synchronise automatiquement au retour. Sur l'iPhone, une Live Activity affiche la série en cours et le chrono de repos sur l'écran verrouillé et dans la Dynamic Island.",
+  },
+  {
     question: "C'est encore une application qui compte les calories ?",
     answer:
       "Non. Le coach donne une cible quotidienne et t'explique d'où elle vient, mais il n'y a pas de journal alimentaire à remplir. La seule donnée nutritionnelle qu'il te demande est ton poids sur la balance, parce que c'est la seule qui permette de vérifier si la cible est juste.",

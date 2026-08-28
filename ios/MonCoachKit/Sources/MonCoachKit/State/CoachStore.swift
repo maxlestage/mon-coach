@@ -137,6 +137,20 @@ public final class CoachStore {
         activeSession = nil
     }
 
+    /// Remplace ou ajoute un journal de séance, à l'identifiant près.
+    ///
+    /// C'est le point d'entrée des séances menées sur la montre :
+    /// WatchConnectivity garantit la livraison mais pas l'unicité, et une
+    /// même séance livrée deux fois doit écraser, jamais s'additionner.
+    func mergeSession(_ log: SessionLog) {
+        if let index = history.sessions.firstIndex(where: { $0.id == log.id }) {
+            history.sessions[index] = log
+        } else {
+            history.sessions.append(log)
+        }
+        save()
+    }
+
     public func skipTodaySession(at date: Date = Date()) {
         guard let session = briefing(on: date)?.session else { return }
         history.sessions.append(
