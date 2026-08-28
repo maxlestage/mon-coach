@@ -21,6 +21,7 @@ struct ProfileView: View {
                         trainingCard(profile)
                         constraintsCard(profile)
                         dataCard
+                        creditFooter
                     } else {
                         Card(title: "Profil vide") { EmptyView() }
                     }
@@ -164,6 +165,15 @@ struct ProfileView: View {
                     .foregroundStyle(Theme.danger)
             }
         }
+    }
+
+    private var creditFooter: some View {
+        Text("Mon Coach — créé et fait par Maxime Nathan Lestage")
+            .font(Theme.captionFont)
+            .foregroundStyle(Theme.secondaryText)
+            .frame(maxWidth: .infinity)
+            .multilineTextAlignment(.center)
+            .padding(.top, 4)
     }
 
     private func writeExport() -> URL? {

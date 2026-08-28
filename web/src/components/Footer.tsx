@@ -15,6 +15,9 @@ export function Footer() {
         </nav>
       </div>
       <div className="shell">
+        <p className="credit">
+          Créé et fait par <strong>Maxime Nathan Lestage</strong>
+        </p>
         <p className="disclaimer">
           Mon Coach n'est pas un dispositif médical et ne remplace ni un
           médecin, ni un kinésithérapeute, ni un diététicien. En cas de douleur

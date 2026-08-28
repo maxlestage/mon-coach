@@ -88,5 +88,12 @@ struct WatchTodayView: View {
                 .font(.caption2)
                 .foregroundStyle(.secondary)
         }
+
+        Text("Créé et fait par Maxime Nathan Lestage")
+            .font(.system(size: 10))
+            .foregroundStyle(.tertiary)
+            .frame(maxWidth: .infinity)
+            .multilineTextAlignment(.center)
+            .padding(.top, 6)
     }
 }

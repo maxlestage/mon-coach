@@ -149,6 +149,11 @@ struct OnboardingView: View {
                 promise(icon: "arrow.triangle.2.circlepath", text: "Le programme se réécrit chaque semaine à partir de tes séances réelles.")
             }
             .padding(.top, 6)
+
+            Text("Créé et fait par Maxime Nathan Lestage")
+                .font(Theme.captionFont)
+                .foregroundStyle(Theme.secondaryText)
+                .padding(.top, 10)
         }
     }
 
