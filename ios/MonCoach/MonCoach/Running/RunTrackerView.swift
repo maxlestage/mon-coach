@@ -14,6 +14,7 @@ struct RunTrackerView: View {
     @Environment(\.language) private var language
 
     @State private var tracker = LocationTracker()
+    @State private var selectedSport: Sport = .run
     @State private var selectedType: RunType = .easy
     @State private var finishedRun: ActivityLog?
     @State private var showsDiscardConfirmation = false
@@ -116,29 +117,66 @@ struct RunTrackerView: View {
                 }
             }
 
-            Card(
-                title: LocalizedText(fr: "Type de sortie", en: "Run type", es: "Tipo de rodaje")[language]
-            ) {
-                VStack(alignment: .leading, spacing: 10) {
+            // Le sport d'abord : c'est lui qui règle les filtres GPS et la
+            // façon de dire la vitesse. Une sortie prescrite est de la
+            // course, le choix disparaît.
+            if plannedRun == nil {
+                Card(title: LocalizedText(fr: "Sport", en: "Sport", es: "Deporte")[language]) {
                     FlowLayout(spacing: 8) {
-                        ForEach(RunType.allCases, id: \.self) { type in
+                        ForEach(Sport.allCases) { sport in
                             Button {
-                                selectedType = type
+                                selectedSport = sport
                             } label: {
-                                Pill(
-                                    text: type.label[language],
-                                    tint: selectedType == type ? Theme.accent : Theme.secondaryText
+                                HStack(spacing: 5) {
+                                    Image(systemName: sport.symbolName)
+                                        .font(.system(size: 12))
+                                    Text(sport.label[language])
+                                }
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(selectedSport == sport ? Theme.background : Theme.primaryText)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 7)
+                                .background(
+                                    selectedSport == sport ? Theme.accent : Theme.surfaceRaised,
+                                    in: Capsule()
                                 )
                             }
                             .buttonStyle(.plain)
                         }
                     }
-                    CoachText(selectedType.purpose)
                 }
             }
 
-            PrimaryButton(title: UI.start[language], systemImage: "figure.run") {
-                tracker.start(type: selectedType)
+            // L'intention de séance n'a de sens qu'en courant : un « tempo »
+            // à vélo ou en randonnée ne pilote aucun plan.
+            if selectedSport.feedsRunningPlan {
+                Card(
+                    title: LocalizedText(fr: "Type de sortie", en: "Run type", es: "Tipo de rodaje")[language]
+                ) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        FlowLayout(spacing: 8) {
+                            ForEach(RunType.allCases, id: \.self) { type in
+                                Button {
+                                    selectedType = type
+                                } label: {
+                                    Pill(
+                                        text: type.label[language],
+                                        tint: selectedType == type ? Theme.accent : Theme.secondaryText
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        CoachText(selectedType.purpose)
+                    }
+                }
+            }
+
+            PrimaryButton(title: UI.start[language], systemImage: selectedSport.symbolName) {
+                tracker.start(
+                    sport: plannedRun == nil ? selectedSport : .run,
+                    type: selectedSport.feedsRunningPlan ? selectedType : .easy
+                )
                 liveActivity.start(
                     id: UUID(),
                     snapshot: tracker.activitySnapshot(unit: unit, language: language)

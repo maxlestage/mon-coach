@@ -3,6 +3,10 @@ import MonCoachKit
 
 /// Le bloc de course : ce qui est prévu, et ce qui a été fait.
 struct RunPlanView: View {
+    /// Vrai quand la vue vit dans l'onglet Activités, qui apporte déjà sa
+    /// pile de navigation et son titre : les doubler donnerait deux barres.
+    var embedded: Bool = false
+
     @Environment(CoachStore.self) private var store
     @Environment(\.language) private var language
 
@@ -11,7 +15,14 @@ struct RunPlanView: View {
     private var unit: UnitSystem { store.profile?.unit ?? .metric }
 
     var body: some View {
-        NavigationStack {
+        if embedded {
+            content
+        } else {
+            NavigationStack { content }
+        }
+    }
+
+    private var content: some View {
             ScrollView {
                 VStack(spacing: Theme.stackSpacing) {
                     if let block = store.program?.runningBlock {
@@ -43,7 +54,6 @@ struct RunPlanView: View {
             .sheet(isPresented: $showsTracker) {
                 RunTrackerView(plannedRun: store.briefing()?.plannedRun)
             }
-        }
     }
 
     private func headerCard(_ block: RunningBlock) -> some View {

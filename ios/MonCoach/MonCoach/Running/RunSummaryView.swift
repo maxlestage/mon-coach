@@ -63,6 +63,8 @@ struct RunSummaryView: View {
                         }
                     }
 
+                    highlightsCard
+
                     if !run.splits.isEmpty {
                         Card(title: UI.splits[language]) {
                             SplitList(splits: run.splits, unit: unit)
@@ -124,6 +126,67 @@ struct RunSummaryView: View {
                 LocalizedText(fr: "Sortie terminée", en: "Run finished", es: "Rodaje terminado")[language]
             )
             .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+
+    /// Les distinctions du jour : records battus, segments améliorés,
+    /// allure corrigée quand le terrain la justifie.
+    private var highlightsCard: some View {
+        let highlights = store.highlights(for: run)
+        let segmentEfforts = store.segmentEfforts(in: run)
+        // L'allure corrigée ne s'affiche que quand elle change la lecture :
+        // sur du plat, annoncer « corrigée : pareil » serait du bruit.
+        let corrected: Double? = {
+            guard run.sport.feedsRunningPlan, run.elevationGain > run.meters * 0.008 else { return nil }
+            return GradeAdjustment.flatEquivalentPace(
+                of: TraceAnalysis.clean(run.points, filter: run.sport.filter)
+            )
+        }()
+        return Group {
+            if !highlights.isEmpty || !segmentEfforts.isEmpty || corrected != nil {
+                Card(title: LocalizedText(fr: "Ce que ça vaut", en: "What it's worth", es: "Lo que vale")[language]) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        ForEach(highlights) { rank in
+                            HStack {
+                                Image(systemName: rank.isRecord ? "trophy.fill" : "medal")
+                                    .foregroundStyle(rank.isRecord ? Theme.warning : Theme.secondaryText)
+                                Text(rank.headline[language])
+                                    .font(Theme.bodyFont)
+                                    .foregroundStyle(Theme.primaryText)
+                                Spacer()
+                                Text(Format.stopwatch(seconds: rank.effort.duration))
+                                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                                    .foregroundStyle(Theme.accent)
+                            }
+                        }
+                        ForEach(segmentEfforts) { effort in
+                            if let segment = store.segments.first(where: { $0.id == effort.segmentID }) {
+                                HStack {
+                                    Image(systemName: "point.topleft.down.curvedto.point.bottomright.up")
+                                        .foregroundStyle(Theme.accent)
+                                    Text(segment.name)
+                                        .font(Theme.bodyFont)
+                                        .foregroundStyle(Theme.primaryText)
+                                        .lineLimit(1)
+                                    Spacer()
+                                    Text(Format.stopwatch(seconds: effort.duration))
+                                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                                        .foregroundStyle(Theme.accent)
+                                }
+                            }
+                        }
+                        if let corrected {
+                            CoachText(
+                                LocalizedText(
+                                    fr: "Allure corrigée du dénivelé : \(Format.pace(secondsPerKm: corrected, unit: unit)) — ce que la sortie vaut sur du plat.",
+                                    en: "Grade-adjusted pace: \(Format.pace(secondsPerKm: corrected, unit: unit)) — what this effort is worth on the flat.",
+                                    es: "Ritmo ajustado al desnivel: \(Format.pace(secondsPerKm: corrected, unit: unit)) — lo que vale este esfuerzo en llano."
+                                )
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 

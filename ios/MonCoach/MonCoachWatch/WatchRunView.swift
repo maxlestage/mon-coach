@@ -16,6 +16,8 @@ struct WatchRunView: View {
     @Environment(\.language) private var language
 
     @State private var tracker = LocationTracker()
+    @State private var heart = WatchHeartRate()
+    @State private var selectedSport: Sport = .run
     @State private var page = 0
 
     private var unit: UnitSystem { store.unit }
@@ -55,10 +57,22 @@ struct WatchRunView: View {
                     .foregroundStyle(.green)
                 }
             }
+            if store.todayRun == nil {
+                Picker(selection: $selectedSport) {
+                    ForEach(Sport.allCases) { sport in
+                        Label(sport.label[language], systemImage: sport.symbolName).tag(sport)
+                    }
+                } label: {
+                    EmptyView()
+                }
+                .pickerStyle(.navigationLink)
+            }
             Button {
-                tracker.start(type: store.todayRun?.type ?? .easy)
+                let sport = store.todayRun == nil ? selectedSport : .run
+                tracker.start(sport: sport, type: store.todayRun?.type ?? .easy)
+                heart.start()
             } label: {
-                Label(WatchUI.start[language], systemImage: "figure.run")
+                Label(WatchUI.start[language], systemImage: selectedSport.symbolName)
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
@@ -95,11 +109,25 @@ struct WatchRunView: View {
                 VStack(alignment: .leading, spacing: 1) {
                     Text(Format.stopwatch(seconds: tracker.movingDuration))
                         .font(.system(.body, design: .rounded, weight: .semibold))
-                    Text(Format.pace(secondsPerKm: tracker.recentPaceSecondsPerKm, unit: unit))
+                    Text(Format.speedOrPace(
+                        sport: tracker.sport,
+                        secondsPerKm: tracker.recentPaceSecondsPerKm,
+                        unit: unit,
+                        language: language
+                    ))
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
+                if heart.currentBpm > 0 {
+                    VStack(alignment: .trailing, spacing: 1) {
+                        Image(systemName: "heart.fill")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.red)
+                        Text("\(Int(heart.currentBpm))")
+                            .font(.system(.body, design: .rounded, weight: .semibold))
+                    }
+                }
                 if !tracker.hasUsableSignal {
                     Text(
                         (tracker.currentAccuracy < 0 ? WatchUI.searchingGPS : WatchUI.weakSignal)[language]
@@ -119,7 +147,9 @@ struct WatchRunView: View {
                 .tint(.orange)
 
                 Button {
-                    if let log = tracker.finish() {
+                    heart.stop()
+                    if var log = tracker.finish() {
+                        log.heartRate = heart.drain()
                         store.recordRun(log)
                     }
                     dismiss()
