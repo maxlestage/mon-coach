@@ -1,63 +1,62 @@
 import Foundation
-import MonCoachKit
 
 /// What onboarding collects, before it becomes a `UserProfile`.
 ///
 /// It keeps values in the shape a form needs (optionals, free text, display
 /// units) and does the conversion in one place, so no view has to know that
 /// storage is metric.
-struct ProfileDraft {
-    var firstName: String = ""
-    var birthDate: Date = Calendar.current.date(byAdding: .year, value: -30, to: Date()) ?? Date()
-    var sex: Sex = .male
+public struct ProfileDraft: Sendable {
+    public var firstName: String = ""
+    public var birthDate: Date = Calendar.current.date(byAdding: .year, value: -30, to: Date()) ?? Date()
+    public var sex: Sex = .male
 
-    var unit: UnitSystem = .metric
-    var heightCm: Double = 175
-    var weightKg: Double = 75
-    var knowsBodyFat: Bool = false
-    var bodyFatPercent: Double = 18
-    var waistCm: Double = 84
+    public var unit: UnitSystem = .metric
+    public var heightCm: Double = 175
+    public var weightKg: Double = 75
+    public var knowsBodyFat: Bool = false
+    public var bodyFatPercent: Double = 18
+    public var waistCm: Double = 84
 
-    var trainingMonths: Int = 0
-    var experienceOverride: ExperienceLevel?
+    public var trainingMonths: Int = 0
+    public var experienceOverride: ExperienceLevel?
 
-    var goal: PrimaryGoal = .hypertrophy
-    var hasTargetWeight: Bool = false
-    var targetWeightKg: Double = 75
-    var hasDeadline: Bool = false
-    var deadline: Date = Calendar.current.date(byAdding: .month, value: 4, to: Date()) ?? Date()
+    public var goal: PrimaryGoal = .hypertrophy
+    public var hasTargetWeight: Bool = false
+    public var targetWeightKg: Double = 75
+    public var hasDeadline: Bool = false
+    public var deadline: Date = Calendar.current.date(byAdding: .month, value: 4, to: Date()) ?? Date()
 
-    var daysPerWeek: Int = 4
-    var sessionMinutes: Int = 60
-    var equipment: Set<Equipment> = Equipment.fullGym
-    var loadIncrement: LoadIncrement = .standard
+    public var daysPerWeek: Int = 4
+    public var sessionMinutes: Int = 60
+    public var equipment: Set<Equipment> = Equipment.fullGym
+    public var loadIncrement: LoadIncrement = .standard
 
-    var limitations: Set<Limitation> = []
+    public var limitations: Set<Limitation> = []
 
-    var activityLevel: ActivityLevel = .light
-    var sleepHours: Double = 7.5
-    var stressLevel: Int = 3
-    var dietPreference: DietPreference = .omnivore
+    public var activityLevel: ActivityLevel = .light
+    public var sleepHours: Double = 7.5
+    public var stressLevel: Int = 3
+    public var dietPreference: DietPreference = .omnivore
 
     /// Known 1RMs, in kg, for the four lifts worth asking about.
-    var oneRepMax: [String: Double] = [:]
+    public var oneRepMax: [String: Double] = [:]
 
-    var experience: ExperienceLevel {
+    public var experience: ExperienceLevel {
         experienceOverride ?? .inferred(fromTrainingMonths: trainingMonths)
     }
 
     /// The lifts the questionnaire offers a 1RM field for. Everything else is
     /// derived from these or from strength standards.
-    static let baselineLiftIDs = ["back-squat", "bench-press", "conventional-deadlift", "overhead-press"]
+    public static let baselineLiftIDs = ["back-squat", "bench-press", "conventional-deadlift", "overhead-press"]
 
-    var isValid: Bool {
+    public var isValid: Bool {
         !firstName.trimmingCharacters(in: .whitespaces).isEmpty
             && heightCm > 100 && heightCm < 250
             && weightKg > 30 && weightKg < 300
             && !equipment.isEmpty
     }
 
-    func makeProfile() -> UserProfile {
+    public func makeProfile() -> UserProfile {
         UserProfile(
             firstName: firstName.trimmingCharacters(in: .whitespaces),
             birthDate: birthDate,
@@ -86,9 +85,9 @@ struct ProfileDraft {
     }
 
     /// Rebuilds a draft from an existing profile so the same form can edit it.
-    init() {}
+    public init() {}
 
-    init(profile: UserProfile) {
+    public init(profile: UserProfile) {
         firstName = profile.firstName
         birthDate = profile.birthDate
         sex = profile.sex

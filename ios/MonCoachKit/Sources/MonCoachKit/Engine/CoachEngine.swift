@@ -157,15 +157,20 @@ public enum CoachEngine {
         ) ?? program.plan.startDate
         guard let weekEnd = calendar.date(byAdding: .day, value: 7, to: weekStart) else { return nil }
 
-        let done = history
-            .sessions(in: DateInterval(start: weekStart, end: weekEnd))
-            .filter { !$0.skipped }
+        let logged = history.sessions(in: DateInterval(start: weekStart, end: weekEnd))
 
-        if done.contains(where: { calendar.isDate($0.date, inSameDayAs: date) }) {
-            return nil // already trained today
+        // A day the athlete already trained, or explicitly declared off, stays
+        // closed. Both count here: re-proposing a session someone just told us
+        // they cannot do is the fastest way to get an app deleted.
+        if logged.contains(where: { calendar.isDate($0.date, inSameDayAs: date) }) {
+            return nil
         }
 
-        let completedIDs = Set(done.compactMap(\.plannedSessionID))
+        // Only sessions actually performed are struck off the week. A skipped
+        // day costs the day, not the session: it comes back tomorrow.
+        let completedIDs = Set(
+            logged.filter { !$0.skipped }.compactMap(\.plannedSessionID)
+        )
         let remaining = week.sessions.filter { !completedIDs.contains($0.id) }
         guard !remaining.isEmpty else { return nil }
 

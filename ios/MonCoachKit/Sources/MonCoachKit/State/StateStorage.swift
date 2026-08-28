@@ -1,29 +1,30 @@
 import Foundation
-import MonCoachKit
 
 /// Reads and writes the app's state as a single JSON file.
 ///
 /// One file rather than a database: the whole state is a few hundred
 /// kilobytes at worst, it is trivially exportable, and a corrupt read costs
 /// the athlete nothing more than an onboarding they can redo.
-struct StateStorage {
+public struct StateStorage: Sendable {
 
-    let url: URL
+    public let url: URL
 
-    static let encoder: JSONEncoder = {
+    public init(url: URL) { self.url = url }
+
+    public static let encoder: JSONEncoder = {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         return encoder
     }()
 
-    static let decoder: JSONDecoder = {
+    public static let decoder: JSONDecoder = {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         return decoder
     }()
 
-    static func applicationSupport(fileName: String = "mon-coach.json") -> StateStorage {
+    public static func applicationSupport(fileName: String = "mon-coach.json") -> StateStorage {
         let base = (try? FileManager.default.url(
             for: .applicationSupportDirectory,
             in: .userDomainMask,
@@ -33,7 +34,7 @@ struct StateStorage {
         return StateStorage(url: base.appending(path: fileName))
     }
 
-    func load() -> PersistedState {
+    public func load() -> PersistedState {
         guard let data = try? Data(contentsOf: url) else { return .empty }
         do {
             return try Self.decoder.decode(PersistedState.self, from: data)
@@ -48,7 +49,7 @@ struct StateStorage {
         }
     }
 
-    func save(_ state: PersistedState) throws {
+    public func save(_ state: PersistedState) throws {
         let data = try Self.encoder.encode(state)
         // Atomic: a crash mid-write leaves the previous state intact.
         try data.write(to: url, options: [.atomic])

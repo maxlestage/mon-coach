@@ -9,8 +9,8 @@ qu'il change quand ceux-ci changent.** Tout le dépôt découle de ça.
 ```
 mon-coach/
 ├── ios/
-│   ├── MonCoachKit/     paquet Swift : tout le moteur de coaching, testé
-│   └── MonCoach/        application SwiftUI (projet Xcode)
+│   ├── MonCoachKit/     paquet Swift : moteur + état de l'app, testé
+│   └── MonCoach/        application SwiftUI — uniquement des vues
 ├── web/                 site produit — Bun + TypeScript + React
 └── tools/
     └── FixtureGenerator  génère les valeurs de référence partagées
@@ -40,14 +40,22 @@ séance du jour d'après un check-in de vingt secondes, et `AdaptationEngine`
 compare chaque semaine le prévu au réalisé pour corriger volume, calories et
 calendrier de décharge.
 
+Le paquet contient aussi la couche d'état de l'application — `CoachStore`,
+`StateStorage`, `ActiveSession`, `ProfileDraft` — parce qu'elle ne dépend que
+de Foundation et d'`Observation`, et qu'elle est donc testable hors de Xcode.
+C'est là que vivent la persistance, la reprise de séance et la logique
+« quelle séance aujourd'hui » : les endroits où un bug coûte un historique
+d'entraînement.
+
 ```bash
-swift test --package-path ios/MonCoachKit
+swift test --package-path ios/MonCoachKit   # 102 tests
 ```
 
 ## L'application
 
-SwiftUI, iOS 18, Swift 6. Les vues ne contiennent aucune logique de coaching :
-elles lisent `CoachStore`, qui est le seul endroit à parler au moteur.
+SwiftUI, iOS 18, Swift 6. Quatorze fichiers, et rien que des vues : toute la
+logique — coaching, état, persistance — vit dans `MonCoachKit`. Les écrans
+lisent `CoachStore` et appellent ses intentions, rien de plus.
 
 Ouvre `ios/MonCoach/MonCoach.xcodeproj` dans Xcode 16 ou supérieur. Le projet
 référence `MonCoachKit` comme paquet local — il n'y a rien à installer.
