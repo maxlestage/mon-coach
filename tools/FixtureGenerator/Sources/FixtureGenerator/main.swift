@@ -3,11 +3,17 @@
 //
 // Utilisation, depuis la racine du dépôt :
 //
-//   swift run --package-path tools/FixtureGenerator \
+//   swift run --package-path tools/FixtureGenerator moteur \
 //     > web/src/coach/__fixtures__/engine-reference.json
+//   swift run --package-path tools/FixtureGenerator exemples \
+//     > web/src/data/examples.json
 //
-// Le test `bun test` du site compare son propre calcul à ce fichier : toute
-// divergence entre l'application et le simulateur du site fait échouer la CI.
+// Le test `bun test` du site compare son propre calcul au premier fichier :
+// toute divergence entre l'application et le simulateur du site fait échouer
+// la CI. Le second contient ce que le site montre en exemple — une journée
+// de repas, une fiche technique, un remplacement d'exercice — produit par le
+// moteur lui-même plutôt que réécrit à la main, pour que la page ne puisse
+// pas promettre autre chose que ce que l'application fait.
 
 import Foundation
 import MonCoachKit
@@ -189,6 +195,13 @@ for (name, athlete) in scenarios {
 
 let encoder = JSONEncoder()
 encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-let data = try encoder.encode(cases)
+
+let data: Data
+switch CommandLine.arguments.dropFirst().first ?? "moteur" {
+case "exemples":
+    data = try encoder.encode(SiteExamples.build(on: referenceDate, calendar: calendar))
+default:
+    data = try encoder.encode(cases)
+}
 FileHandle.standardOutput.write(data)
 FileHandle.standardOutput.write(Data("\n".utf8))

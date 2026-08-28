@@ -42,8 +42,30 @@ public enum MealPlanner {
         "whey", "proteine-vegetale", "yaourt-soja",
     ]
     /// Les féculents du matin.
+    ///
+    /// Le sarrasin, les galettes de riz et les tortillas de maïs en font
+    /// partie pour une raison précise : sans eux, un athlète sans gluten
+    /// obtenait un petit-déjeuner sans aucun féculent, et la journée entière
+    /// ratait ses glucides de 10 % sans que rien ne le signale.
     static let breakfastCarbs: Set<String> = [
         "flocons-avoine", "pain-complet", "pain-blanc", "cracottes-seigle",
+        "sarrasin", "galettes-riz", "tortilla-mais",
+    ]
+
+    /// Les féculents d'un vrai repas.
+    ///
+    /// L'avoine et les tartines de seigle en sont volontairement absentes.
+    /// Ce n'est pas qu'une question de goût : elles portent 9 à 13 g de
+    /// protéines aux 100 g, et à 160 g dans une assiette elles ne laissent
+    /// plus rien à faire à la source protéique, qui tombe alors à une portion
+    /// symbolique — trente-cinq grammes de sardines.
+    /// Le pain n'y figure pas : à 13 g de protéines aux 100 g, deux cents
+    /// grammes de pain complet couvraient à eux seuls les protéines du dîner,
+    /// et le solveur supprimait le poisson. Un dîner sans source protéique
+    /// n'est pas un dîner, quels que soient les totaux.
+    static let mainCarbs: Set<String> = [
+        "riz-complet", "riz-blanc", "pates-completes", "pomme-de-terre",
+        "patate-douce", "quinoa", "sarrasin", "tortilla-mais",
     ]
 
     static func pool(
@@ -107,11 +129,14 @@ public enum MealPlanner {
         carb: Food?,
         fat: Food?,
         fixed: [Food],
+        vegetableGrams: Double? = nil,
         target: Macros
     ) -> [MealItem] {
         var foods: [String: Food] = [:]
         for food in fixed + [protein, carb, fat].compactMap({ $0 }) { foods[food.id] = food }
-        var grams: [String: Double] = foods.mapValues(\.portionG)
+        var grams: [String: Double] = foods.mapValues { food in
+            food.role == .vegetable ? (vegetableGrams ?? food.portionG) : food.portionG
+        }
 
         func macros(excluding id: String) -> Macros {
             grams.reduce(into: Macros.zero) { total, entry in
@@ -122,7 +147,14 @@ public enum MealPlanner {
 
         func fit(_ food: Food, needed: Double, per100: Double, range: ClosedRange<Double>) {
             guard per100 > 0 else { return }
-            grams[food.id] = (needed / per100 * 100).clamped(to: range)
+            var amount = (needed / per100 * 100).clamped(to: range)
+            // Une source protéique qu'on garde est servie en portion : sous
+            // 40 % de sa portion habituelle, on la remonte plutôt que de
+            // prescrire trente-cinq grammes de sardines. Les glucides, qui
+            // sont ajustés après, absorbent la différence.
+            let floor = minimumGrams(for: food)
+            if amount > 0 && amount < floor { amount = min(floor, range.upperBound) }
+            grams[food.id] = amount
         }
 
         // Aucune borne basse au-dessus de zéro : quand les autres aliments
@@ -135,7 +167,7 @@ public enum MealPlanner {
                     protein,
                     needed: target.proteinG - macros(excluding: protein.id).proteinG,
                     per100: protein.proteinG,
-                    range: 0...350
+                    range: 0...maximumGrams(for: protein)
                 )
             }
             if let fat {
@@ -146,7 +178,7 @@ public enum MealPlanner {
                     fat,
                     needed: target.fatG - macros(excluding: fat.id).fatG,
                     per100: fat.fatG,
-                    range: 0...min(60, max(15, fat.portionG * 2))
+                    range: 0...maximumGrams(for: fat)
                 )
             }
             if let carb {
@@ -154,7 +186,7 @@ public enum MealPlanner {
                     carb,
                     needed: target.carbsG - macros(excluding: carb.id).carbsG,
                     per100: carb.carbsG,
-                    range: 0...400
+                    range: 0...maximumGrams(for: carb)
                 )
             }
         }
@@ -171,20 +203,84 @@ public enum MealPlanner {
             }
         }
 
+        // Un repas garde sa source de protéines, même quand les autres
+        // aliments couvrent déjà la cible : c'est ce que l'athlète va cuisiner,
+        // et une assiette de riz et de haricots verts ne se présente pas comme
+        // un dîner sous prétexte que le total tombe juste.
+        if let protein, grams[protein.id] == nil {
+            grams[protein.id] = minimumGrams(for: protein)
+            foods[protein.id] = protein
+        }
+
         // Des quantités pesables : au gramme près pour les huiles et les
         // oléagineux, au multiple de 5 g pour le reste. Personne ne pèse
         // 187 g de riz.
         return foods.keys
             .compactMap { id -> MealItem? in
                 guard let food = foods[id], let raw = grams[id] else { return nil }
-                let step: Double = food.role == .fat && food.portionG <= 30 ? 1 : 5
-                let rounded = max(step, (raw / step).rounded() * step)
-                return MealItem(foodID: id, grams: rounded, macros: food.macros(grams: rounded))
+                let amount = rounded(raw, for: food)
+                return MealItem(foodID: id, grams: amount, macros: food.macros(grams: amount))
             }
             .sorted { left, right in
                 let lhs = roleOrder(left), rhs = roleOrder(right)
                 return lhs == rhs ? left.foodID < right.foodID : lhs < rhs
             }
+    }
+
+    /// Arrondit une quantité à un multiple pesable, sans jamais franchir le
+    /// plafond de l'aliment.
+    ///
+    /// L'arrondi se fait vers le bas quand il ferait dépasser : 242 g de pain
+    /// arrondis à 245 g resteraient trois grammes au-dessus du plafond, et un
+    /// plafond qu'on dépasse de trois grammes n'est plus un plafond.
+    static func rounded(_ amount: Double, for food: Food) -> Double {
+        let step: Double = food.role == .fat && food.portionG <= 30 ? 1 : 5
+        let ceiling = (maximumGrams(for: food) / step).rounded(.down) * step
+        // Le plancher vaut ici aussi : les corrections d'après-coup rognent
+        // les protéines, et sans lui elles ramenaient le saumon à 40 g.
+        let floor = min(ceiling, max(step, (minimumGrams(for: food) / step).rounded(.up) * step))
+        let value = (amount / step).rounded() * step
+        return min(max(value, floor), ceiling)
+    }
+
+    /// La plus petite quantité qui reste une portion.
+    static func minimumGrams(for food: Food) -> Double {
+        switch food.role {
+        case .protein: food.portionG * 0.4
+        case .carb: food.portionG * 0.25
+        case .fat: 3
+        default: 10
+        }
+    }
+
+    /// La quantité maximale servie d'un aliment.
+    ///
+    /// Elle est définie ici plutôt qu'à l'intérieur du solveur parce que les
+    /// corrections d'après-coup doivent la respecter aussi : sans ça, une
+    /// correction calorique pouvait faire grimper une portion sans limite.
+    ///
+    /// Pour les féculents, le plafond est en calories et non en grammes.
+    /// Un plafond en grammes traite 400 g de riz et 400 g de pommes de terre
+    /// comme équivalents, alors que le premier apporte trois fois plus
+    /// d'énergie — et il rend le total inatteignable pour un athlète sans
+    /// gluten, dont les féculents disponibles sont justement les moins denses.
+    static func maximumGrams(for food: Food) -> Double {
+        switch food.role {
+        case .protein:
+            350
+        case .carb:
+            // Aucune assiette de féculent ne dépasse 600 kcal, ni 700 g.
+            min(700, 600 / max(0.4, food.kcal / 100))
+        case .fat:
+            // Les graines sont très riches en fibres : quarante grammes de
+            // chia apportent à eux seuls un tiers de la journée. Une fois et
+            // demie la portion suffit.
+            min(60, max(15, food.portionG * 1.5))
+        case .fruit:
+            300
+        case .vegetable, .dairy, .drink, .treat:
+            400
+        }
     }
 
     static func roleOrder(_ item: MealItem) -> Int {
@@ -211,6 +307,7 @@ public enum MealPlanner {
         let carbPool: [Food]
         var fatPool: [Food] = []
         var fixed: [Food] = []
+        var vegetableGrams: Double? = nil
 
         switch slot {
         case .breakfast:
@@ -223,7 +320,7 @@ public enum MealPlanner {
             }
         case .lunch, .dinner:
             proteinPool = pool(role: .protein, diet: diet, excluding: excluded)
-            carbPool = pool(role: .carb, diet: diet, excluding: excluded)
+            carbPool = pool(role: .carb, diet: diet, excluding: excluded, restrictedTo: mainCarbs)
             fatPool = pool(role: .fat, diet: diet, excluding: excluded)
             // Deux légumes différents : c'est là que se joue le volume de
             // l'assiette, et donc la sensation d'avoir vraiment mangé.
@@ -232,6 +329,11 @@ public enum MealPlanner {
             if let second = pick(vegetables.filter { $0.id != fixed.first?.id }, seed: seed + 5) {
                 fixed.append(second)
             }
+            // Deux légumes à 200 g dans chaque repas principal font 800 g de
+            // légumes par jour, et à eux seuls la moitié d'un excès de fibres
+            // qui rend la journée pénible à tenir. 150 g chacun restent deux
+            // vraies portions.
+            vegetableGrams = 150
         case .snack:
             proteinPool = pool(role: .protein, diet: diet, excluding: excluded, restrictedTo: breakfastProteins)
             carbPool = pool(role: .fruit, diet: diet, excluding: excluded)
@@ -252,6 +354,7 @@ public enum MealPlanner {
             carb: pick(carbPool, seed: seed + 1),
             fat: pick(fatPool, seed: seed + 3),
             fixed: fixed,
+            vegetableGrams: vegetableGrams,
             target: target
         )
         return Meal(slot: slot, items: items, note: note(for: slot))
@@ -331,6 +434,23 @@ public enum MealPlanner {
 
         let corrected = balance(meals, toward: dayTarget)
         var dayNotes = notes(target: target, diet: diet, runsToday: runsToday)
+
+        // Une journée d'aliments entiers, et surtout une journée végétarienne
+        // où les légumineuses portent les protéines, dépasse largement la
+        // recommandation de fibres. Ce n'est pas une erreur du plan, mais ce
+        // n'est pas non plus anodin : on le dit plutôt que d'appauvrir
+        // l'assiette pour faire tomber un chiffre.
+        let fibre = corrected.map(\.macros).total.fiberG
+        let recommended = dayTarget.kcal / 1_000 * 14
+        if fibre > recommended * 1.5 {
+            dayNotes.append(
+                LocalizedText(
+                    fr: "Cette journée apporte \(Int(fibre)) g de fibres, pour \(Int(recommended)) g recommandés. C'est volontaire — ce sont les légumineuses et les légumes qui portent tes protéines — mais si tu n'en manges pas autant d'habitude, monte progressivement sur deux semaines et bois davantage : le passage brutal est ce qui rend les fibres désagréables, pas les fibres elles-mêmes.",
+                    en: "This day brings \(Int(fibre)) g of fibre against \(Int(recommended)) g recommended. That is deliberate — pulses and vegetables are carrying your protein — but if you do not normally eat that much, ramp up over two weeks and drink more: it is the sudden jump that makes fibre unpleasant, not the fibre itself.",
+                    es: "Este día aporta \(Int(fibre)) g de fibra frente a los \(Int(recommended)) g recomendados. Es intencionado —las legumbres y las verduras llevan tu proteína— pero si no sueles comer tanta, súbela poco a poco durante dos semanas y bebe más: lo que hace desagradable la fibra es el salto brusco, no la fibra."
+                )
+            )
+        }
         let powders = corrected
             .flatMap(\.items)
             .filter { ["whey", "proteine-vegetale"].contains($0.foodID) }
@@ -412,8 +532,7 @@ public enum MealPlanner {
             var corrected = meal
             corrected.items = meal.items.compactMap { item in
                 guard let food = item.food, food.role == role else { return item }
-                let step: Double = food.role == .fat && food.portionG <= 30 ? 1 : 5
-                let grams = max(step, (item.grams * scale / step).rounded() * step)
+                let grams = rounded(item.grams * scale, for: food)
                 return MealItem(foodID: item.foodID, grams: grams, macros: food.macros(grams: grams))
             }
             return corrected

@@ -100,7 +100,11 @@ struct MealPlannerTests {
                 let drift = day.drift
                 let context = "\(goal.rawValue) / \(diet.rawValue)"
                 #expect(abs(drift.kcal) <= 0.08, Comment(rawValue: "\(context) kcal \(Int(drift.kcal * 100)) %"))
-                #expect(abs(drift.proteinG) <= 0.10, Comment(rawValue: "\(context) P \(Int(drift.proteinG * 100)) %"))
+                // Douze pour cent et non dix : le plancher de portion peut
+                // faire dépasser légèrement sur un objectif à protéines
+                // basses. Douze grammes de protéines en trop n'ont aucune
+                // conséquence ; trente grammes de poulet dans une assiette, si.
+                #expect(abs(drift.proteinG) <= 0.12, Comment(rawValue: "\(context) P \(Int(drift.proteinG * 100)) %"))
                 #expect(abs(drift.fatG) <= 0.25, Comment(rawValue: "\(context) L \(Int(drift.fatG * 100)) %"))
                 #expect(abs(drift.carbsG) <= 0.20, Comment(rawValue: "\(context) G \(Int(drift.carbsG * 100)) %"))
             }
@@ -194,14 +198,77 @@ struct MealPlannerTests {
         #expect(first.meals.map { $0.items } == second.meals.map { $0.items })
     }
 
-    @Test("Les quantités sont pesables, jamais des miettes")
+    @Test("Aucune portion ne dépasse ce qu'on sert vraiment, correction comprise")
     func portionsArePractical() {
-        let week = MealPlanner.week(target: Self.target(.fatLoss))
-        for item in week.flatMap(\.meals).flatMap(\.items) {
-            #expect(item.grams >= 3, Comment(rawValue: "\(item.foodID) : \(item.grams) g"))
-            #expect(item.grams <= 450, Comment(rawValue: "\(item.foodID) : \(item.grams) g"))
-            let step: Double = item.food?.role == .fat ? 1 : 5
-            #expect(item.grams.truncatingRemainder(dividingBy: step) == 0, Comment(rawValue: item.foodID))
+        // La correction calorique s'applique après le solveur : c'est
+        // précisément là qu'une portion pouvait franchir son plafond sans que
+        // personne ne le voie.
+        for goal in PrimaryGoal.allCases {
+            for diet in DietPreference.allCases {
+                let week = MealPlanner.week(target: Self.target(goal), diet: diet)
+                for item in week.flatMap(\.meals).flatMap(\.items) {
+                    guard let food = item.food else { continue }
+                    let context = "\(goal.rawValue)/\(diet.rawValue) \(item.foodID) : \(Int(item.grams)) g"
+                    #expect(item.grams >= 3, Comment(rawValue: context))
+                    #expect(
+                        item.grams <= MealPlanner.maximumGrams(for: food),
+                        Comment(rawValue: context)
+                    )
+                    // Aucune assiette de féculent au-delà de 600 kcal.
+                    if food.role == .carb {
+                        #expect(item.macros.kcal <= 610, Comment(rawValue: context))
+                    }
+                    let step: Double = food.role == .fat ? 1 : 5
+                    #expect(item.grams.truncatingRemainder(dividingBy: step) == 0, Comment(rawValue: context))
+                }
+            }
+        }
+    }
+
+    @Test("Une source de protéines n'est jamais servie en portion symbolique")
+    func proteinPortionsAreReal() {
+        // Trente-cinq grammes de sardines n'est pas une prescription, c'est
+        // une garniture. Ce qui compte n'est pas la part des protéines du
+        // repas — un porridge au fromage blanc en apporte légitimement autant
+        // que le fromage blanc — mais que la portion servie en reste une.
+        for goal in PrimaryGoal.allCases {
+            for diet in DietPreference.allCases {
+                for index in 0..<7 {
+                    let day = MealPlanner.day(target: Self.target(goal), diet: diet, dayIndex: index)
+                    for item in day.meals.flatMap(\.items) {
+                        guard let food = item.food else { continue }
+                        #expect(
+                            item.grams >= MealPlanner.minimumGrams(for: food) - 5,
+                            Comment(rawValue: "\(goal.rawValue)/\(diet.rawValue) : \(Int(item.grams)) g de \(food.id), portion habituelle \(Int(food.portionG)) g")
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    @Test("Les fibres restent dans une fourchette tenable, et l'excès est annoncé")
+    func fibreStaysReasonable() {
+        // Une grosse journée d'aliments entiers dépasse la recommandation, et
+        // c'est normal — surtout en végétarien, où les légumineuses portent
+        // les protéines. Ce qui ne serait pas normal, c'est de la servir sans
+        // le dire, ou de tripler la recommandation.
+        for goal in PrimaryGoal.allCases {
+            for diet in DietPreference.allCases {
+                let day = MealPlanner.day(target: Self.target(goal), diet: diet, dayIndex: 2)
+                let recommended = day.target.kcal / 1_000 * 14
+                let context = "\(goal.rawValue)/\(diet.rawValue) : \(Int(day.macros.fiberG)) g pour \(Int(recommended)) g"
+                #expect(day.macros.fiberG >= recommended * 0.8, Comment(rawValue: context))
+                #expect(day.macros.fiberG <= recommended * 2.3, Comment(rawValue: context))
+
+                // Au-delà d'une fois et demie, la journée doit le signaler.
+                if day.macros.fiberG > recommended * 1.5 {
+                    #expect(
+                        day.notes.contains { $0.fr.contains("fibres") && $0.fr.contains("progressivement") },
+                        Comment(rawValue: "excès de fibres non signalé — \(context)")
+                    )
+                }
+            }
         }
     }
 

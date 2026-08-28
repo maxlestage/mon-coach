@@ -29,23 +29,38 @@ struct DumpTests {
 @Suite("Inspection alimentaire", .disabled("outil de diagnostic : à activer à la main"))
 struct DumpFoodTests {
     @Test func dumpDay() {
-        let profile = Fixtures.intermediate(goal: .fatLoss)
+        let profile = Fixtures.intermediate(goal: .hypertrophy)
         let program = CoachEngine.buildProgram(for: profile, startingOn: Fixtures.start, calendar: Fixtures.calendar)
         let target = program.nutrition
         print("CIBLE:", target.calories, "kcal | P", target.proteinG, "G", target.carbsG, "L", target.fatG)
-        for diet in [DietPreference.omnivore, .vegan] {
+        for diet in [DietPreference.omnivore] {
             print("\n===== \(diet.rawValue) =====")
             let day = MealPlanner.day(target: target, diet: diet, dayIndex: 2, mealsPerDay: 4, trainsToday: true)
             for meal in day.meals {
                 let m = meal.macros
                 print("  [\(meal.slot.rawValue)] \(Int(m.kcal)) kcal — P\(Int(m.proteinG)) G\(Int(m.carbsG)) L\(Int(m.fatG))")
                 for item in meal.items {
-                    print("      \(Int(item.grams)) g  \(item.food?.name.fr ?? item.foodID)  [\(item.food?.tier.rawValue ?? "?")]")
+                    print("      \(Int(item.grams)) g  \(item.food?.name.fr ?? item.foodID)  fibres \(Int(item.macros.fiberG)) g")
                 }
             }
             let t = day.macros, d = day.drift
             print("  TOTAL: \(Int(t.kcal)) kcal P\(Int(t.proteinG)) G\(Int(t.carbsG)) L\(Int(t.fatG)) fibres \(Int(t.fiberG))")
             print("  ÉCART: kcal \(Int(d.kcal*100))% P \(Int(d.proteinG*100))% G \(Int(d.carbsG*100))% L \(Int(d.fatG*100))%")
+        }
+    }
+}
+
+@Suite("Inspection salle", .disabled("outil de diagnostic : à activer à la main"))
+struct DumpGymTests {
+    @Test func dumpSubstitutions() {
+        let profile = Fixtures.intermediate()
+        for id in ["back-squat", "bench-press", "conventional-deadlift", "lat-pulldown", "lateral-raise", "leg-press"] {
+            guard let exercise = ExerciseCatalog.exercise(id: id) else { continue }
+            print("\n=== \(exercise.name.fr) [\(exercise.primaryMuscle.rawValue) / \(exercise.pattern.rawValue)]")
+            for option in GymCoach.substitutions(for: exercise, profile: profile, excludingEquipment: exercise.equipment) {
+                let e = option.exercise
+                print("   \(option.closeness)  \(e.name.fr)  [\(e.primaryMuscle.rawValue) / \(e.pattern.rawValue)] \(e.equipment.map(\.rawValue).sorted().joined(separator: "+"))")
+            }
         }
     }
 }

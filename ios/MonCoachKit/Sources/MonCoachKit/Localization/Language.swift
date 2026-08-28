@@ -109,6 +109,23 @@ extension Array where Element == LocalizedText {
         )
     }
 
+    /// Assemble une énumération comme une phrase : « a, b et c ».
+    ///
+    /// La conjonction finale change avec la langue, ce qu'un simple
+    /// séparateur ne sait pas faire — et « squat et développé » se lit,
+    /// « squat, développé » se subit.
+    public func joinedNaturally() -> LocalizedText {
+        guard count > 1 else { return first ?? LocalizedText.constant("") }
+        let conjunction = LocalizedText(fr: " et ", en: " and ", es: " y ")
+        let head = Array(dropLast()).joined(separator: ", ")
+        let tail = self[count - 1]
+        return LocalizedText(
+            fr: head.fr + conjunction.fr + tail.fr,
+            en: head.en + conjunction.en + tail.en,
+            es: head.es + conjunction.es + tail.es
+        )
+    }
+
     /// Trie sur la version française, pour que l'ordre d'une énumération soit
     /// le même dans les trois langues : un athlète bilingue qui change de
     /// langue ne doit pas voir sa liste se réorganiser.

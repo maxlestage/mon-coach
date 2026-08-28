@@ -497,6 +497,19 @@ public enum FoodCatalog {
             )
         ),
         Food(
+            id: "galettes-riz",
+            name: LocalizedText(fr: "Galettes de riz complet", en: "Brown rice cakes", es: "Tortitas de arroz integral"),
+            role: .carb, tier: .moderate,
+            kcal: 387, proteinG: 8.5, carbsG: 81.0, fatG: 3.0, fiberG: 4.2,
+            portionG: 30,
+            diets: Set(DietPreference.allCases),
+            reason: LocalizedText(
+                fr: "Sans gluten et faciles à transporter, mais très peu rassasiantes : elles servent de support à autre chose, pas de repas.",
+                en: "Gluten-free and easy to carry, but barely filling: they are a base for something else, not a meal.",
+                es: "Sin gluten y fáciles de llevar, pero poco saciantes: son la base de otra cosa, no una comida."
+            )
+        ),
+        Food(
             id: "cracottes-seigle",
             name: LocalizedText(fr: "Tartines de seigle", en: "Rye crispbread", es: "Pan crujiente de centeno"),
             role: .carb, tier: .base,
