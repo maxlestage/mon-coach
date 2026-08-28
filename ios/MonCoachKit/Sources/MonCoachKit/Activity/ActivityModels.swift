@@ -90,6 +90,10 @@ public struct ActivityLog: Codable, Sendable, Equatable, Identifiable {
     /// coûte aux jambes ce qu'elle ne coûte plus au souffle.
     public var elevationLoss: Double
     public var splits: [Split]
+    /// Les meilleurs efforts trouvés dans cette activité, calculés une seule
+    /// fois. `nil` pour une activité enregistrée avant qu'ils existent ;
+    /// un tableau vide veut dire « calculé, rien trouvé ».
+    public var bestEfforts: [BestEffort]?
     /// Effort ressenti, 1 à 10, saisi après la sortie.
     public var perceivedEffort: Int?
     public var note: String?
@@ -105,6 +109,7 @@ public struct ActivityLog: Codable, Sendable, Equatable, Identifiable {
         elevationGain: Double,
         elevationLoss: Double = 0,
         splits: [Split] = [],
+        bestEfforts: [BestEffort]? = nil,
         perceivedEffort: Int? = nil,
         note: String? = nil
     ) {
@@ -118,6 +123,7 @@ public struct ActivityLog: Codable, Sendable, Equatable, Identifiable {
         self.elevationGain = elevationGain
         self.elevationLoss = elevationLoss
         self.splits = splits
+        self.bestEfforts = bestEfforts
         self.perceivedEffort = perceivedEffort
         self.note = note
     }
@@ -136,6 +142,7 @@ public struct ActivityLog: Codable, Sendable, Equatable, Identifiable {
         duration = try container.decode(TimeInterval.self, forKey: .duration)
         elevationGain = try container.decode(Double.self, forKey: .elevationGain)
         splits = try container.decode([Split].self, forKey: .splits)
+        bestEfforts = try container.decodeIfPresent([BestEffort].self, forKey: .bestEfforts)
         perceivedEffort = try container.decodeIfPresent(Int.self, forKey: .perceivedEffort)
         note = try container.decodeIfPresent(String.self, forKey: .note)
     }

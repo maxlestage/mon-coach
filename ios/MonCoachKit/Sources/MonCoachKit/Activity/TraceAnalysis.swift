@@ -298,9 +298,10 @@ public enum TraceAnalysis {
     ) -> ActivityLog {
         let filter = filter ?? sport.filter
         let trace = clean(rawPoints, filter: filter)
+        let startedAt = trace.samples.first?.point.timestamp ?? Date()
         return ActivityLog(
             id: id,
-            startedAt: trace.samples.first?.point.timestamp ?? Date(),
+            startedAt: startedAt,
             sport: sport,
             type: type,
             points: rawPoints,
@@ -309,6 +310,10 @@ public enum TraceAnalysis {
             elevationGain: trace.elevationGain,
             elevationLoss: trace.elevationLoss,
             splits: splits(of: trace, elevationThreshold: filter.elevationThreshold),
+            // Calculés ici, où la trace nettoyée est déjà là.
+            bestEfforts: BestEfforts.efforts(
+                in: trace, activityID: id, date: startedAt, sport: sport
+            ),
             perceivedEffort: perceivedEffort,
             note: note
         )
