@@ -51,9 +51,9 @@ enum WatchUI {
     )
     static let food = LocalizedText(fr: "À manger", en: "To eat", es: "Para comer")
     static let credit = LocalizedText(
-        fr: "Créé et fait par Maxime Nathan Lestage",
-        en: "Created and built by Maxime Nathan Lestage",
-        es: "Creado y hecho por Maxime Nathan Lestage"
+        fr: "Conçu et développé par Maxime Nathan Lestage",
+        en: "Designed and developed by Maxime Nathan Lestage",
+        es: "Diseñado y desarrollado por Maxime Nathan Lestage"
     )
 
     static func week(_ index: Int, deload: Bool) -> LocalizedText {

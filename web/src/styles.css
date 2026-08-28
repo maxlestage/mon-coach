@@ -107,16 +107,16 @@ button {
   text-decoration: none;
 }
 
+/* La marque est un SVG dessiné par tools/brand/generate.py : le CSS ne fait
+   plus que la poser. La taille vient de l'attribut du composant, pas d'ici,
+   pour que le dessin ne soit jamais mis à l'échelle par deux mécanismes à la
+   fois. L'ombre portée détache la plaque du fond du site, qui est presque
+   aussi sombre qu'elle. */
 .brand__mark {
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 9px;
-  background: var(--accent);
-  color: var(--bg-deep);
-  font-size: 15px;
-  font-weight: 800;
+  display: block;
+  flex: none;
+  border-radius: 22.5%;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.5), 0 0 0 1px rgb(255 255 255 / 0.06);
 }
 
 .site-nav {

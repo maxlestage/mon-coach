@@ -139,3 +139,37 @@ jobs:
             echo "Lance : swift run --package-path tools/FixtureGenerator exemples > web/src/data/examples.json"
             exit 1
           fi
+
+  marque:
+    name: Marque
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Installation de Pillow
+        # Pas de version épinglée : seules les sorties textuelles sont
+        # comparées, et elles ne dépendent pas du rasteriseur.
+        run: pip install pillow
+      - name: Régénération de la marque
+        run: python3 tools/brand/generate.py
+      - name: Le dessin du site est bien celui du générateur
+        run: |
+          # Seules les sorties textuelles sont comparées. Le rendu des PNG
+          # dépend de l'anticrénelage de Pillow, qui peut changer d'une
+          # version à l'autre sans que le dessin change : le comparer
+          # octet à octet ferait échouer la CI pour rien. Le composant React,
+          # le SVG et les favicons, eux, sont déterministes — et ce sont eux
+          # qu'une retouche à la main ferait diverger des icônes.
+          if ! git diff --exit-code -- \
+            web/src/components/BrandMark.tsx \
+            web/src/icons/mark.svg \
+            web/src/index.html \
+            web/src/mentions-legales.html \
+            web/src/confidentialite.html \
+            web/src/conditions.html; then
+            echo "::error::La marque a été retouchée à la main au lieu d'être régénérée."
+            echo "Modifie la géométrie dans tools/brand/generate.py puis lance : python3 tools/brand/generate.py"
+            exit 1
+          fi

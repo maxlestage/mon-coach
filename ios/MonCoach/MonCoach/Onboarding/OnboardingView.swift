@@ -151,7 +151,7 @@ struct OnboardingView: View {
             }
             .padding(.top, 6)
 
-            Text("Créé et fait par Maxime Nathan Lestage")
+            Text("Conçu et développé par Maxime Nathan Lestage")
                 .font(Theme.captionFont)
                 .foregroundStyle(Theme.secondaryText)
                 .padding(.top, 10)

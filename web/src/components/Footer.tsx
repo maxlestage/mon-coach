@@ -1,11 +1,12 @@
 import { useCopy } from "../i18n/language.tsx";
+import { BrandMark } from "./BrandMark.tsx";
 import { LanguageSwitcher } from "./LanguageSwitcher.tsx";
 
 const copy = {
   fr: {
     tagline:
       "Un coach de musculation et de course qui s'adapte à toi, pas l'inverse. Calculé sur ton appareil, jamais sur un serveur.",
-    credit: "Créé et fait par",
+    credit: "Conçu et développé par",
     product: "Produit",
     profile: "Ce qu'il sait de toi",
     engine: "Le moteur",
@@ -32,7 +33,7 @@ const copy = {
   en: {
     tagline:
       "A strength and running coach that adapts to you, not the other way round. Computed on your device, never on a server.",
-    credit: "Created and built by",
+    credit: "Designed and developed by",
     product: "Product",
     profile: "What it knows about you",
     engine: "The engine",
@@ -59,7 +60,7 @@ const copy = {
   es: {
     tagline:
       "Un entrenador de fuerza y carrera que se adapta a ti, no al revés. Calculado en tu dispositivo, nunca en un servidor.",
-    credit: "Creado y hecho por",
+    credit: "Diseñado y desarrollado por",
     product: "Producto",
     profile: "Lo que sabe de ti",
     engine: "El motor",
@@ -99,7 +100,7 @@ export function Footer() {
         <div className="site-footer__grid">
           <div className="site-footer__brand">
             <a className="brand" href="/">
-              <span className="brand__mark" aria-hidden="true">M</span>
+              <BrandMark className="brand__mark" size={34} />
               Mon&nbsp;Coach
             </a>
             <p className="site-footer__tagline">{t.tagline}</p>
@@ -117,7 +118,6 @@ export function Footer() {
             <a href="/#course">{t.running}</a>
             <a href="/#alimentation">{t.food}</a>
             <a href="/#salle">{t.gym}</a>
-          <a href="/#salle">{t.gym}</a>
             <a href="/#montre">{t.watch}</a>
             <a href="/#tarifs">{t.pricing}</a>
           </nav>

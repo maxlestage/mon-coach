@@ -1,4 +1,5 @@
 import { useCopy } from "../i18n/language.tsx";
+import { BrandMark } from "./BrandMark.tsx";
 import { LanguageSwitcher } from "./LanguageSwitcher.tsx";
 
 const copy = {
@@ -50,9 +51,7 @@ export function Header() {
     <header className="site-header">
       <div className="shell site-header__inner">
         <a className="brand" href="/">
-          <span className="brand__mark" aria-hidden="true">
-            M
-          </span>
+          <BrandMark className="brand__mark" size={30} />
           Mon&nbsp;Coach
         </a>
         <nav className="site-nav" aria-label={t.nav}>
