@@ -1,0 +1,12 @@
+{
+  "name": "mon-coach",
+  "private": true,
+  "description": "Racine du dépôt. Ce fichier existe pour le buildpack Bun de Heroku, qui cherche un package.json à la racine et lance `bun start` : le site, lui, vit dans web/.",
+  "scripts": {
+    "build": "cd web && bun install --frozen-lockfile && bun run build",
+    "start": "cd web && ([ -d dist ] || (bun install --frozen-lockfile && bun run build)) && bun run ./serve.ts"
+  },
+  "engines": {
+    "bun": "1.4.0"
+  }
+}
