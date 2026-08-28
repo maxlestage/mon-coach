@@ -41,27 +41,20 @@ statiques : n'importe quelle taille de dyno suffit largement.
 4. **Region** : *Europe*.
 5. **Create app**.
 
-### ⚠️ Ne connecte pas GitHub depuis Heroku
+### Choisis un chemin, et un seul
 
-Sur la page de l'application, l'onglet **Deploy** propose *Connect to GitHub*.
-**Ne l'utilise pas.** C'est le piège le plus facile à tomber dedans, parce que
-c'est le bouton le plus visible.
+Deux façons de déployer coexistent dans ce dépôt. **N'en active qu'une** :
+sinon chaque fusion déclenche deux déploiements concurrents.
 
-Si tu le fais, Heroku construit le dépôt lui-même, avec ses buildpacks, depuis
-la racine — où il n'y a pas de `package.json`, puisque le site vit dans
-`web/`. La construction échoue avec ce message :
+| | Chemin A — GitHub Actions | Chemin B — Heroku |
+| --- | --- | --- |
+| Qui construit | GitHub, en image Docker | Heroku, avec un buildpack Bun |
+| À configurer | un secret `HEROKU_API_KEY` | un buildpack, dans le tableau de bord |
+| Version de Bun | épinglée par le `Dockerfile` | celle du buildpack |
+| Connexion GitHub côté Heroku | **débranchée** | branchée |
 
-```
-ERROR: Application not supported by 'heroku/nodejs' buildpack
-The 'heroku/nodejs' buildpack is set on this application, but was
-unable to detect a Node.js codebase.
-```
-
-C'est GitHub Actions qui déploie, et lui sait où chercher.
-
-**Si tu l'as déjà connecté** : onglet **Deploy** → section *App connected to
-GitHub* → **Disconnect**. Sinon les deux systèmes déploieront en parallèle, et
-celui de Heroku échouera à chaque fois.
+Le chemin A est décrit ci-dessous. Pour le chemin B, saute à
+[Chemin B](#chemin-b--laisser-heroku-construire).
 
 ## 2. Récupérer la clé d'API Heroku
 
@@ -139,14 +132,40 @@ la CI le construit à chaque pull request, lance le conteneur et vérifie qu'il
 sert bien la page, que les fichiers versionnés sont mis en cache un an, et
 qu'une route inconnue retombe sur la page d'accueil.
 
+## Chemin B — laisser Heroku construire
+
+Si tu préfères ne rien saisir dans GitHub, Heroku peut construire lui-même. Il
+lui faut un buildpack qui connaisse Bun, parce que le sien ne le connaît pas.
+
+1. Tableau de bord → ton application → **Settings** → section **Buildpacks** →
+   **Add buildpack** → colle l'URL d'un buildpack Bun → **Save changes**.
+   Retire le buildpack `heroku/nodejs` s'il est présent : il ne sait pas
+   construire ce dépôt.
+2. Onglet **Deploy** → *Deployment method* → **GitHub** → connecte le dépôt →
+   **Enable Automatic Deploys** sur `master`.
+3. Ne renseigne **pas** le secret `HEROKU_API_KEY` : le workflow de GitHub
+   Actions resterait au repos, mais autant ne pas armer deux systèmes.
+
+Le `package.json` à la racine du dépôt existe pour ce chemin, et rien d'autre :
+le buildpack cherche un `package.json` à la racine et lance `bun start`. Ce
+script entre dans `web/`, installe les dépendances et construit le site s'il ne
+l'est pas déjà, puis le sert. Un job de CI (**Démarrage Heroku**) exécute cette
+commande exacte depuis un dépôt fraîchement cloné à chaque pull request, pour
+qu'elle ne casse pas sans qu'on le sache.
+
 ## Quand ça se passe mal
 
 **« Application not supported by 'heroku/nodejs' buildpack »**
-Heroku construit le dépôt lui-même au lieu de laisser GitHub Actions le faire.
-Va dans l'onglet **Deploy** de l'application et fais **Disconnect** sur la
-connexion GitHub. Si le log mentionne aussi `This directory has the following
-files: README.md`, c'est que `master` est encore vide : la pull request n'a
-pas été fusionnée.
+Heroku construit le dépôt avec son buildpack Node, qui ne sait pas faire.
+Soit tu passes au chemin A (**Deploy** → **Disconnect**), soit tu remplaces le
+buildpack par un buildpack Bun (chemin B). Si le log mentionne aussi
+`This directory has the following files: README.md`, c'est que `master` est
+encore vide : la pull request n'a pas été fusionnée.
+
+**« error: Script not found "start" »**
+Le buildpack Bun a construit l'application mais n'a trouvé aucun script à
+lancer. C'est que le `package.json` de la racine est absent de la branche
+déployée : vérifie que `master` est bien à jour.
 
 **Le workflow « Déploiement » n'apparaît pas dans l'onglet Actions**
 Il n'est pas encore sur `master`. Fusionne la pull request.

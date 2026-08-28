@@ -59,6 +59,29 @@ jobs:
           docker rm -f mon-coach-web
           echo "L'image sert le site, les assets versionnés sont mis en cache, les routes inconnues retombent sur la page."
 
+  demarrage-heroku:
+    name: Démarrage Heroku
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.0
+      - name: Démarrer comme le fait Heroku, depuis un dépôt fraîchement cloné
+        run: |
+          # `bun start` à la racine est la commande que lance le buildpack Bun.
+          # Elle part ici d'un dépôt sans dist/, donc du cas le plus défavorable :
+          # installation, construction et service dans le même souffle.
+          PORT=8090 bun start > /tmp/start.log 2>&1 &
+          for attempt in $(seq 1 60); do
+            curl -sf http://127.0.0.1:8090/ -o /tmp/page.html && break
+            sleep 1
+          done
+          cat /tmp/start.log
+          grep -q "Mon Coach" /tmp/page.html
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8090/route-inconnue)" = "404"
+          echo "Le démarrage à froid sert bien le site."
+
   coherence:
     name: Cohérence app / site
     runs-on: ubuntu-latest
