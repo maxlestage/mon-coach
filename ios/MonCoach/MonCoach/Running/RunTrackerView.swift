@@ -188,7 +188,12 @@ struct RunTrackerView: View {
                             label: UI.duration[language]
                         )
                         StatTile(
-                            value: Format.pace(secondsPerKm: tracker.recentPaceSecondsPerKm, unit: unit),
+                            value: Format.speedOrPace(
+                                sport: tracker.sport,
+                                secondsPerKm: tracker.recentPaceSecondsPerKm,
+                                unit: unit,
+                                language: language
+                            ),
                             label: UI.pace[language]
                         )
                         StatTile(

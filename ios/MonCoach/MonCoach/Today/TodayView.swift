@@ -94,7 +94,10 @@ struct TodayView: View {
                             label: UI.duration[language]
                         )
                         StatTile(
-                            value: Format.pace(secondsPerKm: done.paceSecondsPerKm, unit: unit),
+                            value: Format.speedOrPace(
+                                sport: done.sport, meters: done.meters,
+                                seconds: done.duration, unit: unit, language: language
+                            ),
                             label: UI.pace[language]
                         )
                     }

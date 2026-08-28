@@ -97,7 +97,9 @@ struct RunPlanView: View {
     }
 
     private var historyCard: some View {
-        let recent = store.history.activities.suffix(6).reversed()
+        // Les sorties de course, pas toutes les activités : un tour de
+        // vélo n'a rien à faire dans l'historique d'un plan de course.
+        let recent = store.history.runs.suffix(6).reversed()
         return Group {
             if !recent.isEmpty {
                 Card(title: LocalizedText(fr: "Dernières sorties", en: "Recent runs", es: "Últimos rodajes")[language]) {
@@ -112,7 +114,10 @@ struct RunPlanView: View {
                                         .font(Theme.captionFont)
                                         .foregroundStyle(Theme.primaryText)
                                     Text(Format.distance(meters: run.meters, unit: unit, language: language)
-                                        + " · " + Format.pace(secondsPerKm: run.paceSecondsPerKm, unit: unit))
+                                        + " · " + Format.speedOrPace(
+                                            sport: run.sport, meters: run.meters,
+                                            seconds: run.duration, unit: unit, language: language
+                                        ))
                                         .font(.system(size: 12))
                                         .foregroundStyle(Theme.secondaryText)
                                 }

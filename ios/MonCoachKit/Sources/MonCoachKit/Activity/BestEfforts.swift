@@ -205,7 +205,15 @@ public enum BestEfforts {
     /// signaler », par exemple une sortie vélo : sans cette distinction, on
     /// recalculerait indéfiniment ce qui n'a rien à donner.
     public static func efforts(in activity: ActivityLog) -> [BestEffort] {
-        if let stored = activity.bestEfforts { return stored }
+        if let stored = activity.bestEfforts {
+            // La date de l'activité fait foi : un effort rangé porte celle
+            // qu'elle avait au calcul, et elle peut avoir été corrigée depuis.
+            return stored.map { effort in
+                var refreshed = effort
+                refreshed.date = activity.startedAt
+                return refreshed
+            }
+        }
         let trace = TraceAnalysis.clean(activity.points, filter: activity.sport.filter)
         return efforts(
             in: trace,

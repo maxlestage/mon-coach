@@ -35,16 +35,42 @@ struct GeoGrid: Sendable {
         }
     }
 
-    private func cell(latitude: Double, longitude: Double) -> (Int32, Int32) {
+    /// Bornes des indices de case.
+    ///
+    /// Volontairement très en deçà des limites d'un entier 32 bits : les
+    /// voisines se calculent en ajoutant ±1, et un indice posé sur la borne
+    /// maximale ferait déborder cette addition. Un dépassement d'entier, en
+    /// Swift, n'est pas une valeur fausse — c'est un arrêt brutal de
+    /// l'application. Une coordonnée aberrante doit donner un mauvais
+    /// voisinage, jamais un plantage.
+    private static let indexLimit: Int64 = 1 << 30
+
+    private func cell(latitude: Double, longitude: Double) -> (row: Int64, column: Int64) {
         (
-            Int32((latitude / latitudeScale).rounded(.down)),
-            Int32((longitude / longitudeScale).rounded(.down))
+            index(of: latitude, scale: latitudeScale),
+            index(of: longitude, scale: longitudeScale)
         )
+    }
+
+    private func index(of value: Double, scale: Double) -> Int64 {
+        // `Int64(_:)` piège aussi sur un NaN ou un infini. Les points d'un
+        // GPX importé ne viennent pas de nous et ne sont pas de confiance.
+        guard value.isFinite, scale > 0 else { return 0 }
+        let raw = (value / scale).rounded(.down)
+        let limit = Double(Self.indexLimit)
+        guard raw.isFinite else { return 0 }
+        return Int64(raw.clamped(to: -limit...limit))
+    }
+
+    private func key(row: Int64, column: Int64) -> Int64 {
+        // Les indices tiennent dans 31 bits une fois bornés : l'un décalé,
+        // l'autre masqué, il n'y a pas de collision possible.
+        (row << 32) | (column & 0xFFFF_FFFF)
     }
 
     private func key(latitude: Double, longitude: Double) -> Int64 {
         let (row, column) = cell(latitude: latitude, longitude: longitude)
-        return Int64(row) << 32 | Int64(UInt32(bitPattern: column))
+        return key(row: row, column: column)
     }
 
     /// Les indices des points situés dans les neuf cases autour d'une position.
@@ -54,10 +80,9 @@ struct GeoGrid: Sendable {
     func candidates(latitude: Double, longitude: Double) -> [Int] {
         let (row, column) = cell(latitude: latitude, longitude: longitude)
         var result: [Int] = []
-        for dr in -1...1 {
-            for dc in -1...1 {
-                let neighbour = Int64(row + Int32(dr)) << 32
-                    | Int64(UInt32(bitPattern: column + Int32(dc)))
+        for deltaRow in Int64(-1)...1 {
+            for deltaColumn in Int64(-1)...1 {
+                let neighbour = key(row: row + deltaRow, column: column + deltaColumn)
                 if let bucket = buckets[neighbour] { result.append(contentsOf: bucket) }
             }
         }

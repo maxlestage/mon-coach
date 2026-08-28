@@ -37,7 +37,10 @@ struct RunSummaryView: View {
                                 label: UI.duration[language]
                             )
                             StatTile(
-                                value: Format.pace(secondsPerKm: run.paceSecondsPerKm, unit: unit),
+                                value: Format.speedOrPace(
+                                    sport: run.sport, meters: run.meters,
+                                    seconds: run.duration, unit: unit, language: language
+                                ),
                                 label: UI.pace[language]
                             )
                         }
