@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  moteur-swift:
+    name: Moteur Swift
+    runs-on: ubuntu-latest
+    container: swift:6.2
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tests de MonCoachKit
+        run: swift test --package-path ios/MonCoachKit
+
+  site-web:
+    name: Site web
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.0
+      - name: Installation
+        run: bun install --frozen-lockfile
+      - name: Vérification des types
+        run: bun run typecheck
+      - name: Tests
+        run: bun test
+      - name: Construction
+        run: bun run build
+
+  image-de-deploiement:
+    name: Image de déploiement
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Construire l'image
+        run: docker build -t mon-coach-web:ci ./web
+      - name: Vérifier que le conteneur sert bien le site
+        run: |
+          # Le Dockerfile part en production : il est testé comme le reste,
+          # pas seulement relu.
+          docker run -d --name mon-coach-web -e PORT=8080 -p 8080:8080 mon-coach-web:ci
+          for attempt in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8080/ -o /tmp/page.html && break
+            sleep 1
+          done
+          grep -q "Mon Coach" /tmp/page.html
+          asset=$(grep -oE '/assets/[a-zA-Z0-9._-]+\.js' /tmp/page.html | head -1)
+          test -n "$asset"
+          curl -sfI "http://127.0.0.1:8080$asset" | grep -qi "max-age=31536000"
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/route-inconnue)" = "404"
+          docker rm -f mon-coach-web
+          echo "L'image sert le site, les assets versionnés sont mis en cache, les routes inconnues retombent sur la page."
+
+  coherence:
+    name: Cohérence app / site
+    runs-on: ubuntu-latest
+    container: swift:6.2
+    steps:
+      - uses: actions/checkout@v4
+      - name: Régénération des valeurs de référence
+        run: swift run --package-path tools/FixtureGenerator > /tmp/engine-reference.json
+      - name: Comparaison avec le fichier versionné
+        run: |
+          if ! diff -u web/src/coach/__fixtures__/engine-reference.json /tmp/engine-reference.json; then
+            echo "::error::Le moteur Swift a changé sans que les valeurs de référence du site soient régénérées."
+            echo "Lance : swift run --package-path tools/FixtureGenerator > web/src/coach/__fixtures__/engine-reference.json"
+            exit 1
+          fi

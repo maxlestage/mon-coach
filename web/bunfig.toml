@@ -1,0 +1,9 @@
+# Bun 1.4 — configuration du site produit de Mon Coach.
+
+[install]
+# Les versions exactes du lockfile font foi : une mise à jour est une décision,
+# pas un effet de bord d'un `bun install` sur une autre machine.
+exact = true
+
+[test]
+coverage = false

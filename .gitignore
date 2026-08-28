@@ -1,0 +1,17 @@
+# macOS
+.DS_Store
+
+# Swift / Xcode
+.build/
+.swiftpm/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+*.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+
+# Node / Bun
+node_modules/
+dist/
+.env
+.env.local
+*.log
