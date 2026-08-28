@@ -83,13 +83,15 @@ l'application GitHub, elle, ne donne pas accès aux réglages) :
    - **Name** : `HEROKU_API_KEY`
    - **Secret** : la clé copiée à l'étape 2
    - **Add secret**
-3. Onglet **Variables** → **New repository variable** :
-   - **Name** : `HEROKU_APP_NAME`
-   - **Value** : le nom choisi à l'étape 1, par exemple `mon-coach-site`
-   - **Add variable**
 
-Le nom de l'application est une *variable* et non un secret : il est public de
-toute façon, il apparaît dans l'adresse du site.
+C'est tout : une seule chose à saisir.
+
+Le nom de l'application, lui, est écrit dans
+[`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml) — il n'a
+rien de secret, il apparaît dans l'adresse du site. Si tu renommes
+l'application un jour, tu peux le remplacer sans toucher au code : onglet
+**Variables** → **New repository variable** → `HEROKU_APP_NAME` avec le
+nouveau nom. La variable l'emporte sur la valeur inscrite dans le workflow.
 
 ## 4. Déclencher le déploiement
 
@@ -151,8 +153,18 @@ Il n'est pas encore sur `master`. Fusionne la pull request.
 
 **Le job s'affiche en vert mais rien n'est déployé**
 Regarde la première étape : si elle affiche « Déploiement non configuré », le
-secret `HEROKU_API_KEY` ou la variable `HEROKU_APP_NAME` manque. Le workflow
-s'arrête volontairement là plutôt que de faire échouer `master`.
+secret `HEROKU_API_KEY` manque. Le workflow s'arrête volontairement là plutôt
+que de faire échouer `master`.
+
+**« L'application est introuvable, ou la clé d'API est invalide »**
+Le nom inscrit dans le workflow ne correspond à aucune application de ton
+compte, ou la clé a été régénérée depuis. Corrige la variable de dépôt
+`HEROKU_APP_NAME`, ou recopie la clé.
+
+**L'adresse du site n'est pas `<nom-de-l-app>.herokuapp.com`**
+C'est normal : Heroku ajoute un suffixe aléatoire à l'adresse des
+applications récentes. Le workflow ne la devine pas, il la demande à l'API et
+l'affiche à la dernière étape.
 
 ## Questions courantes
 
