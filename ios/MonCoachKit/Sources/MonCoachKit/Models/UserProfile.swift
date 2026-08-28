@@ -54,8 +54,16 @@ public struct UserProfile: Codable, Sendable, Equatable, Identifiable {
     /// the engine falls back to strength standards when it is empty.
     public var knownOneRepMax: [String: Double]
 
+    // MARK: Running
+    /// The runner side of the athlete. Nil when they only lift — the whole
+    /// running feature stays out of the way until they say they run.
+    public var running: RunningProfile?
+
     // MARK: Preferences
     public var unit: UnitSystem
+    /// Chosen display language. Nil means "follow the system", which is what
+    /// every new profile starts as.
+    public var language: Language?
 
     public init(
         id: UUID = UUID(),
@@ -82,7 +90,9 @@ public struct UserProfile: Codable, Sendable, Equatable, Identifiable {
         stressLevel: Int = 3,
         dietPreference: DietPreference = .omnivore,
         knownOneRepMax: [String: Double] = [:],
-        unit: UnitSystem = .metric
+        running: RunningProfile? = nil,
+        unit: UnitSystem = .metric,
+        language: Language? = nil
     ) {
         self.id = id
         self.firstName = firstName
@@ -108,8 +118,17 @@ public struct UserProfile: Codable, Sendable, Equatable, Identifiable {
         self.stressLevel = stressLevel.clamped(to: 1...5)
         self.dietPreference = dietPreference
         self.knownOneRepMax = knownOneRepMax
+        self.running = running
         self.unit = unit
+        self.language = language
     }
+
+    /// The language to render every coach text in.
+    public func language(matchingSystem preferred: [String]) -> Language {
+        language ?? Language.best(matching: preferred)
+    }
+
+    public var runs: Bool { running != nil }
 
     public func age(on date: Date = Date(), calendar: Calendar = .current) -> Int {
         calendar.dateComponents([.year], from: birthDate, to: date).year ?? 0

@@ -122,6 +122,37 @@ public final class CoachStore {
         save()
     }
 
+    /// Files a finished run, and lets it teach the coach something.
+    ///
+    /// A tempo run, an interval session or a race says where the threshold
+    /// actually sits. When the new evidence is better than what the profile
+    /// holds, the profile is updated and the block is rebuilt around the real
+    /// pace — otherwise every prescribed pace would stay wrong all block.
+    public func recordRun(_ run: RunLog) {
+        history.runs.removeAll { $0.id == run.id }
+        history.runs.append(run)
+        history.runs.sort { $0.startedAt < $1.startedAt }
+
+        if var profile, var running = profile.running,
+           let demonstrated = history.demonstratedThresholdPace() {
+            let known = running.thresholdPaceSecondsPerKm
+            // Lower is faster: only a genuinely better performance moves it.
+            if known == nil || demonstrated < (known ?? .greatestFiniteMagnitude) {
+                running.thresholdPaceSecondsPerKm = demonstrated
+                profile.running = running
+                self.profile = profile
+            }
+        }
+        save()
+    }
+
+    /// Removes a run the athlete decided was not theirs — a phantom trace,
+    /// a forgotten stop, a ride recorded by mistake.
+    public func deleteRun(_ id: UUID) {
+        history.runs.removeAll { $0.id == id }
+        save()
+    }
+
     public func startSession(_ session: PlannedSession) {
         activeSession = ActiveSession(session: session)
     }
