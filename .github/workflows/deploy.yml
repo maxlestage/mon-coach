@@ -38,7 +38,7 @@ jobs:
         id: config
         run: |
           if [ -z "$HEROKU_API_KEY" ]; then
-            echo "::notice::Déploiement non configuré : le secret HEROKU_API_KEY manque. Voir docs/DEPLOIEMENT.md."
+            echo "::notice::Ce travail n'a rien déployé : le secret HEROKU_API_KEY manque (chemin A). Si le chemin B — buildpack + intégration GitHub dans le tableau de bord Heroku — est branché, le site se déploie par là, et son état se lit dans Heroku (Activity), pas ici. Voir docs/DEPLOIEMENT.md."
             echo "ready=false" >> "$GITHUB_OUTPUT"
           else
             echo "Application visée : $HEROKU_APP_NAME"
