@@ -451,6 +451,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Mon Coach";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "La montre utilise son GPS pour mesurer ta sortie sans emporter ton téléphone.";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "La montre lit ta fréquence cardiaque pendant la sortie pour afficher tes zones d'effort. Les battements restent dans le couple montre-téléphone.";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.moncoach.MonCoach;
 				INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -477,6 +478,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Mon Coach";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "La montre utilise son GPS pour mesurer ta sortie sans emporter ton téléphone.";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "La montre lit ta fréquence cardiaque pendant la sortie pour afficher tes zones d'effort. Les battements restent dans le couple montre-téléphone.";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.moncoach.MonCoach;
 				INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = YES;
 				LD_RUNPATH_SEARCH_PATHS = (

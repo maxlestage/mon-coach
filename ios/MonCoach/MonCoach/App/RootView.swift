@@ -22,12 +22,13 @@ struct RootView: View {
                     Tab(UI.plan[store.language], systemImage: "list.bullet.rectangle") {
                         PlanView()
                     }
-                    // L'onglet course n'apparaît que si l'athlète court : un
-                    // onglet vide en permanence apprend surtout à ne plus
+                    // L'onglet n'apparaît que s'il a quelque chose à dire :
+                    // un plan de course, ou des activités déjà enregistrées.
+                    // Un onglet vide en permanence apprend surtout à ne plus
                     // regarder la barre d'onglets.
-                    if store.profile?.runs == true {
+                    if store.profile?.runs == true || !store.history.activities.isEmpty {
                         Tab(UI.running[store.language], systemImage: "figure.run") {
-                            RunPlanView()
+                            ActivitiesHomeView()
                         }
                     }
                     Tab(UI.food[store.language], systemImage: "fork.knife") {

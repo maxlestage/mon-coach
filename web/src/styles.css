@@ -1954,3 +1954,47 @@ input[type="range"]:focus-visible {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* ------------------------------------------------------------- analyse */
+
+/* La comparaison à Strava : ce qui est là et ce qui n'y sera pas, avec la
+   même dignité visuelle — la colonne « non » n'est pas une colonne honteuse,
+   c'est un choix assumé. Seule la couleur du filet les distingue. */
+.analysis__row {
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: var(--surface);
+  border: 1px solid transparent;
+}
+
+.analysis__row--has {
+  border-color: color-mix(in srgb, var(--accent) 26%, transparent);
+}
+
+.analysis__row--not {
+  border-color: color-mix(in srgb, var(--text-muted) 32%, transparent);
+}
+
+.analysis__row h4 {
+  font-size: 15px;
+  margin-bottom: 6px;
+}
+
+.analysis__row--not h4 {
+  color: var(--text-muted);
+}
+
+.analysis__row p {
+  font-size: 13.5px;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+.analysis__verdict {
+  margin-top: 26px;
+  max-width: 62ch;
+  font-size: 15px;
+  color: var(--text);
+  border-left: 3px solid var(--accent);
+  padding-left: 14px;
+}

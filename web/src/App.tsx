@@ -11,6 +11,7 @@ import { PrivacySection } from "./components/PrivacySection.tsx";
 import { Simulator, defaultInput } from "./components/Simulator.tsx";
 import { WatchSection } from "./components/WatchSection.tsx";
 import { RunningSection } from "./components/RunningSection.tsx";
+import { AnalysisSection } from "./components/AnalysisSection.tsx";
 import { FoodSection } from "./components/FoodSection.tsx";
 import { TechniqueSection } from "./components/TechniqueSection.tsx";
 import { GymSection } from "./components/GymSection.tsx";
@@ -31,6 +32,7 @@ export function App() {
         <PipelineSection />
         <Simulator />
         <RunningSection />
+        <AnalysisSection />
         <FoodSection />
         <TechniqueSection />
         <GymSection />

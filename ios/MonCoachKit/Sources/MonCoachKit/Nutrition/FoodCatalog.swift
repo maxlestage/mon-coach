@@ -14,7 +14,15 @@ import Foundation
 /// simplement certains dans « occasionnel », avec la raison écrite à côté.
 public enum FoodCatalog {
 
-    public static let all: [Food] = [
+    /// Le catalogue complet : le noyau historique, puis les rayons générés
+    /// par tools/foods/generate.py. La concaténation vit ici pour qu'aucun
+    /// rayon ne puisse être oublié silencieusement — un fichier généré
+    /// manquant est une erreur de compilation, pas un rayon vide.
+    public static let all: [Food] =
+        core + moreMeats + moreSea + moreDairy + morePlantProteins + moreGrains
+        + moreVegetables + moreFruits + moreFats + moreDrinks + moreExtras
+
+    static let core: [Food] = [
         Food(
             id: "blanc-de-poulet",
             name: LocalizedText(fr: "Blanc de poulet", en: "Chicken breast", es: "Pechuga de pollo"),
