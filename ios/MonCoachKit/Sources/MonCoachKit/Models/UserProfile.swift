@@ -54,6 +54,19 @@ public struct UserProfile: Codable, Sendable, Equatable, Identifiable {
     /// the engine falls back to strength standards when it is empty.
     public var knownOneRepMax: [String: Double]
 
+    // MARK: Food
+    /// Repas par jour, 3 à 5. Optionnel dans le stockage : un profil
+    /// enregistré avant l'arrivée du programme alimentaire doit continuer à
+    /// se relire, pas déclencher une erreur de décodage qui coûterait tout
+    /// l'historique de l'athlète.
+    public var mealsPerDay: Int?
+    /// Les aliments que l'athlète ne veut pas voir apparaître.
+    public var dislikedFoodIDs: Set<String>?
+
+    /// Le nombre de repas effectivement utilisé par le planificateur.
+    public var mealCount: Int { (mealsPerDay ?? 4).clamped(to: 3...5) }
+    public var excludedFoods: Set<String> { dislikedFoodIDs ?? [] }
+
     // MARK: Running
     /// The runner side of the athlete. Nil when they only lift — the whole
     /// running feature stays out of the way until they say they run.
@@ -90,6 +103,8 @@ public struct UserProfile: Codable, Sendable, Equatable, Identifiable {
         stressLevel: Int = 3,
         dietPreference: DietPreference = .omnivore,
         knownOneRepMax: [String: Double] = [:],
+        mealsPerDay: Int? = nil,
+        dislikedFoodIDs: Set<String>? = nil,
         running: RunningProfile? = nil,
         unit: UnitSystem = .metric,
         language: Language? = nil
@@ -118,6 +133,8 @@ public struct UserProfile: Codable, Sendable, Equatable, Identifiable {
         self.stressLevel = stressLevel.clamped(to: 1...5)
         self.dietPreference = dietPreference
         self.knownOneRepMax = knownOneRepMax
+        self.mealsPerDay = mealsPerDay
+        self.dislikedFoodIDs = dislikedFoodIDs
         self.running = running
         self.unit = unit
         self.language = language

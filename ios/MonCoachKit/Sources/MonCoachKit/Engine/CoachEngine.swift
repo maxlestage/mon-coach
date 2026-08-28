@@ -35,6 +35,8 @@ public struct TodayBriefing: Sendable, Equatable {
     public let plannedRun: PlannedRun?
     /// The run already recorded today, if the athlete has been out.
     public let recordedRun: RunLog?
+    /// What to eat today, built around the same macros as `nutrition`.
+    public let food: DayPlan
 
     public var session: PlannedSession? {
         if case let .training(session) = state { return session }
@@ -140,7 +142,8 @@ public enum CoachEngine {
                 nutrition: program.nutrition,
                 loadDecisions: [:],
                 plannedRun: nil,
-                recordedRun: history.run(on: date, calendar: calendar)
+                recordedRun: history.run(on: date, calendar: calendar),
+                food: dayPlan(for: program, on: date, trains: false, runs: false, calendar: calendar)
             )
         }
 
@@ -157,7 +160,14 @@ public enum CoachEngine {
                 nutrition: program.nutrition,
                 loadDecisions: [:],
                 plannedRun: plannedRun,
-                recordedRun: recordedRun
+                recordedRun: recordedRun,
+                food: dayPlan(
+                    for: program,
+                    on: date,
+                    trains: false,
+                    runs: plannedRun != nil,
+                    calendar: calendar
+                )
             )
         }
 
@@ -178,7 +188,35 @@ public enum CoachEngine {
             nutrition: program.nutrition,
             loadDecisions: decisions,
             plannedRun: plannedRun,
-            recordedRun: recordedRun
+            recordedRun: recordedRun,
+            food: dayPlan(for: program, on: date, trains: true, runs: plannedRun != nil, calendar: calendar)
+        )
+    }
+
+    /// The food plan for a given day.
+    ///
+    /// The day index feeds the planner's rotation, so the week actually
+    /// varies instead of serving the same four meals seven times.
+    static func dayPlan(
+        for program: CoachingProgram,
+        on date: Date,
+        trains: Bool,
+        runs: Bool,
+        calendar: Calendar
+    ) -> DayPlan {
+        let elapsed = calendar.dateComponents(
+            [.day],
+            from: calendar.startOfDay(for: program.plan.startDate),
+            to: calendar.startOfDay(for: date)
+        ).day ?? 0
+        return MealPlanner.day(
+            target: program.nutrition,
+            diet: program.profile.dietPreference,
+            dayIndex: ((elapsed % 7) + 7) % 7,
+            mealsPerDay: program.profile.mealCount,
+            excluding: program.profile.excludedFoods,
+            trainsToday: trains,
+            runsToday: runs
         )
     }
 
