@@ -14,6 +14,8 @@ const copy = {
     ipBody: "L'ensemble du site, de l'application et de leur contenu — textes, interfaces, code, marques et logos — est la propriété exclusive de Maxime Nathan Lestage. Tous droits réservés. Toute reproduction ou réutilisation, totale ou partielle, sans autorisation écrite préalable est interdite.",
     map: "Données cartographiques",
     mapBody: "Les fonds de carte affichés dans l'application et sur ce site proviennent d'OpenStreetMap et de ses contributeurs, publiés sous licence ODbL. Le tracé de tes sorties, lui, t'appartient et reste sur ton appareil.",
+    oss: "Composants tiers",
+    ossBody: "Ce site et l'application embarquent des composants libres, reproduits ici avec leurs notices — la minification du code retire les commentaires, elle ne retire pas les obligations :",
     report: "Signaler un problème",
     reportBody: "Pour signaler un contenu, un bug ou une question relative à ces mentions, écris à l'adresse de contact ci-dessus.",
   },
@@ -29,6 +31,8 @@ const copy = {
     ipBody: "The whole of this site, the app and their content — text, interfaces, code, trademarks and logos — is the exclusive property of Maxime Nathan Lestage. All rights reserved. Any reproduction or reuse, in whole or in part, without prior written permission is prohibited.",
     map: "Map data",
     mapBody: "The map backgrounds shown in the app and on this site come from OpenStreetMap and its contributors, published under the ODbL licence. The trace of your runs, on the other hand, belongs to you and stays on your device.",
+    oss: "Third-party components",
+    ossBody: "This site and the app ship open-source components, whose notices are reproduced here — minification strips comments, not obligations:",
     report: "Reporting a problem",
     reportBody: "To report content, a bug or a question about this notice, write to the contact address above.",
   },
@@ -44,6 +48,8 @@ const copy = {
     ipBody: "La totalidad del sitio, de la aplicación y de su contenido —textos, interfaces, código, marcas y logotipos— es propiedad exclusiva de Maxime Nathan Lestage. Todos los derechos reservados. Queda prohibida cualquier reproducción o reutilización, total o parcial, sin autorización escrita previa.",
     map: "Datos cartográficos",
     mapBody: "Los fondos de mapa mostrados en la aplicación y en este sitio provienen de OpenStreetMap y sus colaboradores, publicados bajo licencia ODbL. La traza de tus rodajes, en cambio, te pertenece y permanece en tu dispositivo.",
+    oss: "Componentes de terceros",
+    ossBody: "Este sitio y la aplicación incluyen componentes libres, cuyas notas se reproducen aquí — la minificación elimina comentarios, no obligaciones:",
     report: "Señalar un problema",
     reportBody: "Para señalar un contenido, un error o una duda sobre este aviso, escribe a la dirección de contacto de arriba.",
   },
@@ -74,6 +80,35 @@ export function MentionsLegales() {
 
       <h2>{t.map}</h2>
       <p>{t.mapBody}</p>
+
+      <h2>{t.oss}</h2>
+      <p>{t.ossBody}</p>
+      <ul>
+        <li>
+          MapLibre GL JS — © 2023 MapLibre contributors, © 2020 Mapbox —{" "}
+          <a href="https://github.com/maplibre/maplibre-gl-js/blob/main/LICENSE.txt" rel="noopener noreferrer">
+            3-Clause BSD License
+          </a>
+        </li>
+        <li>
+          MapLibre Native (iOS) — © MapLibre contributors —{" "}
+          <a href="https://github.com/maplibre/maplibre-native/blob/main/LICENSES.md" rel="noopener noreferrer">
+            BSD License
+          </a>
+        </li>
+        <li>
+          React, React DOM — © Meta Platforms, Inc. and affiliates —{" "}
+          <a href="https://github.com/facebook/react/blob/main/LICENSE" rel="noopener noreferrer">
+            MIT License
+          </a>
+        </li>
+        <li>
+          OpenStreetMap — © OpenStreetMap contributors —{" "}
+          <a href="https://www.openstreetmap.org/copyright" rel="noopener noreferrer">
+            ODbL
+          </a>
+        </li>
+      </ul>
 
       <h2>{t.report}</h2>
       <p>{t.reportBody}</p>

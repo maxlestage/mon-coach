@@ -16,6 +16,10 @@ const copy = {
     locationBody2: "Le fond de carte, lui, est chargé depuis un serveur de tuiles OpenStreetMap. C'est la seule requête réseau que l'application émette, elle n'a lieu que sur les écrans de course, et elle transmet la zone géographique affichée — pas ton identité, pas ton tracé. Tu peux la désactiver dans le profil : la carte affiche alors ton parcours seul, dessiné sur l'appareil.",
     watch: "L'Apple Watch",
     watchBody: "La synchronisation entre ton iPhone et ta montre passe par le canal chiffré d'Apple (WatchConnectivity), directement d'un appareil à l'autre. Aucun serveur tiers n'intervient, y compris pour les sorties mesurées au poignet.",
+    health: "La fréquence cardiaque",
+    healthBody: "Pendant une sortie, la montre peut lire ta fréquence cardiaque via HealthKit — en lecture seule : l'application n'écrit rien dans Santé et n'en lit rien d'autre. Les battements rejoignent le journal de la sortie, sur tes appareils, et ne servent qu'à afficher tes zones d'effort et ta charge d'entraînement. Ils ne sont jamais transmis à un tiers ni utilisés à aucune autre fin.",
+    files: "L'import et l'export",
+    filesBody: "Importer un fichier GPX le lit sur ton appareil ; exporter une sortie fabrique un fichier que toi seul décides de partager, et avec qui. Aucun de ces gestes ne déclenche de transmission : le fichier ne bouge que par ta main.",
     purchases: "Les achats",
     purchasesBody: "Les achats de la formule Mon Coach+ sont traités par l'App Store d'Apple. Nous ne voyons ni ton identité, ni ton moyen de paiement — seulement, localement, le fait que la formule est active.",
     site: "Ce site",
@@ -39,6 +43,10 @@ const copy = {
     locationBody2: "The map background, however, is loaded from an OpenStreetMap tile server. It is the only network request the app makes, it only happens on the running screens, and it transmits the geographic area being displayed — not your identity, not your route. You can turn it off in the profile: the map then shows your route alone, drawn on the device.",
     watch: "The Apple Watch",
     watchBody: "Syncing between your iPhone and your watch goes through Apple's encrypted channel (WatchConnectivity), directly from one device to the other. No third-party server is involved, including for runs measured at the wrist.",
+    health: "Heart rate",
+    healthBody: "During an activity, the watch may read your heart rate through HealthKit — read-only: the app writes nothing to Health and reads nothing else from it. The beats join the activity's log, on your devices, and are used solely to show your effort zones and training load. They are never transmitted to any third party nor used for any other purpose.",
+    files: "Import and export",
+    filesBody: "Importing a GPX file reads it on your device; exporting an activity produces a file that you alone decide to share, and with whom. Neither gesture triggers any transmission: the file only moves by your hand.",
     purchases: "Purchases",
     purchasesBody: "Mon Coach+ purchases are handled by Apple's App Store. We see neither your identity nor your payment method — only, locally, the fact that the plan is active.",
     site: "This site",
@@ -62,6 +70,10 @@ const copy = {
     locationBody2: "El fondo de mapa, en cambio, se carga desde un servidor de teselas de OpenStreetMap. Es la única petición de red que hace la aplicación, solo ocurre en las pantallas de carrera y transmite la zona geográfica mostrada, no tu identidad ni tu traza. Puedes desactivarlo en el perfil: el mapa muestra entonces solo tu recorrido, dibujado en el dispositivo.",
     watch: "El Apple Watch",
     watchBody: "La sincronización entre tu iPhone y tu reloj pasa por el canal cifrado de Apple (WatchConnectivity), directamente de un dispositivo a otro. No interviene ningún servidor de terceros, tampoco para los rodajes medidos en la muñeca.",
+    health: "El pulso",
+    healthBody: "Durante una salida, el reloj puede leer tu pulso a través de HealthKit — solo en lectura: la aplicación no escribe nada en Salud ni lee nada más de ahí. Los latidos se unen al registro de la salida, en tus dispositivos, y sirven únicamente para mostrar tus zonas de esfuerzo y tu carga de entrenamiento. Nunca se transmiten a terceros ni se usan para otro fin.",
+    files: "Importar y exportar",
+    filesBody: "Importar un archivo GPX lo lee en tu dispositivo; exportar una salida produce un archivo que solo tú decides compartir, y con quién. Ninguno de esos gestos desencadena transmisión alguna: el archivo solo se mueve por tu mano.",
     purchases: "Las compras",
     purchasesBody: "Las compras de Mon Coach+ las gestiona la App Store de Apple. No vemos ni tu identidad ni tu método de pago, solo, en local, que el plan está activo.",
     site: "Este sitio",
@@ -92,6 +104,12 @@ export function Confidentialite() {
 
       <h2>{t.watch}</h2>
       <p>{t.watchBody}</p>
+
+      <h2>{t.health}</h2>
+      <p>{t.healthBody}</p>
+
+      <h2>{t.files}</h2>
+      <p>{t.filesBody}</p>
 
       <h2>{t.purchases}</h2>
       <p>{t.purchasesBody}</p>
