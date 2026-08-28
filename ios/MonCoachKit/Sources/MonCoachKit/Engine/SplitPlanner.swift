@@ -2,7 +2,7 @@ import Foundation
 
 /// One day of the weekly structure, before any exercise is chosen.
 public struct DayTemplate: Sendable, Equatable {
-    public let title: String
+    public let title: LocalizedText
     /// Muscles this day is responsible for, in the order they should be trained.
     public let muscles: [MuscleGroup]
 }
@@ -29,18 +29,20 @@ public enum SplitPlanner {
         case .fullBody:
             return (0..<daysPerWeek).map { index in
                 DayTemplate(
-                    title: daysPerWeek > 1 ? "Full body \(letter(index))" : "Full body",
+                    title: daysPerWeek > 1
+                        ? LocalizedText.constant("Full body \(letter(index))")
+                        : LocalizedText.constant("Full body"),
                     muscles: fullBodyRotation(index: index)
                 )
             }
 
         case .upperLower:
             let upper = DayTemplate(
-                title: "Haut du corps",
+                title: LocalizedText(fr: "Haut du corps", en: "Upper body", es: "Tren superior"),
                 muscles: [.chest, .lats, .back, .shoulders, .triceps, .biceps, .rearDelts]
             )
             let lower = DayTemplate(
-                title: "Bas du corps",
+                title: LocalizedText(fr: "Bas du corps", en: "Lower body", es: "Tren inferior"),
                 muscles: [.quads, .hamstrings, .glutes, .calves, .core]
             )
             return cycle([upper, lower], count: daysPerWeek)
@@ -50,26 +52,26 @@ public enum SplitPlanner {
 
         case .pushPullLegsUpperLower:
             let upper = DayTemplate(
-                title: "Haut du corps",
+                title: LocalizedText(fr: "Haut du corps", en: "Upper body", es: "Tren superior"),
                 muscles: [.chest, .lats, .back, .shoulders, .biceps, .triceps]
             )
             let lower = DayTemplate(
-                title: "Bas du corps",
+                title: LocalizedText(fr: "Bas du corps", en: "Lower body", es: "Tren inferior"),
                 muscles: [.quads, .hamstrings, .glutes, .calves, .core]
             )
             return cycle([pushDay, pullDay, legDay, upper, lower], count: daysPerWeek)
 
         case .arnold:
             let chestBack = DayTemplate(
-                title: "Pectoraux / Dos",
+                title: LocalizedText(fr: "Pectoraux / Dos", en: "Chest / Back", es: "Pecho / Espalda"),
                 muscles: [.chest, .lats, .back]
             )
             let shouldersArms = DayTemplate(
-                title: "Épaules / Bras",
+                title: LocalizedText(fr: "Épaules / Bras", en: "Shoulders / Arms", es: "Hombros / Brazos"),
                 muscles: [.shoulders, .rearDelts, .biceps, .triceps, .forearms]
             )
             let legs = DayTemplate(
-                title: "Jambes",
+                title: LocalizedText(fr: "Jambes", en: "Legs", es: "Piernas"),
                 muscles: [.quads, .hamstrings, .glutes, .calves, .core]
             )
             return cycle([chestBack, shouldersArms, legs], count: daysPerWeek)
@@ -77,15 +79,15 @@ public enum SplitPlanner {
     }
 
     private static let pushDay = DayTemplate(
-        title: "Push",
+        title: LocalizedText(fr: "Push", en: "Push", es: "Empuje"),
         muscles: [.chest, .shoulders, .triceps]
     )
     private static let pullDay = DayTemplate(
-        title: "Pull",
+        title: LocalizedText(fr: "Pull", en: "Pull", es: "Tirón"),
         muscles: [.lats, .back, .rearDelts, .biceps, .traps]
     )
     private static let legDay = DayTemplate(
-        title: "Legs",
+        title: LocalizedText(fr: "Legs", en: "Legs", es: "Pierna"),
         muscles: [.quads, .hamstrings, .glutes, .calves, .core]
     )
 
@@ -106,7 +108,7 @@ public enum SplitPlanner {
             let base = templates[index % templates.count]
             // Second pass through the rotation gets a suffix so the week reads clearly.
             guard index >= templates.count else { return base }
-            return DayTemplate(title: "\(base.title) B", muscles: base.muscles)
+            return DayTemplate(title: base.title + .constant(" B"), muscles: base.muscles)
         }
     }
 

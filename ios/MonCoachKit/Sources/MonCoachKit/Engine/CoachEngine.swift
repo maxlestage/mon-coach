@@ -401,6 +401,7 @@ public enum CoachEngine {
             let base = next.nutrition
             let calories = base.calories + review.calorieAdjustment
             let carbs = max(30, (Double(calories) - Double(base.proteinG) * 4 - Double(base.fatG) * 9) / 4)
+            let signed = "\(review.calorieAdjustment > 0 ? "+" : "")\(review.calorieAdjustment)"
             next = CoachingProgram(
                 profile: next.profile,
                 metrics: next.metrics,
@@ -412,7 +413,11 @@ public enum CoachEngine {
                     weeklyWeightChangeKg: base.weeklyWeightChangeKg,
                     maintenanceCalories: base.maintenanceCalories,
                     rationale: base.rationale + [
-                        "Ajustement de \(review.calorieAdjustment > 0 ? "+" : "")\(review.calorieAdjustment) kcal issu de l'évolution réelle de ton poids sur le bloc précédent."
+                        LocalizedText(
+                            fr: "Ajustement de \(signed) kcal issu de l'évolution réelle de ton poids sur le bloc précédent.",
+                            en: "A \(signed) kcal adjustment, taken from how your weight actually moved over the previous block.",
+                            es: "Ajuste de \(signed) kcal a partir de cómo evolucionó realmente tu peso en el bloque anterior."
+                        )
                     ]
                 ),
                 plan: next.plan,

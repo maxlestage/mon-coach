@@ -99,4 +99,20 @@ extension Array where Element == LocalizedText {
     public func rendered(in language: Language) -> [String] {
         map { $0[language] }
     }
+
+    /// Assemble une liste en un seul texte, langue par langue.
+    public func joined(separator: String) -> LocalizedText {
+        LocalizedText(
+            fr: map(\.fr).joined(separator: separator),
+            en: map(\.en).joined(separator: separator),
+            es: map(\.es).joined(separator: separator)
+        )
+    }
+
+    /// Trie sur la version française, pour que l'ordre d'une énumération soit
+    /// le même dans les trois langues : un athlète bilingue qui change de
+    /// langue ne doit pas voir sa liste se réorganiser.
+    public func sortedStably() -> [LocalizedText] {
+        sorted { $0.fr < $1.fr }
+    }
 }

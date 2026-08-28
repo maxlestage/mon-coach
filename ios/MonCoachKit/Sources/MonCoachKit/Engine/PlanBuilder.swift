@@ -59,11 +59,23 @@ public enum PlanBuilder {
         var rationale = volume.rationale
         rationale.insert(split.rationale, at: 0)
         rationale.append(
-            "Bloc de \(totalWeeks) semaines : \(totalWeeks - 1) semaines où le volume augmente, puis une semaine de décharge pour absorber le travail."
+            LocalizedText(
+                fr: "Bloc de \(totalWeeks) semaines : \(totalWeeks - 1) semaines où le volume augmente, puis une semaine de décharge pour absorber le travail.",
+                en: "A \(totalWeeks)-week block: \(totalWeeks - 1) weeks of rising volume, then a deload week to absorb the work.",
+                es: "Bloque de \(totalWeeks) semanas: \(totalWeeks - 1) semanas en las que sube el volumen y una semana de descarga para asimilar el trabajo."
+            )
         )
         if !profile.limitations.isEmpty {
-            let names = profile.limitations.map(\.label).sorted().joined(separator: ", ")
-            rationale.append("Exercices écartés à cause de tes zones sensibles (\(names)) : le programme ne contient que des mouvements qui ne les sollicitent pas directement.")
+            func names(in language: Language) -> String {
+                profile.limitations.map { $0.label[language] }.sorted().joined(separator: ", ")
+            }
+            rationale.append(
+                LocalizedText(
+                    fr: "Exercices écartés à cause de tes zones sensibles (\(names(in: .french))) : le programme ne contient que des mouvements qui ne les sollicitent pas directement.",
+                    en: "Exercises removed because of the areas you flagged (\(names(in: .english))): the programme only contains movements that do not load them directly.",
+                    es: "Ejercicios descartados por las zonas que has señalado (\(names(in: .spanish))): el programa solo contiene movimientos que no las cargan directamente."
+                )
+            )
         }
 
         return Mesocycle(
@@ -124,7 +136,9 @@ public enum PlanBuilder {
     ) -> PlannedSession {
         var session = base
         session.isDeload = isDeload
-        session.title = isDeload ? "\(base.title) — décharge" : base.title
+        session.title = isDeload
+            ? base.title + LocalizedText(fr: " — décharge", en: " — deload", es: " — descarga")
+            : base.title
 
         let rpe = targetRPE(profile: profile, weekIndex: week, totalWeeks: totalWeeks, isDeload: isDeload)
 

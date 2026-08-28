@@ -6,9 +6,9 @@ import Foundation
 /// downloaded — so a session can always be built offline.
 public struct Exercise: Codable, Sendable, Equatable, Identifiable, Hashable {
     public let id: String
-    public let name: String
+    public let name: LocalizedText
     /// Short cue shown while the set is running.
-    public let cue: String
+    public let cue: LocalizedText
     public let primaryMuscle: MuscleGroup
     public let secondaryMuscles: [MuscleGroup]
     public let pattern: MovementPattern
@@ -34,8 +34,8 @@ public struct Exercise: Codable, Sendable, Equatable, Identifiable, Hashable {
 
     public init(
         id: String,
-        name: String,
-        cue: String,
+        name: LocalizedText,
+        cue: LocalizedText,
         primaryMuscle: MuscleGroup,
         secondaryMuscles: [MuscleGroup] = [],
         pattern: MovementPattern,

@@ -44,7 +44,7 @@ public struct ExercisePrescription: Codable, Sendable, Equatable, Identifiable, 
     public var sets: [SetPrescription]
     public var restSeconds: Int
     /// Free-text coaching note attached to this slot ("garde les coudes serrés").
-    public var note: String?
+    public var note: LocalizedText?
 
     public init(
         id: UUID = UUID(),
@@ -52,7 +52,7 @@ public struct ExercisePrescription: Codable, Sendable, Equatable, Identifiable, 
         order: Int,
         sets: [SetPrescription],
         restSeconds: Int,
-        note: String? = nil
+        note: LocalizedText? = nil
     ) {
         self.id = id
         self.exerciseID = exerciseID
@@ -70,7 +70,7 @@ public struct PlannedSession: Codable, Sendable, Equatable, Identifiable, Hashab
     public var id: UUID
     /// 0-based index of the session inside its week.
     public var dayIndex: Int
-    public var title: String
+    public var title: LocalizedText
     public var focus: [MuscleGroup]
     public var exercises: [ExercisePrescription]
     public var isDeload: Bool
@@ -78,7 +78,7 @@ public struct PlannedSession: Codable, Sendable, Equatable, Identifiable, Hashab
     public init(
         id: UUID = UUID(),
         dayIndex: Int,
-        title: String,
+        title: LocalizedText,
         focus: [MuscleGroup],
         exercises: [ExercisePrescription],
         isDeload: Bool = false
@@ -128,28 +128,48 @@ public enum SplitTemplate: String, Codable, CaseIterable, Sendable {
     case pushPullLegsUpperLower
     case arnold
 
-    public var label: String {
+    public var label: LocalizedText {
         switch self {
-        case .fullBody: "Full body"
-        case .upperLower: "Haut / Bas"
-        case .pushPullLegs: "Push / Pull / Legs"
-        case .pushPullLegsUpperLower: "PPL + Haut / Bas"
-        case .arnold: "Arnold split"
+        case .fullBody: LocalizedText(fr: "Full body", en: "Full body", es: "Full body")
+        case .upperLower: LocalizedText(fr: "Haut / Bas", en: "Upper / Lower", es: "Superior / Inferior")
+        case .pushPullLegs: LocalizedText(fr: "Push / Pull / Legs", en: "Push / Pull / Legs", es: "Empuje / Tirón / Pierna")
+        case .pushPullLegsUpperLower: LocalizedText(fr: "PPL + Haut / Bas", en: "PPL + Upper / Lower", es: "PPL + Superior / Inferior")
+        case .arnold: LocalizedText(fr: "Arnold split", en: "Arnold split", es: "Rutina Arnold")
         }
     }
 
-    public var rationale: String {
+    public var rationale: LocalizedText {
         switch self {
         case .fullBody:
-            "Chaque muscle est stimulé à chaque séance : c'est la structure la plus rentable quand le temps de salle est limité."
+            LocalizedText(
+                fr: "Chaque muscle est stimulé à chaque séance : c'est la structure la plus rentable quand le temps de salle est limité.",
+                en: "Every muscle is stimulated in every session: the best return on time when gym hours are scarce.",
+                es: "Cada músculo se estimula en cada sesión: la estructura más rentable cuando el tiempo de gimnasio es escaso."
+            )
         case .upperLower:
-            "Deux fois par semaine sur chaque muscle, avec assez de volume par séance pour progresser sans y passer la soirée."
+            LocalizedText(
+                fr: "Deux fois par semaine sur chaque muscle, avec assez de volume par séance pour progresser sans y passer la soirée.",
+                en: "Twice a week on every muscle, with enough volume per session to progress without spending the evening there.",
+                es: "Dos veces por semana en cada músculo, con volumen suficiente por sesión para progresar sin pasar la tarde allí."
+            )
         case .pushPullLegs:
-            "Les groupes musculaires qui travaillent ensemble sont regroupés, ce qui limite la fatigue croisée entre séances."
+            LocalizedText(
+                fr: "Les groupes musculaires qui travaillent ensemble sont regroupés, ce qui limite la fatigue croisée entre séances.",
+                en: "Muscle groups that work together are grouped together, which limits cross-fatigue between sessions.",
+                es: "Los grupos musculares que trabajan juntos se agrupan, lo que limita la fatiga cruzada entre sesiones."
+            )
         case .pushPullLegsUpperLower:
-            "Cinq séances : trois PPL pour le volume, deux haut/bas pour ramener la fréquence à deux fois par semaine partout."
+            LocalizedText(
+                fr: "Cinq séances : trois PPL pour le volume, deux haut/bas pour ramener la fréquence à deux fois par semaine partout.",
+                en: "Five sessions: three PPL for volume, two upper/lower to bring frequency back to twice a week everywhere.",
+                es: "Cinco sesiones: tres PPL para el volumen y dos superior/inferior para devolver la frecuencia a dos veces por semana en todo."
+            )
         case .arnold:
-            "Six séances courtes, fréquence élevée : réservé aux pratiquants avancés qui récupèrent bien."
+            LocalizedText(
+                fr: "Six séances courtes, fréquence élevée : réservé aux pratiquants avancés qui récupèrent bien.",
+                en: "Six short sessions at high frequency: for advanced lifters who recover well, and nobody else.",
+                es: "Seis sesiones cortas y alta frecuencia: reservado a avanzados que recuperan bien."
+            )
         }
     }
 }
@@ -165,7 +185,7 @@ public struct Mesocycle: Codable, Sendable, Equatable, Identifiable {
     /// Weekly set target per muscle that the block was built to hit.
     public var weeklyVolumeTarget: [MuscleGroup: Int]
     /// Human-readable summary of why this block looks the way it does.
-    public var rationale: [String]
+    public var rationale: [LocalizedText]
 
     public init(
         id: UUID = UUID(),
@@ -174,7 +194,7 @@ public struct Mesocycle: Codable, Sendable, Equatable, Identifiable {
         split: SplitTemplate,
         weeks: [PlannedWeek],
         weeklyVolumeTarget: [MuscleGroup: Int],
-        rationale: [String]
+        rationale: [LocalizedText]
     ) {
         self.id = id
         self.startDate = startDate

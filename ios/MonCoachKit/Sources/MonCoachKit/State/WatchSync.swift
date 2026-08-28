@@ -14,7 +14,10 @@ public struct WatchSnapshot: Codable, Sendable, Equatable {
     public var weekIndex: Int?
     public var isDeloadWeek: Bool
     public var readinessScore: Int
-    public var readinessHeadline: String
+    public var readinessHeadline: LocalizedText
+    /// La langue choisie sur le téléphone. La montre n'a pas de réglage à
+    /// elle : elle parle la langue de l'athlète, pas celle de son poignet.
+    public var language: Language
     /// La séance du jour, charges prescrites et forme du jour déjà appliquées.
     /// Nil un jour de repos ou une fois le bloc terminé.
     public var session: PlannedSession?
@@ -32,7 +35,8 @@ public struct WatchSnapshot: Codable, Sendable, Equatable {
         weekIndex: Int?,
         isDeloadWeek: Bool,
         readinessScore: Int,
-        readinessHeadline: String,
+        readinessHeadline: LocalizedText,
+        language: Language = .french,
         session: PlannedSession?,
         completedSessionIDs: [UUID],
         calories: Int,
@@ -46,6 +50,7 @@ public struct WatchSnapshot: Codable, Sendable, Equatable {
         self.isDeloadWeek = isDeloadWeek
         self.readinessScore = readinessScore
         self.readinessHeadline = readinessHeadline
+        self.language = language
         self.session = session
         self.completedSessionIDs = completedSessionIDs
         self.calories = calories
@@ -117,6 +122,7 @@ extension CoachStore {
             isDeloadWeek: briefing.isDeloadWeek,
             readinessScore: briefing.readiness.score,
             readinessHeadline: briefing.readiness.headline,
+            language: language,
             session: briefing.session,
             completedSessionIDs: completedToday,
             calories: briefing.nutrition.calories,
