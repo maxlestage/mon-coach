@@ -138,18 +138,29 @@ public struct TrainingHistory: Codable, Sendable, Equatable {
     public var sessions: [SessionLog]
     public var bodyLogs: [BodyLog]
     public var readiness: [ReadinessCheck]
-    public var runs: [RunLog]
+    /// Toutes les activités enregistrées, tous sports confondus.
+    public var activities: [ActivityLog]
+
+    /// Le champ s'appelait `runs` quand il n'y avait que la course. Les
+    /// fichiers déjà écrits portent ce nom : le renommer sans le dire ici
+    /// rendrait tout historique existant illisible.
+    private enum CodingKeys: String, CodingKey {
+        case sessions
+        case bodyLogs
+        case readiness
+        case activities = "runs"
+    }
 
     public init(
         sessions: [SessionLog] = [],
         bodyLogs: [BodyLog] = [],
         readiness: [ReadinessCheck] = [],
-        runs: [RunLog] = []
+        activities: [ActivityLog] = []
     ) {
         self.sessions = sessions
         self.bodyLogs = bodyLogs
         self.readiness = readiness
-        self.runs = runs
+        self.activities = activities
     }
 
     public static let empty = TrainingHistory()
@@ -162,13 +173,34 @@ public struct TrainingHistory: Codable, Sendable, Equatable {
         bodyLogs.filter { interval.contains($0.date) }
     }
 
-    public func runs(in interval: DateInterval) -> [RunLog] {
+    public func activities(in interval: DateInterval) -> [ActivityLog] {
+        activities.filter { interval.contains($0.startedAt) }
+    }
+
+    /// Les activités qui alimentent le plan de course : course et trail.
+    ///
+    /// Tout ce qui suit s'appuie là-dessus plutôt que sur `activities`. Une
+    /// sortie vélo de 60 km versée au kilométrage ferait tripler le volume
+    /// prescrit la semaine d'après, et une moyenne à 30 km/h prise pour une
+    /// allure de seuil rendrait toutes les allures du plan intenables.
+    public var runs: [ActivityLog] {
+        activities.filter(\.feedsRunningPlan)
+    }
+
+    public func runs(in interval: DateInterval) -> [ActivityLog] {
         runs.filter { interval.contains($0.startedAt) }
     }
 
     /// The run recorded on a given day, if there is one.
-    public func run(on date: Date, calendar: Calendar = .current) -> RunLog? {
+    public func run(on date: Date, calendar: Calendar = .current) -> ActivityLog? {
         runs
+            .filter { calendar.isDate($0.startedAt, inSameDayAs: date) }
+            .max { $0.startedAt < $1.startedAt }
+    }
+
+    /// L'activité enregistrée un jour donné, quel que soit le sport.
+    public func activity(on date: Date, calendar: Calendar = .current) -> ActivityLog? {
+        activities
             .filter { calendar.isDate($0.startedAt, inSameDayAs: date) }
             .max { $0.startedAt < $1.startedAt }
     }
@@ -185,11 +217,14 @@ public struct TrainingHistory: Codable, Sendable, Equatable {
     ///
     /// Only tempo runs, intervals and races count: an easy run says nothing
     /// about the ceiling, and letting it in would make the estimate drift
-    /// slower every week the athlete trains correctly.
+    /// slower every week the athlete trains correctly. Le trail non plus :
+    /// une allure de seuil démontrée dans mille mètres de dénivelé n'a rien
+    /// à voir avec celle qu'on tiendra sur route.
     public func demonstratedThresholdPace() -> Double? {
-        runs
-            .filter { $0.meters >= 2_000 && [.tempo, .intervals, .race].contains($0.type) }
-            .compactMap { RunMath.thresholdPace(fromDistance: $0.meters, time: $0.duration) }
+        activities
+            .filter { $0.sport == .run && $0.meters >= 2_000 }
+            .filter { [.tempo, .intervals, .race].contains($0.type) }
+            .compactMap { TraceMath.thresholdPace(fromDistance: $0.meters, time: $0.duration) }
             .min()
     }
 

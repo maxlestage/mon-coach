@@ -6,7 +6,7 @@ import Foundation
 /// ailleurs que sur un iPhone. La règle de conduite de ce fichier : un GPS
 /// ment, et il ment de façons connues. Chaque filtre nomme le mensonge qu'il
 /// corrige, et l'analyse compte ses rejets au lieu de les cacher.
-public enum RunMath {
+public enum TraceMath {
 
     /// Rayon moyen de la Terre (IUGG), en mètres.
     public static let earthRadiusMeters: Double = 6_371_008.8
@@ -104,6 +104,65 @@ public enum RunMath {
         let horizontal = 1.036 * weightKg * (meters / 1_000)
         let vertical = 0.00938 * weightKg * max(0, elevationGain)
         return horizontal + vertical
+    }
+
+    /// Énergie d'une activité, en kilocalories, selon le sport.
+    ///
+    /// Deux modèles, parce que la physique n'est pas la même. À pied, le coût
+    /// se compte au kilomètre : il est remarquablement indépendant de
+    /// l'allure, ce qui rend le modèle « kcal par kilo et par kilomètre »
+    /// juste sur toute la plage utile. À vélo, la résistance de l'air croît
+    /// avec le cube de la vitesse : le coût au kilomètre n'existe pas, un
+    /// même parcours coûte le double à 30 km/h qu'à 20. On passe donc par les
+    /// MET, qui sont tabulés par vitesse — moins élégant, mais honnête.
+    ///
+    /// Appliquer le modèle de la course au vélo donnerait environ le triple
+    /// de la dépense réelle, et une sortie de 60 km afficherait 2 200 kcal
+    /// au lieu de 700.
+    public static func energyKcal(
+        sport: Sport,
+        meters: Double,
+        movingSeconds: TimeInterval,
+        elevationGain: Double,
+        weightKg: Double
+    ) -> Double {
+        guard meters > 0, weightKg > 0 else { return 0 }
+        switch sport {
+        case .run, .trail:
+            return energyKcal(meters: meters, elevationGain: elevationGain, weightKg: weightKg)
+        case .walk, .hike:
+            // La marche coûte environ la moitié de la course au kilomètre :
+            // pas de phase aérienne à financer. Le coût vertical, lui, ne
+            // change pas — un mètre gravi est un mètre gravi.
+            let horizontal = 0.53 * weightKg * (meters / 1_000)
+            let vertical = 0.00938 * weightKg * max(0, elevationGain)
+            return horizontal + vertical
+        case .ride:
+            guard movingSeconds > 0 else { return 0 }
+            let hours = movingSeconds / 3_600
+            let kmh = (meters / 1_000) / hours
+            return cyclingMET(speedKmh: kmh) * weightKg * hours
+        }
+    }
+
+    /// Équivalent métabolique du cyclisme, d'après les tables du Compendium
+    /// of Physical Activities.
+    ///
+    /// Interpolé entre les paliers plutôt que pris par seuils : sans cela,
+    /// une sortie à 18,9 km/h et une à 19,1 km/h afficheraient 30 % d'écart
+    /// de dépense, ce qui se verrait immédiatement dans l'historique.
+    static func cyclingMET(speedKmh: Double) -> Double {
+        let table: [(speed: Double, met: Double)] = [
+            (0, 3.5), (16, 5.8), (19.2, 6.8), (22.4, 8.0), (25.6, 10.0), (30.6, 12.0), (35, 15.8),
+        ]
+        guard speedKmh > table[0].speed else { return table[0].met }
+        for index in 1..<table.count where speedKmh <= table[index].speed {
+            let low = table[index - 1]
+            let high = table[index]
+            let ratio = (speedKmh - low.speed) / (high.speed - low.speed)
+            return low.met + (high.met - low.met) * ratio
+        }
+        return table[table.count - 1].met
     }
 
     // MARK: - Prédiction

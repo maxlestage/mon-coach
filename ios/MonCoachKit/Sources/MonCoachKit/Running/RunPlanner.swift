@@ -509,7 +509,7 @@ public enum RunPlanner {
 
         if let raceDate = running.raceDate, let target = running.goal.raceDistanceMeters {
             let weeks = max(0, Int((raceDate.timeIntervalSinceNow / 604_800).rounded(.down)))
-            let predicted = RunMath.predictedRaceTime(thresholdPaceSecondsPerKm: threshold, distanceMeters: target)
+            let predicted = TraceMath.predictedRaceTime(thresholdPaceSecondsPerKm: threshold, distanceMeters: target)
             let time = predicted.map(Format.stopwatch(seconds:)) ?? "—"
             notes.append(
                 LocalizedText(

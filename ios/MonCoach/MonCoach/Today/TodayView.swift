@@ -76,7 +76,7 @@ struct TodayView: View {
     }
 
     /// La sortie du jour, prête à être lancée.
-    private func plannedRunCard(_ run: PlannedRun, done: RunLog?) -> some View {
+    private func plannedRunCard(_ run: PlannedRun, done: ActivityLog?) -> some View {
         Card(
             title: run.type.label[language],
             subtitle: UI.running[language]
@@ -94,7 +94,10 @@ struct TodayView: View {
                             label: UI.duration[language]
                         )
                         StatTile(
-                            value: Format.pace(secondsPerKm: done.paceSecondsPerKm, unit: unit),
+                            value: Format.speedOrPace(
+                                sport: done.sport, meters: done.meters,
+                                seconds: done.duration, unit: unit, language: language
+                            ),
                             label: UI.pace[language]
                         )
                     }

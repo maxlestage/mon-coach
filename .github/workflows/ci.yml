@@ -44,6 +44,33 @@ jobs:
       - name: Construction
         run: bun run build
 
+  carte:
+    name: Carte dans un navigateur
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.0
+      - name: Installation
+        run: bun install --frozen-lockfile
+      - name: Construction
+        run: bun run build
+      - name: Installation de Playwright
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: La carte se charge, dessine le tracé, et sait réessayer
+        # Le serveur de tuiles est simulé : ce travail vérifie notre code —
+        # cycle de vie, worker, rendu de la couche, repli, réessai — pas la
+        # disponibilité d'OpenStreetMap. Le chemin succès y est exercé pour
+        # de vrai : c'est celui qu'aucun test ne couvrait quand la carte
+        # détruisait sa propre instance à l'instant où elle réussissait.
+        run: node verify-map.mjs
+
   image-de-deploiement:
     name: Image de déploiement
     runs-on: ubuntu-latest

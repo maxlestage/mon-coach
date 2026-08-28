@@ -11,6 +11,7 @@ const copy = {
     loading: "Chargement de la carte…",
     failed:
       "La carte n'a pas pu être chargée. Le tracé reste affiché : il est dessiné ici, à partir des coordonnées, sans rien demander à personne.",
+    retry: "Réessayer",
     shapeAria: "Tracé de la sortie de démonstration",
     mapAria: "Carte OpenStreetMap de la sortie de démonstration",
   },
@@ -22,6 +23,7 @@ const copy = {
     loading: "Loading the map…",
     failed:
       "The map could not be loaded. The route is still shown: it is drawn right here from the coordinates, without asking anyone for anything.",
+    retry: "Try again",
     shapeAria: "Route of the demo run",
     mapAria: "OpenStreetMap map of the demo run",
   },
@@ -33,6 +35,7 @@ const copy = {
     loading: "Cargando el mapa…",
     failed:
       "No se ha podido cargar el mapa. La traza sigue visible: se dibuja aquí mismo a partir de las coordenadas, sin pedirle nada a nadie.",
+    retry: "Reintentar",
     shapeAria: "Traza del rodaje de demostración",
     mapAria: "Mapa de OpenStreetMap del rodaje de demostración",
   },
@@ -86,19 +89,45 @@ function RouteShape({ label }: { label: string }) {
 export function RunMap() {
   const t = useCopy(copy);
   const [state, setState] = useState<"idle" | "loading" | "ready" | "failed">("idle");
+  // Le numéro de la tentative en cours. C'est lui, et non l'état
+  // d'affichage, qui pilote la vie de la carte : un effet accroché à l'état
+  // serait nettoyé à l'instant même où la carte passe de « chargement » à
+  // « prête » — et son nettoyage exécutait `map.remove()`, détruisant la
+  // carte au moment précis où elle venait de réussir. C'est le bug qui
+  // rendait la carte impossible à charger en production, invisible dans un
+  // environnement où les tuiles sont bloquées et où seul le chemin d'échec
+  // s'exécute.
+  const [attempt, setAttempt] = useState(0);
   const container = useRef<HTMLDivElement>(null);
 
+  const begin = () => {
+    setState("loading");
+    setAttempt((current) => current + 1);
+  };
+
   useEffect(() => {
-    if (state !== "loading" || !container.current) return;
+    if (attempt === 0 || !container.current) return;
     let cancelled = false;
+    // Vrai dès que le sort de cette tentative est scellé, dans un sens ou
+    // dans l'autre : plus aucun événement tardif ne doit le renverser.
+    let settled = false;
     let map: { remove: () => void } | null = null;
+
+    const fail = () => {
+      if (cancelled || settled) return;
+      settled = true;
+      // La carte à moitié née est retirée tout de suite : l'état « échec »
+      // ne rend plus le conteneur, elle continuerait de vivre en arrière-plan.
+      map?.remove();
+      map = null;
+      setState("failed");
+    };
+
     // Un style qui ne répond pas, un pare-feu d'entreprise, un navigateur
     // sans WebGL : sans limite de temps, le visiteur resterait devant
     // « chargement… » indéfiniment. Au bout de quinze secondes on rend la
     // main au tracé local, qui n'a besoin de personne.
-    const timeout = setTimeout(() => {
-      if (!cancelled) setState((current) => (current === "loading" ? "failed" : current));
-    }, 15_000);
+    const timer = setTimeout(fail, 15_000);
 
     (async () => {
       try {
@@ -114,12 +143,29 @@ export function RunMap() {
         });
         map = instance;
 
-        instance.on("error", () => {
-          if (!cancelled) setState("failed");
+        instance.on("error", (event) => {
+          // MapLibre émet `error` pour chaque ressource qui échoue — une
+          // tuile isolée comprise, ce qui est la routine d'un réseau mobile
+          // et ne condamne rien : la carte vit très bien avec une tuile
+          // manquante. Basculer sur l'échec à la première erreur, comme le
+          // faisait ce composant, jetait une carte fonctionnelle dès qu'une
+          // seule requête ratait en 5G. Seul l'échec du style lui-même,
+          // avant le premier rendu, est fatal : sans style, il n'y aura
+          // jamais de carte.
+          const detail = event as { tile?: unknown; sourceId?: string; error?: unknown };
+          if (detail.tile !== undefined || detail.sourceId) {
+            // Non fatal, mais pas muet : une tuile qui rate se diagnostique
+            // dans la console, pas en devinant.
+            console.warn("carte :", detail.sourceId ?? "tuile", detail.error);
+            return;
+          }
+          fail();
         });
 
         instance.on("load", () => {
           if (cancelled) return;
+          settled = true;
+          clearTimeout(timer);
           instance.addSource("route", {
             type: "geojson",
             data: {
@@ -138,16 +184,16 @@ export function RunMap() {
           setState("ready");
         });
       } catch {
-        if (!cancelled) setState("failed");
+        fail();
       }
     })();
 
     return () => {
       cancelled = true;
-      clearTimeout(timeout);
+      clearTimeout(timer);
       map?.remove();
     };
-  }, [state]);
+  }, [attempt]);
 
   if (state === "idle") {
     return (
@@ -156,7 +202,7 @@ export function RunMap() {
         <div className="runmap__ask">
           <h3>{t.placeholderTitle}</h3>
           <p>{t.placeholderBody}</p>
-          <button type="button" className="button button--primary button--small" onClick={() => setState("loading")}>
+          <button type="button" className="button button--primary button--small" onClick={begin}>
             {t.load}
           </button>
         </div>
@@ -170,6 +216,13 @@ export function RunMap() {
         <RouteShape label={t.shapeAria} />
         <div className="runmap__ask">
           <p>{t.failed}</p>
+          {/* Un tunnel, un ascenseur, une antenne saturée : l'échec d'une
+              carte sur un téléphone est presque toujours passager. Le
+              condamner jusqu'au rechargement de la page serait dire au
+              visiteur que c'est sa faute. */}
+          <button type="button" className="button button--primary button--small" onClick={begin}>
+            {t.retry}
+          </button>
         </div>
       </div>
     );

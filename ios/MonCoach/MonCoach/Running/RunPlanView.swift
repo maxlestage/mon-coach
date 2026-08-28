@@ -62,7 +62,7 @@ struct RunPlanView: View {
                     label: LocalizedText(fr: "7 derniers jours", en: "Last 7 days", es: "Últimos 7 días")[language]
                 )
                 if let distance = block.goal.raceDistanceMeters,
-                   let predicted = RunMath.predictedRaceTime(
+                   let predicted = TraceMath.predictedRaceTime(
                        thresholdPaceSecondsPerKm: block.thresholdPaceSecondsPerKm,
                        distanceMeters: distance
                    ) {
@@ -97,6 +97,8 @@ struct RunPlanView: View {
     }
 
     private var historyCard: some View {
+        // Les sorties de course, pas toutes les activités : un tour de
+        // vélo n'a rien à faire dans l'historique d'un plan de course.
         let recent = store.history.runs.suffix(6).reversed()
         return Group {
             if !recent.isEmpty {
@@ -112,7 +114,10 @@ struct RunPlanView: View {
                                         .font(Theme.captionFont)
                                         .foregroundStyle(Theme.primaryText)
                                     Text(Format.distance(meters: run.meters, unit: unit, language: language)
-                                        + " · " + Format.pace(secondsPerKm: run.paceSecondsPerKm, unit: unit))
+                                        + " · " + Format.speedOrPace(
+                                            sport: run.sport, meters: run.meters,
+                                            seconds: run.duration, unit: unit, language: language
+                                        ))
                                         .font(.system(size: 12))
                                         .foregroundStyle(Theme.secondaryText)
                                 }

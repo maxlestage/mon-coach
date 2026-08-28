@@ -84,6 +84,56 @@ public enum Format {
         return String(format: "%d:%02d", total / 60, total % 60) + (unit == .metric ? " /km" : " /mi")
     }
 
+    /// A speed in kilometres or miles per hour — how a cyclist reads.
+    public static func speed(metersPerSecond: Double, unit: UnitSystem, language: Language = .french) -> String {
+        guard metersPerSecond > 0, metersPerSecond.isFinite else { return "—" }
+        switch unit {
+        case .metric:
+            return "\(number(metersPerSecond * 3.6, decimals: 1, language: language)) km/h"
+        case .imperial:
+            return "\(number(metersPerSecond * 2.236936, decimals: 1, language: language)) mph"
+        }
+    }
+
+    /// La vitesse d'une activité, dite comme ce sport la dit.
+    ///
+    /// Passer par ici plutôt que d'appeler `pace` directement : une sortie
+    /// vélo affichée « 1:30 /km » n'est pas une erreur d'arrondi, c'est une
+    /// unité que personne n'emploie. Le sport porte déjà la réponse, encore
+    /// faut-il la lui demander.
+    public static func speedOrPace(
+        sport: Sport,
+        meters: Double,
+        seconds: TimeInterval,
+        unit: UnitSystem,
+        language: Language = .french
+    ) -> String {
+        guard meters > 0, seconds > 0 else { return "—" }
+        switch sport.readout {
+        case .pacePerKilometre:
+            return pace(secondsPerKm: TraceMath.pace(meters: meters, seconds: seconds), unit: unit)
+        case .speed:
+            return speed(metersPerSecond: meters / seconds, unit: unit, language: language)
+        }
+    }
+
+    /// La même chose à partir d'une allure déjà calculée — l'allure
+    /// instantanée d'un écran d'effort, par exemple.
+    public static func speedOrPace(
+        sport: Sport,
+        secondsPerKm: Double,
+        unit: UnitSystem,
+        language: Language = .french
+    ) -> String {
+        guard secondsPerKm > 0, secondsPerKm.isFinite else { return "—" }
+        switch sport.readout {
+        case .pacePerKilometre:
+            return pace(secondsPerKm: secondsPerKm, unit: unit)
+        case .speed:
+            return speed(metersPerSecond: 1_000 / secondsPerKm, unit: unit, language: language)
+        }
+    }
+
     /// A distance in kilometres or miles.
     public static func distance(meters: Double, unit: UnitSystem, language: Language = .french) -> String {
         switch unit {

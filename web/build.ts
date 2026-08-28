@@ -61,6 +61,24 @@ for (const icon of await readdir("./src/icons")) {
 // l'écran d'accueil : pas besoin de balise, juste du bon fichier au bon endroit.
 await Bun.write(`${OUT_DIR}/apple-touch-icon.png`, Bun.file("./src/icons/icon-180.png"));
 
+// Le worker de MapLibre. Le bundler ne suit pas le `new Worker(new URL(...))`
+// du paquet : la référence reste relative au chunk, donc le navigateur
+// demande `/assets/maplibre-gl-worker.mjs` — un fichier que le build
+// n'émettait pas. Résultat observé, pas supposé : la carte s'affichait, le
+// style se rendait, mais aucune couche à source ne se dessinait jamais — le
+// tracé de la sortie, précisément ce que la carte doit montrer, restait
+// invisible, sans une seule erreur en console. Le fichier est copié sous le
+// nom exact que MapLibre demande, sans condensat : c'est l'adresse qui est
+// l'interface.
+// Le worker n'est pas autosuffisant : il importe `./maplibre-gl-shared.mjs`.
+// Copier l'un sans l'autre reproduirait le même silence un fichier plus loin.
+for (const piece of ["maplibre-gl-worker.mjs", "maplibre-gl-shared.mjs"]) {
+  await Bun.write(
+    `${OUT_DIR}/assets/${piece}`,
+    Bun.file(`./node_modules/maplibre-gl/dist/${piece}`)
+  );
+}
+
 // ------------------------------------------------------------ service worker
 
 const pages = ["/", "/mentions-legales", "/confidentialite", "/conditions"];
@@ -73,6 +91,9 @@ const hashedAssets = result.outputs
   // clic cherche à éviter. Il sera mis en cache s'il est réellement utilisé :
   // la règle « cache-first » sur /assets/ s'en charge à la première visite.
   .filter((path) => !path.includes("maplibre"));
+// Le worker suit la même règle que le chunk qui le demande : jamais dans le
+// précache — il pèse et ne sert qu'à ceux qui ouvrent la carte — mais mis en
+// cache à la première utilisation par la règle « cache d'abord » des assets.
 const staticFiles = [
   "/manifest.webmanifest",
   "/icons/icon-192.png",

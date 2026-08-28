@@ -34,7 +34,7 @@ public struct TodayBriefing: Sendable, Equatable {
     /// run: they are two different asks, not two states of one.
     public let plannedRun: PlannedRun?
     /// The run already recorded today, if the athlete has been out.
-    public let recordedRun: RunLog?
+    public let recordedRun: ActivityLog?
     /// What to eat today, built around the same macros as `nutrition`.
     public let food: DayPlan
 

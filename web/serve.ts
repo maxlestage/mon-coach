@@ -59,6 +59,14 @@ const server = Bun.serve({
       return new Response(file, { headers });
     }
 
+    // Un asset introuvable est une erreur franche, jamais la page d'accueil :
+    // servir du HTML à la place d'un script fait échouer un worker en
+    // silence, et ce silence a déjà coûté un vrai bug — le worker de la
+    // carte recevait la page d'accueil et mourait sans un mot.
+    if (path.startsWith("/assets/")) {
+      return new Response("Asset introuvable.", { status: 404 });
+    }
+
     // Site d'une seule page : tout le reste retombe sur le document racine.
     const index = Bun.file(new URL("./index.html", DIST));
     if (await index.exists()) {

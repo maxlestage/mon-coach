@@ -1,38 +1,5 @@
 import Foundation
 
-/// Un point GPS brut, tel que le système le fournit.
-///
-/// L'altitude et les précisions sont conservées telles quelles : c'est
-/// l'analyse qui décidera de ce qui est exploitable, et elle doit pouvoir
-/// justifier ses rejets.
-public struct GPSPoint: Codable, Sendable, Equatable, Hashable {
-    public var timestamp: Date
-    public var latitude: Double
-    public var longitude: Double
-    /// Altitude en mètres au-dessus du niveau de la mer.
-    public var altitude: Double
-    /// Rayon d'incertitude horizontale en mètres. Négatif si invalide.
-    public var horizontalAccuracy: Double
-    /// Incertitude verticale en mètres. Négatif si invalide.
-    public var verticalAccuracy: Double
-
-    public init(
-        timestamp: Date,
-        latitude: Double,
-        longitude: Double,
-        altitude: Double = 0,
-        horizontalAccuracy: Double = 5,
-        verticalAccuracy: Double = 5
-    ) {
-        self.timestamp = timestamp
-        self.latitude = latitude
-        self.longitude = longitude
-        self.altitude = altitude
-        self.horizontalAccuracy = horizontalAccuracy
-        self.verticalAccuracy = verticalAccuracy
-    }
-}
-
 /// Le type d'une sortie, qui détermine l'allure visée et l'effort.
 public enum RunType: String, Codable, CaseIterable, Sendable {
     case easy
@@ -187,80 +154,6 @@ public struct RunningProfile: Codable, Sendable, Equatable {
         self.raceDate = raceDate
         self.thresholdPaceSecondsPerKm = thresholdPaceSecondsPerKm
     }
-}
-
-/// Un kilomètre couru, tel qu'il s'est réellement passé.
-public struct Split: Codable, Sendable, Equatable, Identifiable, Hashable {
-    public var id: Int { index }
-    /// 1 pour le premier kilomètre.
-    public var index: Int
-    /// Distance réellement couverte par ce segment, en mètres.
-    /// Le dernier segment est souvent incomplet.
-    public var meters: Double
-    public var duration: TimeInterval
-    /// Dénivelé positif du segment, en mètres.
-    public var elevationGain: Double
-
-    public init(index: Int, meters: Double, duration: TimeInterval, elevationGain: Double) {
-        self.index = index
-        self.meters = meters
-        self.duration = duration
-        self.elevationGain = elevationGain
-    }
-
-    /// Allure en secondes par kilomètre.
-    public var paceSecondsPerKm: Double {
-        meters > 0 ? duration / (meters / 1_000) : 0
-    }
-}
-
-/// Une sortie enregistrée.
-public struct RunLog: Codable, Sendable, Equatable, Identifiable {
-    public var id: UUID
-    public var startedAt: Date
-    public var type: RunType
-    /// La trace brute. Conservée telle quelle : les filtres de l'analyse
-    /// peuvent évoluer, les points d'origine ne doivent pas être perdus.
-    public var points: [GPSPoint]
-    /// Distance retenue après filtrage, en mètres.
-    public var meters: Double
-    /// Temps en mouvement, pauses exclues.
-    public var duration: TimeInterval
-    public var elevationGain: Double
-    public var splits: [Split]
-    /// Effort ressenti, 1 à 10, saisi après la sortie.
-    public var perceivedEffort: Int?
-    public var note: String?
-
-    public init(
-        id: UUID = UUID(),
-        startedAt: Date,
-        type: RunType,
-        points: [GPSPoint] = [],
-        meters: Double,
-        duration: TimeInterval,
-        elevationGain: Double,
-        splits: [Split] = [],
-        perceivedEffort: Int? = nil,
-        note: String? = nil
-    ) {
-        self.id = id
-        self.startedAt = startedAt
-        self.type = type
-        self.points = points
-        self.meters = meters
-        self.duration = duration
-        self.elevationGain = elevationGain
-        self.splits = splits
-        self.perceivedEffort = perceivedEffort
-        self.note = note
-    }
-
-    public var paceSecondsPerKm: Double {
-        meters > 0 ? duration / (meters / 1_000) : 0
-    }
-
-    public var kilometers: Double { meters / 1_000 }
 }
 
 /// Une sortie prescrite par le coach.

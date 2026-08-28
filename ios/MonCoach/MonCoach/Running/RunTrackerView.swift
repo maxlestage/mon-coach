@@ -15,7 +15,7 @@ struct RunTrackerView: View {
 
     @State private var tracker = LocationTracker()
     @State private var selectedType: RunType = .easy
-    @State private var finishedRun: RunLog?
+    @State private var finishedRun: ActivityLog?
     @State private var showsDiscardConfirmation = false
     @State private var liveActivity = RunActivityController()
 
@@ -188,7 +188,12 @@ struct RunTrackerView: View {
                             label: UI.duration[language]
                         )
                         StatTile(
-                            value: Format.pace(secondsPerKm: tracker.recentPaceSecondsPerKm, unit: unit),
+                            value: Format.speedOrPace(
+                                sport: tracker.sport,
+                                secondsPerKm: tracker.recentPaceSecondsPerKm,
+                                unit: unit,
+                                language: language
+                            ),
                             label: UI.pace[language]
                         )
                         StatTile(

@@ -6,7 +6,7 @@ import Testing
 /// vérifier ce que l'analyse en tire au lieu de la croire sur parole.
 enum TraceFactory {
     /// Degrés de latitude par mètre, sur le rayon exact utilisé par haversine.
-    static let degreesPerMeter = 180 / (.pi * RunMath.earthRadiusMeters)
+    static let degreesPerMeter = 180 / (.pi * TraceMath.earthRadiusMeters)
 
     /// Une ligne droite plein nord, un point par seconde.
     static func straightNorth(
@@ -37,7 +37,7 @@ struct RunMathTests {
 
     @Test("Haversine retrouve la distance d'un degré de latitude")
     func oneDegreeOfLatitude() {
-        let d = RunMath.distance(latitude1: 0, longitude1: 0, latitude2: 1, longitude2: 0)
+        let d = TraceMath.distance(latitude1: 0, longitude1: 0, latitude2: 1, longitude2: 0)
         // Un degré de méridien sur une sphère de 6 371 008,8 m : R × π/180.
         #expect(abs(d - 111_195.08) < 0.5)
     }
@@ -45,57 +45,57 @@ struct RunMathTests {
     @Test("Haversine tombe juste sur une distance connue")
     func parisLyon() {
         // Paris (48,8566 / 2,3522) → Lyon (45,7640 / 4,8357) : ~392 km.
-        let d = RunMath.distance(latitude1: 48.8566, longitude1: 2.3522, latitude2: 45.7640, longitude2: 4.8357)
+        let d = TraceMath.distance(latitude1: 48.8566, longitude1: 2.3522, latitude2: 45.7640, longitude2: 4.8357)
         #expect(abs(d - 392_000) < 3_000)
     }
 
     @Test("Deux points identiques sont à distance nulle")
     func zeroDistance() {
         let p = GPSPoint(timestamp: Date(), latitude: 48.8, longitude: 2.3)
-        #expect(RunMath.distance(from: p, to: p) == 0)
+        #expect(TraceMath.distance(from: p, to: p) == 0)
     }
 
     @Test("Allure et vitesse sont réciproques")
     func paceRoundTrip() {
-        let pace = RunMath.pace(meters: 5_000, seconds: 1_500)   // 5:00/km
+        let pace = TraceMath.pace(meters: 5_000, seconds: 1_500)   // 5:00/km
         #expect(abs(pace - 300) < 0.001)
-        #expect(abs(RunMath.speed(fromPaceSecondsPerKm: pace) - 10.0 / 3) < 0.001)
+        #expect(abs(TraceMath.speed(fromPaceSecondsPerKm: pace) - 10.0 / 3) < 0.001)
     }
 
     @Test("Une distance nulle ne produit pas une allure infinie")
     func noDivisionByZero() {
-        #expect(RunMath.pace(meters: 0, seconds: 600) == 0)
-        #expect(RunMath.speed(fromPaceSecondsPerKm: 0) == 0)
+        #expect(TraceMath.pace(meters: 0, seconds: 600) == 0)
+        #expect(TraceMath.speed(fromPaceSecondsPerKm: 0) == 0)
     }
 
     @Test("Le bruit d'altitude ne fabrique pas de dénivelé")
     func flatNoiseProducesNoGain() {
         // ±0,6 m de bruit sur 300 points : un cumul naïf donnerait ~180 m.
         let noisy = (0..<300).map { index in Double(index % 2) * 1.2 - 0.6 }
-        let smoothed = RunMath.movingAverage(noisy, window: 5)
-        #expect(RunMath.elevationGain(smoothedAltitudes: smoothed, threshold: 1) == 0)
+        let smoothed = TraceMath.movingAverage(noisy, window: 5)
+        #expect(TraceMath.elevationGain(smoothedAltitudes: smoothed, threshold: 1) == 0)
     }
 
     @Test("Une vraie montée est comptée")
     func realClimbIsCounted() {
         let climb = (0..<100).map { Double($0) * 0.5 }   // 0 → 49,5 m
-        let gain = RunMath.elevationGain(smoothedAltitudes: climb, threshold: 1)
+        let gain = TraceMath.elevationGain(smoothedAltitudes: climb, threshold: 1)
         #expect(abs(gain - 49.5) < 1.5)
     }
 
     @Test("Une descente ne compte pas comme du dénivelé positif")
     func descentIsNotGain() {
         let descent = (0..<100).map { 100 - Double($0) * 0.5 }
-        #expect(RunMath.elevationGain(smoothedAltitudes: descent, threshold: 1) == 0)
+        #expect(TraceMath.elevationGain(smoothedAltitudes: descent, threshold: 1) == 0)
     }
 
     @Test("La dépense énergétique suit l'ordre de grandeur connu")
     func energy() {
         // 10 km à plat pour 70 kg : ~725 kcal.
-        let flat = RunMath.energyKcal(meters: 10_000, elevationGain: 0, weightKg: 70)
+        let flat = TraceMath.energyKcal(meters: 10_000, elevationGain: 0, weightKg: 70)
         #expect(abs(flat - 725) < 5)
         // 500 m de D+ ajoutent ~328 kcal.
-        let hilly = RunMath.energyKcal(meters: 10_000, elevationGain: 500, weightKg: 70)
+        let hilly = TraceMath.energyKcal(meters: 10_000, elevationGain: 500, weightKg: 70)
         #expect(hilly > flat)
         #expect(abs(hilly - flat - 328) < 5)
     }
@@ -103,7 +103,7 @@ struct RunMathTests {
     @Test("Riegel prédit le semi à partir du 10 km")
     func riegel() {
         // 10 km en 40:00 → semi ≈ 40 × 2,1097^1,06 ≈ 88,6 min.
-        let half = RunMath.predictedTime(fromDistance: 10_000, time: 2_400, toDistance: 21_097.5)
+        let half = TraceMath.predictedTime(fromDistance: 10_000, time: 2_400, toDistance: 21_097.5)
         let minutes = (half ?? 0) / 60
         #expect(abs(minutes - 88.6) < 1.0)
     }
@@ -112,14 +112,14 @@ struct RunMathTests {
     func thresholdRoundTrip() {
         // Une performance quelconque donne un seuil ; ce seuil doit
         // reprédire la même performance.
-        let threshold = RunMath.thresholdPace(fromDistance: 10_000, time: 2_400)
-        let back = RunMath.predictedRaceTime(thresholdPaceSecondsPerKm: threshold ?? 0, distanceMeters: 10_000)
+        let threshold = TraceMath.thresholdPace(fromDistance: 10_000, time: 2_400)
+        let back = TraceMath.predictedRaceTime(thresholdPaceSecondsPerKm: threshold ?? 0, distanceMeters: 10_000)
         #expect(abs((back ?? 0) - 2_400) < 1)
     }
 
     @Test("Une performance trop courte ne donne pas de seuil")
     func thresholdNeedsDistance() {
-        #expect(RunMath.thresholdPace(fromDistance: 400, time: 60) == nil)
+        #expect(TraceMath.thresholdPace(fromDistance: 400, time: 60) == nil)
     }
 }
 
@@ -129,7 +129,7 @@ struct RunAnalysisTests {
     @Test("Une trace propre est mesurée au mètre près")
     func cleanTraceIsAccurate() {
         let points = TraceFactory.straightNorth(meters: 3_000, speed: 10.0 / 3)
-        let trace = RunAnalysis.clean(points)
+        let trace = TraceAnalysis.clean(points)
         #expect(abs(trace.meters - 3_000) < 5)
         #expect(abs(trace.movingDuration - 900) < 1.5)
         #expect(abs(trace.paceSecondsPerKm - 300) < 1)
@@ -142,7 +142,7 @@ struct RunAnalysisTests {
         var points = TraceFactory.straightNorth(meters: 1_000, speed: 10.0 / 3)
         points[10].horizontalAccuracy = 80
         points[11].horizontalAccuracy = -1      // « pas de fix », pas « parfait »
-        let trace = RunAnalysis.clean(points)
+        let trace = TraceAnalysis.clean(points)
         #expect(trace.rejectedForAccuracy == 2)
         #expect(trace.samples.count == points.count - 2)
         // La distance reste juste : le segment enjambe simplement les trous.
@@ -153,7 +153,7 @@ struct RunAnalysisTests {
     func teleportRejected() {
         var points = TraceFactory.straightNorth(meters: 1_000, speed: 10.0 / 3)
         points[50].latitude += 0.5   // ~55 km d'un coup
-        let trace = RunAnalysis.clean(points)
+        let trace = TraceAnalysis.clean(points)
         #expect(trace.rejectedForSpeed == 1)
         #expect(abs(trace.meters - 1_000) < 5)
     }
@@ -174,7 +174,7 @@ struct RunAnalysisTests {
                 )
             )
         }
-        let trace = RunAnalysis.clean(points)
+        let trace = TraceAnalysis.clean(points)
         #expect(abs(trace.meters - 1_000) < 5)
         #expect(abs(trace.movingDuration - 300) < 2)
         #expect(trace.elapsedDuration > 590)   // le temps réel, lui, a bien passé
@@ -184,25 +184,25 @@ struct RunAnalysisTests {
     func outOfOrderRejected() {
         var points = TraceFactory.straightNorth(meters: 300, speed: 10.0 / 3)
         points.append(points[5])   // un doublon, donc un temps qui n'avance pas
-        let trace = RunAnalysis.clean(points)
+        let trace = TraceAnalysis.clean(points)
         #expect(trace.rejectedForOrder == 1)
     }
 
     @Test("Une trace trop courte ne fait pas planter l'analyse")
     func degenerateTraces() {
-        #expect(RunAnalysis.clean([]).isEmpty)
+        #expect(TraceAnalysis.clean([]).isEmpty)
         let single = [GPSPoint(timestamp: Date(), latitude: 48.85, longitude: 2.35)]
-        let trace = RunAnalysis.clean(single)
+        let trace = TraceAnalysis.clean(single)
         #expect(trace.isEmpty)
         #expect(trace.meters == 0)
-        #expect(RunAnalysis.splits(of: trace).isEmpty)
+        #expect(TraceAnalysis.splits(of: trace).isEmpty)
     }
 
     @Test("Les kilomètres sont découpés au bon endroit")
     func splitsAreCorrect() {
         let points = TraceFactory.straightNorth(meters: 3_500, speed: 10.0 / 3)
-        let trace = RunAnalysis.clean(points)
-        let splits = RunAnalysis.splits(of: trace)
+        let trace = TraceAnalysis.clean(points)
+        let splits = TraceAnalysis.splits(of: trace)
         #expect(splits.count == 4)
         for split in splits.prefix(3) {
             #expect(abs(split.meters - 1_000) < 0.001)
@@ -218,8 +218,8 @@ struct RunAnalysisTests {
     @Test("La somme des segments redonne la distance totale")
     func splitsSumToTotal() {
         let points = TraceFactory.straightNorth(meters: 7_300, speed: 3.1)
-        let trace = RunAnalysis.clean(points)
-        let splits = RunAnalysis.splits(of: trace)
+        let trace = TraceAnalysis.clean(points)
+        let splits = TraceAnalysis.splits(of: trace)
         let sum = splits.reduce(0) { $0 + $1.meters }
         #expect(abs(sum - trace.meters) < 1)
         let seconds = splits.reduce(0) { $0 + $1.duration }
@@ -239,7 +239,7 @@ struct RunAnalysisTests {
             startingAt: junction.timestamp.addingTimeInterval(1)
         )
         points.append(contentsOf: fast.dropFirst(0))
-        let splits = RunAnalysis.splits(of: RunAnalysis.clean(points))
+        let splits = TraceAnalysis.splits(of: TraceAnalysis.clean(points))
         #expect(splits.count >= 2)
         #expect(abs(splits[0].paceSecondsPerKm - 300) < 3)
         #expect(abs(splits[1].paceSecondsPerKm - 240) < 6)
@@ -253,8 +253,8 @@ struct RunAnalysisTests {
             speed: 10.0 / 3,
             altitudes: { travelled in travelled <= 1_000 ? 0 : (travelled - 1_000) * 0.04 }
         )
-        let trace = RunAnalysis.clean(points)
-        let splits = RunAnalysis.splits(of: trace)
+        let trace = TraceAnalysis.clean(points)
+        let splits = TraceAnalysis.splits(of: trace)
         #expect(splits.count == 2)
         #expect(splits[0].elevationGain < 2)
         #expect(abs(splits[1].elevationGain - 40) < 3)
@@ -265,7 +265,7 @@ struct RunAnalysisTests {
     func summaryKeepsRawTrace() {
         var points = TraceFactory.straightNorth(meters: 2_000, speed: 10.0 / 3)
         points[3].horizontalAccuracy = 90
-        let log = RunAnalysis.summarise(rawPoints: points, type: .easy, perceivedEffort: 5)
+        let log = TraceAnalysis.summarise(rawPoints: points, type: .easy, perceivedEffort: 5)
         #expect(log.points.count == points.count)   // rien n'est perdu
         #expect(abs(log.meters - 2_000) < 5)
         #expect(log.splits.count == 2)
@@ -650,7 +650,7 @@ struct RunningIntegrationTests {
     @Test("Une sortie enregistrée apparaît dans le briefing du jour")
     func recordedRunShowsUp() {
         let program = CoachEngine.buildProgram(for: Self.profile(), startingOn: Fixtures.start)
-        let log = RunLog(
+        let log = ActivityLog(
             startedAt: Fixtures.start.addingTimeInterval(3_600),
             type: .easy,
             meters: 6_000,
@@ -659,7 +659,7 @@ struct RunningIntegrationTests {
         )
         let briefing = CoachEngine.briefing(
             for: program,
-            history: TrainingHistory(runs: [log]),
+            history: TrainingHistory(activities: [log]),
             on: Fixtures.start,
             calendar: Fixtures.calendar
         )
@@ -668,10 +668,10 @@ struct RunningIntegrationTests {
 
     @Test("Le kilométrage de la semaine se calcule sur sept jours glissants")
     func weeklyMeters() {
-        let history = TrainingHistory(runs: [
-            RunLog(startedAt: Fixtures.start, type: .easy, meters: 5_000, duration: 1_500, elevationGain: 0),
-            RunLog(startedAt: Fixtures.start.addingTimeInterval(3 * 86_400), type: .long, meters: 12_000, duration: 3_900, elevationGain: 0),
-            RunLog(startedAt: Fixtures.start.addingTimeInterval(-10 * 86_400), type: .easy, meters: 8_000, duration: 2_400, elevationGain: 0),
+        let history = TrainingHistory(activities: [
+            ActivityLog(startedAt: Fixtures.start, type: .easy, meters: 5_000, duration: 1_500, elevationGain: 0),
+            ActivityLog(startedAt: Fixtures.start.addingTimeInterval(3 * 86_400), type: .long, meters: 12_000, duration: 3_900, elevationGain: 0),
+            ActivityLog(startedAt: Fixtures.start.addingTimeInterval(-10 * 86_400), type: .easy, meters: 8_000, duration: 2_400, elevationGain: 0),
         ])
         let total = history.weeklyRunMeters(
             endingOn: Fixtures.start.addingTimeInterval(3 * 86_400),
@@ -683,18 +683,18 @@ struct RunningIntegrationTests {
     @Test("Seules les sorties rapides servent à estimer le seuil")
     func onlyHardRunsMoveTheThreshold() {
         // Un footing très lent ne doit pas faire croire au coach qu'on a ralenti.
-        let easy = RunLog(startedAt: Fixtures.start, type: .easy, meters: 10_000, duration: 4_200, elevationGain: 0)
-        let tempo = RunLog(startedAt: Fixtures.start, type: .tempo, meters: 5_000, duration: 1_200, elevationGain: 0)
-        #expect(TrainingHistory(runs: [easy]).demonstratedThresholdPace() == nil)
+        let easy = ActivityLog(startedAt: Fixtures.start, type: .easy, meters: 10_000, duration: 4_200, elevationGain: 0)
+        let tempo = ActivityLog(startedAt: Fixtures.start, type: .tempo, meters: 5_000, duration: 1_200, elevationGain: 0)
+        #expect(TrainingHistory(activities: [easy]).demonstratedThresholdPace() == nil)
 
-        let both = TrainingHistory(runs: [easy, tempo]).demonstratedThresholdPace()
-        let fromTempo = TrainingHistory(runs: [tempo]).demonstratedThresholdPace()
+        let both = TrainingHistory(activities: [easy, tempo]).demonstratedThresholdPace()
+        let fromTempo = TrainingHistory(activities: [tempo]).demonstratedThresholdPace()
         #expect(both == fromTempo)
     }
 
     @Test("Une sortie trop courte ne sert pas de référence")
     func shortRunsAreIgnored() {
-        let sprint = RunLog(startedAt: Fixtures.start, type: .intervals, meters: 800, duration: 150, elevationGain: 0)
-        #expect(TrainingHistory(runs: [sprint]).demonstratedThresholdPace() == nil)
+        let sprint = ActivityLog(startedAt: Fixtures.start, type: .intervals, meters: 800, duration: 150, elevationGain: 0)
+        #expect(TrainingHistory(activities: [sprint]).demonstratedThresholdPace() == nil)
     }
 }

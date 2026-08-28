@@ -83,13 +83,13 @@ public enum WatchSyncCodec {
 
     static let encoder: JSONEncoder = {
         let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
+        DateCoding.apply(to: encoder)
         return encoder
     }()
 
     static let decoder: JSONDecoder = {
         let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
+        DateCoding.apply(to: decoder)
         return decoder
     }()
 
@@ -105,12 +105,12 @@ public enum WatchSyncCodec {
         try encoder.encode(log)
     }
 
-    public static func encode(_ log: RunLog) throws -> Data {
+    public static func encode(_ log: ActivityLog) throws -> Data {
         try encoder.encode(log)
     }
 
-    public static func decodeRunLog(_ data: Data) throws -> RunLog {
-        try decoder.decode(RunLog.self, from: data)
+    public static func decodeRunLog(_ data: Data) throws -> ActivityLog {
+        try decoder.decode(ActivityLog.self, from: data)
     }
 
     public static func decodeSessionLog(_ data: Data) throws -> SessionLog {
@@ -161,7 +161,7 @@ extension CoachStore {
     /// La trace GPS de la montre traverse `transferUserInfo`, dont la file
     /// est persistante : une sortie faite hors de portée du téléphone
     /// remonte au prochain rapprochement, pas au prochain lancement.
-    public func receiveFromWatch(_ log: RunLog) {
+    public func receiveFromWatch(_ log: ActivityLog) {
         guard log.meters >= 100 else { return }
         recordRun(log)
     }
