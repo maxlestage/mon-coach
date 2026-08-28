@@ -5,10 +5,16 @@
  */
 
 const DIST = new URL("./dist/", import.meta.url);
+
+// L'hébergeur impose le port par la variable d'environnement.
 const port = Number(Bun.env["PORT"] ?? 3000);
+// Et il faut écouter sur toutes les interfaces : derrière un routeur comme
+// celui de Heroku, un service qui n'écoute que sur localhost est injoignable.
+const hostname = Bun.env["HOST"] ?? "0.0.0.0";
 
 const server = Bun.serve({
   port,
+  hostname,
   async fetch(request) {
     const url = new URL(request.url);
     const path = url.pathname === "/" ? "/index.html" : url.pathname;

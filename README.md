@@ -90,6 +90,17 @@ swift run --package-path tools/FixtureGenerator \
 La CI régénère ce fichier et échoue s'il diffère de la version commitée. Une
 divergence d'une seule calorie entre l'application et le site casse le build.
 
+## Mise en ligne
+
+Le site part sur Heroku, en image Docker, poussée par GitHub Actions à chaque
+fusion sur `master` qui touche à `web/`. La configuration se fait entièrement
+depuis un navigateur — un téléphone suffit, il n'y a ni ligne de commande
+Heroku ni installation : **[docs/DEPLOIEMENT.md](docs/DEPLOIEMENT.md)**.
+
+Le `Dockerfile` est construit et testé par la CI à chaque pull request : le
+conteneur est démarré, la page est demandée, et les en-têtes de cache sont
+vérifiés. Ce qui part en production est ce qui a été testé.
+
 ## Versions
 
 | Outil | Version |
@@ -97,6 +108,7 @@ divergence d'une seule calorie entre l'application et le site casse le build.
 | Swift | 6.2 (mode langage 6) |
 | iOS | 18.0 minimum |
 | Bun | 1.4.0 |
+| Docker | image `oven/bun:1.4.0` |
 | TypeScript | 7.0 |
 | React | 19.2 |
 

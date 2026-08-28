@@ -48,6 +48,20 @@ Le portage ne couvre pas le choix des exercices, la progression des charges,
 l'autorégulation quotidienne ni le bilan hebdomadaire : ces parties ont besoin
 d'un historique d'entraînement, qui n'existe que dans l'application.
 
+## Mise en ligne
+
+`Dockerfile` construit le site avec Bun puis ne garde, dans l'image finale,
+que `dist/` et `serve.ts`. `serve.ts` lit `PORT` et écoute sur `0.0.0.0`,
+ce qu'impose un hébergeur qui place un routeur devant le conteneur.
+
+```bash
+docker build -t mon-coach-web ./web
+docker run --rm -e PORT=8080 -p 8080:8080 mon-coach-web
+```
+
+Le déploiement lui-même est décrit dans
+[`docs/DEPLOIEMENT.md`](../docs/DEPLOIEMENT.md).
+
 ## Choix techniques
 
 - **Pas de framework CSS.** Un seul fichier de tokens, repris des couleurs de
