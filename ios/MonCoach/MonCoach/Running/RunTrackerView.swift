@@ -17,6 +17,7 @@ struct RunTrackerView: View {
     @State private var selectedType: RunType = .easy
     @State private var finishedRun: RunLog?
     @State private var showsDiscardConfirmation = false
+    @State private var liveActivity = RunActivityController()
 
     private var unit: UnitSystem { store.profile?.unit ?? .metric }
     private var loadsTiles: Bool { store.profile?.loadsMapTiles ?? true }
@@ -60,6 +61,7 @@ struct RunTrackerView: View {
                 titleVisibility: .visible
             ) {
                 Button(UI.delete[language], role: .destructive) {
+                    liveActivity.end()
                     tracker.reset()
                     dismiss()
                 }
@@ -137,6 +139,10 @@ struct RunTrackerView: View {
 
             PrimaryButton(title: UI.start[language], systemImage: "figure.run") {
                 tracker.start(type: selectedType)
+                liveActivity.start(
+                    id: UUID(),
+                    snapshot: tracker.activitySnapshot(unit: unit, language: language)
+                )
             }
 
             CoachText(
@@ -196,6 +202,11 @@ struct RunTrackerView: View {
 
             RunMapView(points: tracker.points, showsCurrentPosition: true, loadsTiles: loadsTiles)
                 .frame(height: 260)
+                // Les points arrivent chaque seconde ; le contrôleur limite
+                // lui-même la cadence réellement poussée au système.
+                .onChange(of: tracker.points.count) { _, _ in
+                    liveActivity.update(tracker.activitySnapshot(unit: unit, language: language))
+                }
 
             if !tracker.splits.isEmpty {
                 Card(title: UI.splits[language]) {
@@ -205,11 +216,24 @@ struct RunTrackerView: View {
 
             HStack(spacing: 12) {
                 if tracker.state == .running {
-                    GhostButton(title: UI.pause[language], systemImage: "pause.fill") { tracker.pause() }
+                    GhostButton(title: UI.pause[language], systemImage: "pause.fill") {
+                        tracker.pause()
+                        liveActivity.update(
+                            tracker.activitySnapshot(unit: unit, language: language),
+                            force: true
+                        )
+                    }
                 } else if tracker.state == .paused {
-                    GhostButton(title: UI.resume[language], systemImage: "play.fill") { tracker.resume() }
+                    GhostButton(title: UI.resume[language], systemImage: "play.fill") {
+                        tracker.resume()
+                        liveActivity.update(
+                            tracker.activitySnapshot(unit: unit, language: language),
+                            force: true
+                        )
+                    }
                 }
                 PrimaryButton(title: UI.finish[language], systemImage: "flag.checkered") {
+                    liveActivity.end()
                     if let run = tracker.finish() {
                         finishedRun = run
                     } else {

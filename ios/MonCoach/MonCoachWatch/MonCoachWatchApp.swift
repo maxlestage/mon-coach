@@ -26,5 +26,9 @@ struct WatchRootView: View {
                 WatchTodayView()
             }
         }
+        // La montre parle la langue choisie sur le téléphone, reçue dans
+        // l'instantané. Elle n'a pas de réglage à elle : deux endroits pour
+        // choisir la même chose, c'est un endroit de trop.
+        .language(store.language)
     }
 }

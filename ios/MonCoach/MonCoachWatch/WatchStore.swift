@@ -66,6 +66,15 @@ final class WatchStore {
     var unit: UnitSystem { snapshot?.unit ?? .metric }
     var loadStepKg: Double { snapshot?.loadIncrement.stepKg ?? 2.5 }
 
+    /// La langue du téléphone. La montre n'a pas de réglage propre.
+    var language: Language { snapshot?.language ?? .french }
+
+    /// La sortie du jour, si elle n'a pas déjà été enregistrée.
+    var todayRun: PlannedRun? {
+        guard let snapshot, !snapshot.runDone else { return nil }
+        return snapshot.plannedRun
+    }
+
     // MARK: - Séance
 
     func startSession() {
@@ -88,6 +97,22 @@ final class WatchStore {
             }
         }
         activeSession = nil
+    }
+
+    // MARK: - Course
+
+    /// Enregistre une sortie menée au poignet et la fait remonter.
+    ///
+    /// La trace complète part vers le téléphone : c'est lui qui tient
+    /// l'historique, recalcule l'allure de seuil et reconstruit le bloc. La
+    /// montre marque simplement la sortie faite pour ne pas la reproposer.
+    func recordRun(_ log: RunLog) {
+        pendingUploads += 1
+        link.send(log)
+        if var current = snapshot {
+            current.runDone = true
+            apply(currentWithNewerDate(current))
+        }
     }
 
     private func currentWithNewerDate(_ snapshot: WatchSnapshot) -> WatchSnapshot {

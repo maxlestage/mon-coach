@@ -72,7 +72,7 @@ struct SessionPlayerView: View {
             if restRemaining > 0 { restRemaining -= 1 }
         }
         .onAppear {
-            if let active { liveActivity.start(for: active, unit: unit) }
+            if let active { liveActivity.start(for: active, unit: unit, language: language) }
         }
         .onDisappear {
             // Séance terminée ou lecteur fermé : l'écran verrouillé ne doit
@@ -314,6 +314,7 @@ struct SessionPlayerView: View {
             liveActivity.update(
                 for: active,
                 unit: unit,
+                language: language,
                 restEndsAt: Date().addingTimeInterval(TimeInterval(restSeconds))
             )
         }

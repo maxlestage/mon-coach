@@ -53,14 +53,23 @@ extension WatchLink: WCSessionDelegate {
     }
 
     nonisolated func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
-        guard let data = userInfo[WatchSyncCodec.sessionLogKey] as? Data,
-              let log = try? WatchSyncCodec.decodeSessionLog(data)
-        else { return }
-        Task { @MainActor in
-            self.store?.receiveFromWatch(log)
-            // L'historique vient de changer : la montre reçoit l'état à jour,
-            // notamment la séance marquée faite.
-            self.push()
+        if let data = userInfo[WatchSyncCodec.sessionLogKey] as? Data,
+           let log = try? WatchSyncCodec.decodeSessionLog(data) {
+            Task { @MainActor in
+                self.store?.receiveFromWatch(log)
+                // L'historique vient de changer : la montre reçoit l'état à
+                // jour, notamment la séance marquée faite.
+                self.push()
+            }
+        }
+        if let data = userInfo[WatchSyncCodec.runLogKey] as? Data,
+           let log = try? WatchSyncCodec.decodeRunLog(data) {
+            Task { @MainActor in
+                // Une sortie remontée peut faire bouger l'allure de seuil, et
+                // donc toutes les allures prescrites : le magasin s'en charge.
+                self.store?.receiveFromWatch(log)
+                self.push()
+            }
         }
     }
 }

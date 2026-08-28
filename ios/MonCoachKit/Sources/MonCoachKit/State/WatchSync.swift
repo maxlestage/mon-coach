@@ -26,6 +26,11 @@ public struct WatchSnapshot: Codable, Sendable, Equatable {
     public var completedSessionIDs: [UUID]
     public var calories: Int
     public var proteinG: Int
+    /// La sortie prévue aujourd'hui, si l'athlète court. Elle suffit à mener
+    /// la course au poignet : type, distance visée, fourchette d'allure.
+    public var plannedRun: PlannedRun?
+    /// Vrai si la sortie du jour a déjà été enregistrée côté téléphone.
+    public var runDone: Bool
 
     public init(
         generatedAt: Date,
@@ -40,7 +45,9 @@ public struct WatchSnapshot: Codable, Sendable, Equatable {
         session: PlannedSession?,
         completedSessionIDs: [UUID],
         calories: Int,
-        proteinG: Int
+        proteinG: Int,
+        plannedRun: PlannedRun? = nil,
+        runDone: Bool = false
     ) {
         self.generatedAt = generatedAt
         self.firstName = firstName
@@ -55,6 +62,8 @@ public struct WatchSnapshot: Codable, Sendable, Equatable {
         self.completedSessionIDs = completedSessionIDs
         self.calories = calories
         self.proteinG = proteinG
+        self.plannedRun = plannedRun
+        self.runDone = runDone
     }
 }
 
@@ -69,6 +78,8 @@ public enum WatchSyncCodec {
     public static let snapshotKey = "moncoach.snapshot.v1"
     /// Clé portant une séance terminée remontée par la montre.
     public static let sessionLogKey = "moncoach.sessionlog.v1"
+    /// Clé portant une sortie de course remontée par la montre.
+    public static let runLogKey = "moncoach.runlog.v1"
 
     static let encoder: JSONEncoder = {
         let encoder = JSONEncoder()
@@ -92,6 +103,14 @@ public enum WatchSyncCodec {
 
     public static func encode(_ log: SessionLog) throws -> Data {
         try encoder.encode(log)
+    }
+
+    public static func encode(_ log: RunLog) throws -> Data {
+        try encoder.encode(log)
+    }
+
+    public static func decodeRunLog(_ data: Data) throws -> RunLog {
+        try decoder.decode(RunLog.self, from: data)
     }
 
     public static func decodeSessionLog(_ data: Data) throws -> SessionLog {
@@ -126,7 +145,9 @@ extension CoachStore {
             session: briefing.session,
             completedSessionIDs: completedToday,
             calories: briefing.nutrition.calories,
-            proteinG: briefing.nutrition.proteinG
+            proteinG: briefing.nutrition.proteinG,
+            plannedRun: briefing.plannedRun,
+            runDone: briefing.recordedRun != nil
         )
     }
 
@@ -135,6 +156,16 @@ extension CoachStore {
     /// WatchConnectivity garantit la livraison mais pas l'unicité : une même
     /// séance peut arriver deux fois. L'identifiant du journal fait foi — la
     /// version la plus récente remplace l'ancienne, jamais ne s'y ajoute.
+    /// Intègre une sortie de course menée au poignet.
+    ///
+    /// La trace GPS de la montre traverse `transferUserInfo`, dont la file
+    /// est persistante : une sortie faite hors de portée du téléphone
+    /// remonte au prochain rapprochement, pas au prochain lancement.
+    public func receiveFromWatch(_ log: RunLog) {
+        guard log.meters >= 100 else { return }
+        recordRun(log)
+    }
+
     public func receiveFromWatch(_ log: SessionLog) {
         // Une séance vide et non déclarée sautée n'apporte rien : c'est une
         // séance ouverte puis abandonnée sur la montre.

@@ -21,6 +21,8 @@ jobs:
           # qui doivent rester identiques à l'octet près.
           diff ios/MonCoach/MonCoach/Session/WorkoutAttributes.swift \
                ios/MonCoach/MonCoachWidgets/WorkoutAttributes.swift
+          diff ios/MonCoach/MonCoach/Session/RunAttributes.swift \
+               ios/MonCoach/MonCoachWidgets/RunAttributes.swift
 
   site-web:
     name: Site web

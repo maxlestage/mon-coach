@@ -9,6 +9,7 @@ import MonCoachKit
 /// validation pré-remplie avec la prescription.
 struct WatchSessionView: View {
     @Environment(WatchStore.self) private var store
+    @Environment(\.language) private var language
 
     @State private var weightKg: Double = 0
     @State private var reps: Double = 0
@@ -20,9 +21,17 @@ struct WatchSessionView: View {
     private let ticker = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     enum Adjusting: String, CaseIterable {
-        case weight = "Charge"
-        case reps = "Rép"
-        case rpe = "RPE"
+        case weight
+        case reps
+        case rpe
+
+        var label: LocalizedText {
+            switch self {
+            case .weight: LocalizedText(fr: "Charge", en: "Load", es: "Carga")
+            case .reps: LocalizedText(fr: "Rép", en: "Reps", es: "Rep")
+            case .rpe: LocalizedText.constant("RPE")
+            }
+        }
     }
 
     var body: some View {
@@ -45,9 +54,25 @@ struct WatchSessionView: View {
                 }
             }
         }
-        .confirmationDialog("Terminer la séance ?", isPresented: $confirmingFinish) {
-            Button("Terminer et synchroniser") { store.finishActiveSession() }
-            Button("Continuer", role: .cancel) {}
+        .confirmationDialog(
+            LocalizedText(
+                fr: "Terminer la séance ?",
+                en: "Finish the session?",
+                es: "¿Terminar la sesión?"
+            )[language],
+            isPresented: $confirmingFinish
+        ) {
+            Button(
+                LocalizedText(
+                    fr: "Terminer et synchroniser",
+                    en: "Finish and sync",
+                    es: "Terminar y sincronizar"
+                )[language]
+            ) { store.finishActiveSession() }
+            Button(
+                LocalizedText(fr: "Continuer", en: "Keep going", es: "Continuar")[language],
+                role: .cancel
+            ) {}
         }
     }
 
@@ -63,12 +88,18 @@ struct WatchSessionView: View {
                     restBanner
                 }
 
-                Text(exercise?.name ?? prescription.exerciseID)
+                Text(exercise?.name[language] ?? prescription.exerciseID)
                     .font(.system(.body, design: .rounded, weight: .bold))
                     .lineLimit(2)
 
                 if let set {
-                    Text("Série \(set.index + 1)/\(prescription.sets.count) · \(set.repsLabel) rép · \(Format.rpe(set.targetRPE))")
+                    Text(
+                        LocalizedText(
+                            fr: "Série \(set.index + 1)/\(prescription.sets.count) · \(set.repsLabel) rép · \(Format.rpe(set.targetRPE))",
+                            en: "Set \(set.index + 1)/\(prescription.sets.count) · \(set.repsLabel) reps · \(Format.rpe(set.targetRPE))",
+                            es: "Serie \(set.index + 1)/\(prescription.sets.count) · \(set.repsLabel) rep · \(Format.rpe(set.targetRPE))"
+                        )[language]
+                    )
                         .font(.caption2)
                         .foregroundStyle(.secondary)
 
@@ -84,8 +115,11 @@ struct WatchSessionView: View {
                             isHapticFeedbackEnabled: true
                         )
 
-                    Picker("Réglage", selection: $adjusting) {
-                        ForEach(Adjusting.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+                    Picker(
+                        LocalizedText(fr: "Réglage", en: "Adjusting", es: "Ajuste")[language],
+                        selection: $adjusting
+                    ) {
+                        ForEach(Adjusting.allCases, id: \.self) { Text($0.label[language]).tag($0) }
                     }
                     .pickerStyle(.segmented)
                     .frame(height: 32)
@@ -93,7 +127,14 @@ struct WatchSessionView: View {
                     Button {
                         log(set: set, of: prescription)
                     } label: {
-                        Label("Valider la série", systemImage: "checkmark")
+                        Label(
+                            LocalizedText(
+                                fr: "Valider la série",
+                                en: "Log the set",
+                                es: "Registrar la serie"
+                            )[language],
+                            systemImage: "checkmark"
+                        )
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
@@ -102,12 +143,18 @@ struct WatchSessionView: View {
 
                 ProgressView(value: active.progress)
                     .tint(.green)
-                Text("\(active.loggedSetCount)/\(active.session.totalSets) séries")
+                Text(
+                    LocalizedText(
+                        fr: "\(active.loggedSetCount)/\(active.session.totalSets) séries",
+                        en: "\(active.loggedSetCount)/\(active.session.totalSets) sets",
+                        es: "\(active.loggedSetCount)/\(active.session.totalSets) series"
+                    )[language]
+                )
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
         }
-        .navigationTitle(active.session.title)
+        .navigationTitle(active.session.title[language])
         .onAppear { prime(set: set) }
         .onChange(of: prescription.id) { _, _ in prime(set: active.nextSet(of: prescription)) }
     }
@@ -133,7 +180,13 @@ struct WatchSessionView: View {
                 Text(weightKg > 0 ? Format.load(weightKg, unit: store.unit) : "au poids du corps")
                     .font(.system(size: weightKg > 0 ? 26 : 14, weight: .bold, design: .rounded))
             case .reps:
-                Text("\(Int(reps)) rép")
+                Text(
+                    LocalizedText(
+                        fr: "\(Int(reps)) rép",
+                        en: "\(Int(reps)) reps",
+                        es: "\(Int(reps)) rep"
+                    )[language]
+                )
                     .font(.system(size: 26, weight: .bold, design: .rounded))
             case .rpe:
                 Text(Format.rpe(rpe))
@@ -201,10 +254,23 @@ struct WatchSessionView: View {
     private var finishedView: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
-                Label("Séance terminée", systemImage: "checkmark.seal.fill")
+                Label(
+                    LocalizedText(
+                        fr: "Séance terminée",
+                        en: "Session finished",
+                        es: "Sesión terminada"
+                    )[language],
+                    systemImage: "checkmark.seal.fill"
+                )
                     .font(.headline)
                     .foregroundStyle(.green)
-                Text("Toutes les séries sont enregistrées. Le journal part vers ton iPhone dès qu'il est à portée.")
+                Text(
+                    LocalizedText(
+                        fr: "Toutes les séries sont enregistrées. Le journal part vers ton iPhone dès qu'il est à portée.",
+                        en: "Every set is logged. The record goes to your iPhone as soon as it is in range.",
+                        es: "Todas las series están registradas. El registro irá a tu iPhone en cuanto esté a tu alcance."
+                    )[language]
+                )
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                 Button("Enregistrer") {
