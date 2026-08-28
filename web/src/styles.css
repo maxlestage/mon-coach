@@ -1998,3 +1998,9 @@ input[type="range"]:focus-visible {
   border-left: 3px solid var(--accent);
   padding-left: 14px;
 }
+
+.analysis__trademark {
+  margin-top: 14px;
+  font-size: 12px;
+  color: var(--text-muted);
+}

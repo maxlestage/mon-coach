@@ -27,6 +27,7 @@ const copy = {
       { feature: "Classements mondiaux de segments", detail: "Se comparer au monde entier demande d'envoyer tes traces au monde entier. Tu te compares à la seule personne qui court sur ton terrain avec tes jambes : toi.", included: false },
     ],
     verdict: "Si le fil social est ce que tu cherches, Strava le fait très bien. Si c'est l'analyse — et tes trajets qui restent chez toi — elle est ici, en entier.",
+    trademark: "Strava est une marque de Strava, Inc. Mon Coach est un produit indépendant, sans lien ni affiliation avec Strava, Inc.",
   },
   en: {
     eyebrow: "Analysis",
@@ -48,6 +49,7 @@ const copy = {
       { feature: "Global segment leaderboards", detail: "Comparing yourself to the world means sending your traces to the world. You compare against the only person who runs your terrain with your legs: you.", included: false },
     ],
     verdict: "If the social feed is what you want, Strava does it very well. If it's the analysis — and routes that stay home — it is all here.",
+    trademark: "Strava is a trademark of Strava, Inc. Mon Coach is an independent product with no link to or affiliation with Strava, Inc.",
   },
   es: {
     eyebrow: "Análisis",
@@ -69,6 +71,7 @@ const copy = {
       { feature: "Clasificaciones mundiales de segmentos", detail: "Compararte con el mundo implica enviar tus trazas al mundo. Te comparas con la única persona que corre tu terreno con tus piernas: tú.", included: false },
     ],
     verdict: "Si lo que buscas es el muro social, Strava lo hace muy bien. Si es el análisis — y rutas que se quedan en casa — está todo aquí.",
+    trademark: "Strava es una marca de Strava, Inc. Mon Coach es un producto independiente, sin vínculo ni afiliación con Strava, Inc.",
   },
 } as const;
 
@@ -104,6 +107,9 @@ export function AnalysisSection() {
         </div>
 
         <p className="analysis__verdict">{t.verdict}</p>
+        {/* La publicité comparative est licite quand elle est objective ;
+            la non-affiliation, elle, se dit noir sur blanc. */}
+        <p className="analysis__trademark">{t.trademark}</p>
       </div>
     </section>
   );

@@ -324,12 +324,30 @@ struct ProfileView: View {
     }
 
     private var creditFooter: some View {
-        Text("Mon Coach — conçu et développé par Maxime Nathan Lestage")
-            .font(Theme.captionFont)
-            .foregroundStyle(Theme.secondaryText)
-            .frame(maxWidth: .infinity)
-            .multilineTextAlignment(.center)
-            .padding(.top, 4)
+        VStack(spacing: 10) {
+            Text("Mon Coach — conçu et développé par Maxime Nathan Lestage")
+                .font(Theme.captionFont)
+                .foregroundStyle(Theme.secondaryText)
+                .frame(maxWidth: .infinity)
+                .multilineTextAlignment(.center)
+            // Les notices des composants embarqués. Les licences BSD et ODbL
+            // exigent que la notice accompagne la distribution — un binaire
+            // n'a pas de fichier LICENSE à côté de lui, alors elle vit ici.
+            Text(licencesText[language])
+                .font(.system(size: 11))
+                .foregroundStyle(Theme.secondaryText.opacity(0.8))
+                .frame(maxWidth: .infinity)
+                .multilineTextAlignment(.center)
+        }
+        .padding(.top, 4)
+    }
+
+    private var licencesText: LocalizedText {
+        LocalizedText(
+            fr: "Cartes : MapLibre Native, licence BSD, © MapLibre contributors. Fond de carte © OpenStreetMap contributors, licence ODbL.",
+            en: "Maps: MapLibre Native, BSD licence, © MapLibre contributors. Map data © OpenStreetMap contributors, ODbL licence.",
+            es: "Mapas: MapLibre Native, licencia BSD, © MapLibre contributors. Datos de mapa © OpenStreetMap contributors, licencia ODbL."
+        )
     }
 
     private func writeExport() -> URL? {
