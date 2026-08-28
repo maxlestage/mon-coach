@@ -46,6 +46,14 @@ statiques : n'importe quelle taille de dyno suffit largement.
 Deux façons de déployer coexistent dans ce dépôt. **N'en active qu'une** :
 sinon chaque fusion déclenche deux déploiements concurrents.
 
+> **Où se lit l'état d'un déploiement.** Chemin A : onglet **Actions** de
+> GitHub. Chemin B : tableau de bord Heroku → application → **Activity**.
+> Attention au faux ami : avec le chemin B branché et le chemin A non
+> configuré, l'onglet Actions affiche un « Déploiement » **vert qui n'a rien
+> déployé** — toutes ses étapes sont sautées, et il le dit dans son journal.
+> Le vert d'Actions ne prouve un déploiement que si le secret
+> `HEROKU_API_KEY` existe.
+
 | | Chemin A — GitHub Actions | Chemin B — Heroku |
 | --- | --- | --- |
 | Qui construit | GitHub, en image Docker | Heroku, avec un buildpack Bun |
