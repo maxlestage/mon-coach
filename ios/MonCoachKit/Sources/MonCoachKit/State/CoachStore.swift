@@ -142,16 +142,18 @@ public final class CoachStore {
         save()
     }
 
-    /// Files a finished run, and lets it teach the coach something.
+    /// Files a finished activity, and lets it teach the coach something.
     ///
     /// A tempo run, an interval session or a race says where the threshold
     /// actually sits. When the new evidence is better than what the profile
     /// holds, the profile is updated and the block is rebuilt around the real
     /// pace — otherwise every prescribed pace would stay wrong all block.
-    public func recordRun(_ run: RunLog) {
-        history.runs.removeAll { $0.id == run.id }
-        history.runs.append(run)
-        history.runs.sort { $0.startedAt < $1.startedAt }
+    /// Une sortie vélo ou une randonnée est archivée comme les autres, mais
+    /// `demonstratedThresholdPace` ne la regarde pas.
+    public func recordRun(_ run: ActivityLog) {
+        history.activities.removeAll { $0.id == run.id }
+        history.activities.append(run)
+        history.activities.sort { $0.startedAt < $1.startedAt }
 
         if var profile, var running = profile.running,
            let demonstrated = history.demonstratedThresholdPace() {
@@ -166,10 +168,10 @@ public final class CoachStore {
         save()
     }
 
-    /// Removes a run the athlete decided was not theirs — a phantom trace,
-    /// a forgotten stop, a ride recorded by mistake.
+    /// Removes an activity the athlete decided was not theirs — a phantom
+    /// trace, a forgotten stop, a ride recorded by mistake.
     public func deleteRun(_ id: UUID) {
-        history.runs.removeAll { $0.id == id }
+        history.activities.removeAll { $0.id == id }
         save()
     }
 

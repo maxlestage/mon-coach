@@ -62,7 +62,7 @@ struct RunPlanView: View {
                     label: LocalizedText(fr: "7 derniers jours", en: "Last 7 days", es: "Últimos 7 días")[language]
                 )
                 if let distance = block.goal.raceDistanceMeters,
-                   let predicted = RunMath.predictedRaceTime(
+                   let predicted = TraceMath.predictedRaceTime(
                        thresholdPaceSecondsPerKm: block.thresholdPaceSecondsPerKm,
                        distanceMeters: distance
                    ) {
@@ -97,7 +97,7 @@ struct RunPlanView: View {
     }
 
     private var historyCard: some View {
-        let recent = store.history.runs.suffix(6).reversed()
+        let recent = store.history.activities.suffix(6).reversed()
         return Group {
             if !recent.isEmpty {
                 Card(title: LocalizedText(fr: "Dernières sorties", en: "Recent runs", es: "Últimos rodajes")[language]) {

@@ -74,7 +74,7 @@ public struct CleanTrace: Sendable, Equatable {
     public var rejectedForOrder: Int
 
     public var isEmpty: Bool { samples.count < 2 }
-    public var paceSecondsPerKm: Double { RunMath.pace(meters: meters, seconds: movingDuration) }
+    public var paceSecondsPerKm: Double { TraceMath.pace(meters: meters, seconds: movingDuration) }
     /// Part des points d'origine effectivement retenus, 0 à 1.
     public var retention: Double {
         let rejected = rejectedForAccuracy + rejectedForSpeed + rejectedForOrder
@@ -84,7 +84,7 @@ public struct CleanTrace: Sendable, Equatable {
 }
 
 /// Transforme une trace GPS brute en sortie exploitable.
-public enum RunAnalysis {
+public enum TraceAnalysis {
 
     /// Nettoie une trace : ordonne, jette ce qui est faux, mesure le reste.
     public static func clean(_ rawPoints: [GPSPoint], filter: TraceFilter = .outdoor) -> CleanTrace {
@@ -115,7 +115,7 @@ public enum RunAnalysis {
                 rejectedForOrder += 1
                 continue
             }
-            let d = RunMath.distance(from: previous, to: point)
+            let d = TraceMath.distance(from: previous, to: point)
             if d / dt > filter.maxSpeed {
                 rejectedForSpeed += 1
                 continue
@@ -147,7 +147,7 @@ public enum RunAnalysis {
         }
 
         // 3. Altitude lissée sur les points retenus.
-        let smoothed = RunMath.movingAverage(
+        let smoothed = TraceMath.movingAverage(
             kept.map(\.altitude),
             window: filter.elevationWindow
         )
@@ -168,7 +168,7 @@ public enum RunAnalysis {
             let previous = kept[index - 1]
             let point = kept[index]
             let dt = point.timestamp.timeIntervalSince(previous.timestamp)
-            let d = RunMath.distance(from: previous, to: point)
+            let d = TraceMath.distance(from: previous, to: point)
             let isMoving = d >= filter.minSegmentMeters && dt > 0 && d / dt >= filter.pauseSpeed
             if isMoving {
                 meters += d
@@ -185,11 +185,11 @@ public enum RunAnalysis {
         }
 
         let altitudes = samples.map(\.smoothedAltitude)
-        let gain = RunMath.elevationGain(
+        let gain = TraceMath.elevationGain(
             smoothedAltitudes: altitudes,
             threshold: filter.elevationThreshold
         )
-        let loss = RunMath.elevationGain(
+        let loss = TraceMath.elevationGain(
             smoothedAltitudes: altitudes.map { -$0 },
             threshold: filter.elevationThreshold
         )
@@ -246,7 +246,7 @@ public enum RunAnalysis {
                         index: splits.count + 1,
                         meters: boundaryMeters - splitStartMeters,
                         duration: boundarySeconds - splitStartSeconds,
-                        elevationGain: RunMath.elevationGain(
+                        elevationGain: TraceMath.elevationGain(
                             smoothedAltitudes: altitudesInSplit,
                             threshold: elevationThreshold
                         )
@@ -271,7 +271,7 @@ public enum RunAnalysis {
                     index: splits.count + 1,
                     meters: remainingMeters,
                     duration: last.cumulativeMovingSeconds - splitStartSeconds,
-                    elevationGain: RunMath.elevationGain(
+                    elevationGain: TraceMath.elevationGain(
                         smoothedAltitudes: altitudesInSplit,
                         threshold: elevationThreshold
                     )
@@ -281,24 +281,33 @@ public enum RunAnalysis {
         return splits
     }
 
-    /// Construit la sortie enregistrée à partir de la trace brute.
+    /// Construit l'activité enregistrée à partir de la trace brute.
+    ///
+    /// Le filtre découle du sport quand on ne le précise pas : c'est le seul
+    /// endroit où l'oubli serait invisible et coûteux — une randonnée passée
+    /// au filtre de la course perd sa distance dans les montées, un vélo y
+    /// perd ses descentes.
     public static func summarise(
         rawPoints: [GPSPoint],
+        sport: Sport = .run,
         type: RunType,
-        filter: TraceFilter = .outdoor,
+        filter: TraceFilter? = nil,
         perceivedEffort: Int? = nil,
         note: String? = nil,
         id: UUID = UUID()
-    ) -> RunLog {
+    ) -> ActivityLog {
+        let filter = filter ?? sport.filter
         let trace = clean(rawPoints, filter: filter)
-        return RunLog(
+        return ActivityLog(
             id: id,
             startedAt: trace.samples.first?.point.timestamp ?? Date(),
+            sport: sport,
             type: type,
             points: rawPoints,
             meters: trace.meters,
             duration: trace.movingDuration,
             elevationGain: trace.elevationGain,
+            elevationLoss: trace.elevationLoss,
             splits: splits(of: trace, elevationThreshold: filter.elevationThreshold),
             perceivedEffort: perceivedEffort,
             note: note

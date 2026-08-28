@@ -15,7 +15,7 @@ struct RunTrackerView: View {
 
     @State private var tracker = LocationTracker()
     @State private var selectedType: RunType = .easy
-    @State private var finishedRun: RunLog?
+    @State private var finishedRun: ActivityLog?
     @State private var showsDiscardConfirmation = false
     @State private var liveActivity = RunActivityController()
 

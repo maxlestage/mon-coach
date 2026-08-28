@@ -3,7 +3,7 @@ import MonCoachKit
 
 /// Ce que l'athlète voit en franchissant la ligne.
 struct RunSummaryView: View {
-    var run: RunLog
+    var run: ActivityLog
     /// Appelé après l'enregistrement, pour que l'écran appelant se referme
     /// lui aussi. L'enregistrement lui-même se fait ici : deux endroits qui
     /// enregistrent la même sortie, c'est la sortie en double.
@@ -48,7 +48,7 @@ struct RunSummaryView: View {
                                 tint: Theme.warning
                             )
                             StatTile(
-                                value: "\(Int(RunMath.energyKcal(meters: run.meters, elevationGain: run.elevationGain, weightKg: weightKg)))",
+                                value: "\(Int(TraceMath.energyKcal(meters: run.meters, elevationGain: run.elevationGain, weightKg: weightKg)))",
                                 label: UI.calories[language],
                                 tint: Theme.warning
                             )
@@ -126,7 +126,7 @@ struct RunSummaryView: View {
 
     /// Ce que la sortie apprend au coach, quand elle apprend quelque chose.
     private var qualityInsight: LocalizedText? {
-        let trace = RunAnalysis.clean(run.points)
+        let trace = TraceAnalysis.clean(run.points)
         if !run.points.isEmpty && trace.retention < 0.85 {
             let dropped = Int((1 - trace.retention) * 100)
             return LocalizedText(
@@ -136,7 +136,7 @@ struct RunSummaryView: View {
             )
         }
         guard [RunType.tempo, .intervals, .race].contains(run.type), run.meters >= 2_000,
-              let threshold = RunMath.thresholdPace(fromDistance: run.meters, time: run.duration)
+              let threshold = TraceMath.thresholdPace(fromDistance: run.meters, time: run.duration)
         else { return nil }
         let known = store.profile?.running?.thresholdPaceSecondsPerKm
         guard known == nil || threshold < (known ?? .greatestFiniteMagnitude) else { return nil }

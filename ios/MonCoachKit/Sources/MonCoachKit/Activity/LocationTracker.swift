@@ -40,19 +40,41 @@ public final class LocationTracker: NSObject {
     public private(set) var currentAccuracy: Double = -1
 
     public var type: RunType = .easy
-    public let filter: TraceFilter
+    /// Le sport en cours. Fixé au départ : c'est lui qui décide des seuils.
+    public private(set) var sport: Sport = .run
+    /// Les seuils de mesure, dérivés du sport plutôt que figés à la création.
+    public var filter: TraceFilter { sport.filter }
 
     private let manager = CLLocationManager()
 
-    public init(filter: TraceFilter = .outdoor) {
-        self.filter = filter
+    public override init() {
         super.init()
         manager.delegate = self
         manager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
-        manager.activityType = .fitness
-        // Un point par mètre au plus : plus fin, on n'enregistre que du bruit.
-        manager.distanceFilter = 1
         manager.pausesLocationUpdatesAutomatically = false
+        configure(for: .run)
+    }
+
+    /// Règle CoreLocation pour le sport demandé.
+    ///
+    /// `distanceFilter` mérite l'attention : il fait taire le GPS tant que
+    /// l'appareil n'a pas bougé de tant de mètres. Un mètre convient à la
+    /// course, mais un randonneur qui monte à 1,3 km/h ne le franchit qu'au
+    /// bout de trois secondes — la trace arrive alors trop clairsemée pour
+    /// que l'altitude se lisse ou que l'allure instantanée veuille dire
+    /// quelque chose. Pour ce qui se marche, on prend tout.
+    private func configure(for sport: Sport) {
+        switch sport {
+        case .run, .trail:
+            manager.activityType = .fitness
+            manager.distanceFilter = 1
+        case .ride:
+            manager.activityType = .otherNavigation
+            manager.distanceFilter = 3
+        case .walk, .hike:
+            manager.activityType = .fitness
+            manager.distanceFilter = kCLDistanceFilterNone
+        }
     }
 
     // MARK: - Ce que l'écran lit
@@ -72,7 +94,7 @@ public final class LocationTracker: NSObject {
         let window = 300.0
         guard let reference = samples.last(where: { last.cumulativeMeters - $0.cumulativeMeters >= window })
         else { return paceSecondsPerKm }
-        return RunMath.pace(
+        return TraceMath.pace(
             meters: last.cumulativeMeters - reference.cumulativeMeters,
             seconds: last.cumulativeMovingSeconds - reference.cumulativeMovingSeconds
         )
@@ -80,7 +102,7 @@ public final class LocationTracker: NSObject {
 
     public var splits: [Split] {
         guard let trace else { return [] }
-        return RunAnalysis.splits(of: trace, elevationThreshold: filter.elevationThreshold)
+        return TraceAnalysis.splits(of: trace, elevationThreshold: filter.elevationThreshold)
     }
 
     /// Le signal est-il assez bon pour que les chiffres veuillent dire
@@ -93,8 +115,10 @@ public final class LocationTracker: NSObject {
 
     // MARK: - Commandes
 
-    public func start(type: RunType) {
+    public func start(sport: Sport = .run, type: RunType) {
+        self.sport = sport
         self.type = type
+        configure(for: sport)
         points = []
         trace = nil
         startedAt = Date()
@@ -126,10 +150,10 @@ public final class LocationTracker: NSObject {
     /// Une sortie de trente mètres est un démarrage raté, pas une séance :
     /// l'enregistrer polluerait l'historique et fausserait le kilométrage
     /// hebdomadaire dont dépend tout le plan.
-    public func finish() -> RunLog? {
+    public func finish() -> ActivityLog? {
         manager.stopUpdatingLocation()
         state = .finished
-        let log = RunAnalysis.summarise(rawPoints: points, type: type, filter: filter)
+        let log = TraceAnalysis.summarise(rawPoints: points, sport: sport, type: type)
         return log.meters >= 100 ? log : nil
     }
 
@@ -165,7 +189,7 @@ public final class LocationTracker: NSObject {
                 )
             )
         }
-        trace = RunAnalysis.clean(points, filter: filter)
+        trace = TraceAnalysis.clean(points, filter: filter)
     }
 }
 

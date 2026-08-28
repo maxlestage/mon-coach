@@ -117,7 +117,7 @@ final class WatchStore {
     /// La trace complète part vers le téléphone : c'est lui qui tient
     /// l'historique, recalcule l'allure de seuil et reconstruit le bloc. La
     /// montre marque simplement la sortie faite pour ne pas la reproposer.
-    func recordRun(_ log: RunLog) {
+    func recordRun(_ log: ActivityLog) {
         pendingUploads += 1
         link.send(log)
         if var current = snapshot {

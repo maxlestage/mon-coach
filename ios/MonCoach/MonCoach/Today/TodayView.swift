@@ -76,7 +76,7 @@ struct TodayView: View {
     }
 
     /// La sortie du jour, prête à être lancée.
-    private func plannedRunCard(_ run: PlannedRun, done: RunLog?) -> some View {
+    private func plannedRunCard(_ run: PlannedRun, done: ActivityLog?) -> some View {
         Card(
             title: run.type.label[language],
             subtitle: UI.running[language]

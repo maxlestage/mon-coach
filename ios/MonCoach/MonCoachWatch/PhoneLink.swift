@@ -28,7 +28,7 @@ final class PhoneLink: NSObject, WCSessionDelegate {
         WCSession.default.transferUserInfo([WatchSyncCodec.sessionLogKey: data])
     }
 
-    func send(_ log: RunLog) {
+    func send(_ log: ActivityLog) {
         guard let data = try? WatchSyncCodec.encode(log) else { return }
         WCSession.default.transferUserInfo([WatchSyncCodec.runLogKey: data])
     }
