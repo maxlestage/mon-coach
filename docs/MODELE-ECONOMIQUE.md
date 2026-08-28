@@ -58,7 +58,7 @@ bloc — il perd la suite, pas le passé.
 | Formule | Prix | Raisonnement |
 | --- | --- | --- |
 | Mensuel | 14,99 € | positionnement premium assumé, aligné sur les leaders de la programmation adaptative (Fitbod, Juggernaut AI sont à 12–20 €/mois) — le produit se compare à un coach, pas à un carnet de séances |
-| Annuel | 89,99 € | −50 % vs mensuel (« deux mois sur douze ») : c'est l'offre qu'on veut vendre ; un bloc dure ~5 semaines, l'année correspond à 8–10 blocs |
+| Annuel | 119,99 € | −33 % vs mensuel (« quatre mois offerts ») : l'annuel reste l'achat évident sans brader — au-delà de ~150 €, le montant d'un seul paiement freine plus que la remise n'attire |
 
 **Pas de formule « à vie », par choix.** À ce niveau de prix, un à-vie
 crédible coûterait ~200 € et convertirait surtout les meilleurs clients en
