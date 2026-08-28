@@ -197,6 +197,30 @@ public final class CoachStore {
         save()
     }
 
+    // MARK: - Import et export
+
+    /// Importe un fichier GPX dans l'historique.
+    ///
+    /// Le sport vient du fichier quand il en déclare un, du choix de
+    /// l'athlète sinon. La trace est analysée comme une sortie enregistrée
+    /// ici : mêmes filtres, mêmes records — un 5 km couru l'an dernier
+    /// ailleurs compte dans l'histoire, c'est le but de l'import.
+    @discardableResult
+    public func importGPX(_ text: String, fallbackSport: Sport = .run) throws -> ActivityLog {
+        let imported = try GPX.read(text)
+        let sport = imported.sport ?? fallbackSport
+        var log = TraceAnalysis.summarise(rawPoints: imported.points, sport: sport, type: .easy)
+        log.heartRate = imported.heartRate
+        log.note = imported.name
+        recordRun(log)
+        return log
+    }
+
+    /// L'activité au format GPX, prête à partir.
+    public func exportGPX(_ activity: ActivityLog) -> String {
+        GPX.document(for: activity)
+    }
+
     // MARK: - Segments
 
     /// Découpe un segment dans une activité et le garde.
