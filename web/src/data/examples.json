@@ -324,14 +324,9 @@
         "fr" : "Les féculents sont donnés cuits. Sur le paquet, ils sont donnés crus : 100 g de riz sec deviennent environ 300 g de riz cuit."
       },
       {
-        "en" : "Aim for roughly 39 g of fibre a day. That is the difference between a deficit you can hold and one that breaks on Thursday night.",
-        "es" : "Apunta a unos 39 g de fibra al día. Es la diferencia entre un déficit sostenible y uno que se rompe el jueves por la noche.",
-        "fr" : "Vise environ 39 g de fibres par jour. C'est ce qui fait la différence entre un déficit tenable et un déficit qui craque le jeudi soir."
-      },
-      {
-        "en" : "This day brings 75 g of fibre against 38 g recommended. That is deliberate — pulses and vegetables are carrying your protein — but if you do not normally eat that much, ramp up over two weeks and drink more: it is the sudden jump that makes fibre unpleasant, not the fibre itself.",
-        "es" : "Este día aporta 75 g de fibra frente a los 38 g recomendados. Es intencionado —las legumbres y las verduras llevan tu proteína— pero si no sueles comer tanta, súbela poco a poco durante dos semanas y bebe más: lo que hace desagradable la fibra es el salto brusco, no la fibra.",
-        "fr" : "Cette journée apporte 75 g de fibres, pour 38 g recommandés. C'est volontaire — ce sont les légumineuses et les légumes qui portent tes protéines — mais si tu n'en manges pas autant d'habitude, monte progressivement sur deux semaines et bois davantage : le passage brutal est ce qui rend les fibres désagréables, pas les fibres elles-mêmes."
+        "en" : "This day brings 75 g of fibre against 39 g recommended. That is deliberate — pulses and vegetables are carrying your protein — but if you do not normally eat that much, ramp up over two weeks and drink more: it is the sudden jump that makes fibre unpleasant, not the fibre itself.",
+        "es" : "Este día aporta 75 g de fibra frente a los 39 g recomendados. Es intencionado —las legumbres y las verduras llevan tu proteína— pero si no sueles comer tanta, súbela poco a poco durante dos semanas y bebe más: lo que hace desagradable la fibra es el salto brusco, no la fibra.",
+        "fr" : "Cette journée apporte 75 g de fibres, pour 39 g recommandés. C'est volontaire — ce sont les légumineuses et les légumes qui portent tes protéines — mais si tu n'en manges pas autant d'habitude, monte progressivement sur deux semaines et bois davantage : le passage brutal est ce qui rend les fibres désagréables, pas les fibres elles-mêmes."
       }
     ],
     "totalFiberG" : 75,
@@ -393,9 +388,9 @@
           "fr" : "Dips"
         },
         "reason" : {
-          "en" : "Same muscle, same movement, different kit. Take the load that gives you the same reps at the same effort — it will not be the load from the original exercise.",
-          "es" : "Mismo músculo, mismo movimiento, otro material. Usa la carga que te dé las mismas repeticiones al mismo esfuerzo: no será la del ejercicio original.",
-          "fr" : "Même muscle, même mouvement, autre matériel. Reprends la charge qui te donne le même nombre de répétitions au même effort — elle ne sera pas la même qu'à l'exercice d'origine."
+          "en" : "Same muscle, same movement. Take the load that gives you the same reps at the same effort: it will not be the one from the original exercise.",
+          "es" : "Mismo músculo, mismo movimiento. Usa la carga que te dé las mismas repeticiones al mismo esfuerzo: no será la del ejercicio original.",
+          "fr" : "Même muscle, même mouvement. Reprends la charge qui te donne le même nombre de répétitions au même effort : elle ne sera pas celle de l'exercice d'origine."
         }
       },
       {
@@ -413,9 +408,9 @@
           "fr" : "Pompes"
         },
         "reason" : {
-          "en" : "Same muscle, same movement, different kit. Take the load that gives you the same reps at the same effort — it will not be the load from the original exercise.",
-          "es" : "Mismo músculo, mismo movimiento, otro material. Usa la carga que te dé las mismas repeticiones al mismo esfuerzo: no será la del ejercicio original.",
-          "fr" : "Même muscle, même mouvement, autre matériel. Reprends la charge qui te donne le même nombre de répétitions au même effort — elle ne sera pas la même qu'à l'exercice d'origine."
+          "en" : "Bodyweight: the load is no longer adjustable, the rep count is. Aim for the same effort at the end of the set, not the same number.",
+          "es" : "Con el peso corporal: la carga ya no se regula, sí el número de repeticiones. Busca el mismo esfuerzo al final de la serie, no la misma cifra.",
+          "fr" : "Au poids du corps : la charge n'est plus réglable, c'est le nombre de répétitions qui l'est. Vise le même effort en fin de série, pas le même chiffre."
         }
       },
       {
@@ -433,9 +428,9 @@
           "fr" : "Développé machine"
         },
         "reason" : {
-          "en" : "Same muscle, same movement, different kit. Take the load that gives you the same reps at the same effort — it will not be the load from the original exercise.",
-          "es" : "Mismo músculo, mismo movimiento, otro material. Usa la carga que te dé las mismas repeticiones al mismo esfuerzo: no será la del ejercicio original.",
-          "fr" : "Même muscle, même mouvement, autre matériel. Reprends la charge qui te donne le même nombre de répétitions au même effort — elle ne sera pas la même qu'à l'exercice d'origine."
+          "en" : "On a machine: the path is guided, so you can go closer to failure safely. The number on the stack has nothing to do with the free-weight load — do not compare them.",
+          "es" : "En máquina: la trayectoria está guiada, así que puedes acercarte más al fallo sin riesgo. El número de la placa no tiene nada que ver con el peso libre: no los compares.",
+          "fr" : "Sur machine : la trajectoire est guidée, donc tu peux aller plus près de l'échec sans risque. La charge affichée n'a rien à voir avec celle du poids libre, ne compare pas les deux."
         }
       },
       {
@@ -453,9 +448,9 @@
           "fr" : "Écarté à la poulie"
         },
         "reason" : {
-          "en" : "Same muscle, different angle. The stimulus is kept; the feel will not be identical, and that is normal.",
-          "es" : "Mismo músculo, ángulo distinto. El estímulo se mantiene; la sensación no será idéntica, y es normal.",
-          "fr" : "Même muscle, angle différent. Le stimulus est conservé ; la sensation, elle, ne sera pas identique, et c'est normal."
+          "en" : "On the cable: tension stays constant through the whole range, including where the original movement got easy. The load will be lower for the same effort.",
+          "es" : "En polea: la tensión se mantiene constante en todo el recorrido, incluso donde el movimiento original se volvía fácil. La carga será menor para el mismo esfuerzo.",
+          "fr" : "À la poulie : la tension reste constante sur toute l'amplitude, y compris là où le mouvement d'origine devenait facile. La charge sera plus basse pour le même effort."
         }
       }
     ]

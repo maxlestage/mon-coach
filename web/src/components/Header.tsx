@@ -9,6 +9,7 @@ const copy = {
     simulator: "Simulateur",
     running: "Course",
     food: "Alimentation",
+    gym: "Salle",
     watch: "Montre",
     pricing: "Tarifs",
     faq: "Questions",
@@ -21,6 +22,7 @@ const copy = {
     simulator: "Simulator",
     running: "Running",
     food: "Food",
+    gym: "Gym",
     watch: "Watch",
     pricing: "Pricing",
     faq: "Questions",
@@ -33,6 +35,7 @@ const copy = {
     simulator: "Simulador",
     running: "Carrera",
     food: "Alimentación",
+    gym: "Sala",
     watch: "Reloj",
     pricing: "Precios",
     faq: "Preguntas",
@@ -58,6 +61,7 @@ export function Header() {
           <a href="/#simulateur">{t.simulator}</a>
           <a href="/#course">{t.running}</a>
           <a href="/#alimentation">{t.food}</a>
+          <a href="/#salle">{t.gym}</a>
           <a href="/#montre">{t.watch}</a>
           <a href="/#tarifs">{t.pricing}</a>
         </nav>

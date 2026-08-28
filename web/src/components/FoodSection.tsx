@@ -1,4 +1,5 @@
-import { useCopy } from "../i18n/language.tsx";
+import { examples } from "../data/examples.ts";
+import { useCopy, useLanguage } from "../i18n/language.tsx";
 
 interface Tier {
   readonly label: string;
@@ -32,6 +33,13 @@ const copy = {
         why: "Beaucoup de calories, peu de rassasiement. Rien n'est interdit : au-delà d'environ 10 % des calories de la semaine, ces aliments prennent simplement la place de ceux qui font le travail.",
       },
     ],
+    dayTitle: "Une vraie journée, produite par le moteur",
+    dayLede: "Voici la journée que l'application construit pour l'athlète de l'aperçu — 78 kg, prise de muscle, quatre séances par semaine, quatre repas. Ce ne sont pas des chiffres écrits à la main pour cette page : ils sortent du moteur, et un test de la chaîne d'intégration échoue si la page et l'application cessent de dire la même chose.",
+    dayTotals: "Total de la journée",
+    dayTarget: "Cible",
+    macroProtein: "Protéines",
+    macroCarbs: "Glucides visés",
+    macroFibre: "Fibres",
     swapsTitle: "Les échanges qui changent une journée",
     swaps: [
       { from: "Soda", to: "Eau", gain: "−139 kcal", why: "Des calories qui ne rassasient pas du tout : le corps ne les déduit pas au repas suivant." },
@@ -73,6 +81,13 @@ const copy = {
         why: "Lots of calories, little fullness. Nothing is banned: past roughly 10 % of the week's calories, these simply crowd out the food doing the work.",
       },
     ],
+    dayTitle: "A real day, produced by the engine",
+    dayLede: "This is the day the app builds for the athlete in the preview — 78 kg, building muscle, four sessions a week, four meals. These are not numbers written by hand for this page: they come out of the engine, and a continuous-integration test fails if the page and the app stop saying the same thing.",
+    dayTotals: "Day total",
+    dayTarget: "Target",
+    macroProtein: "Protein",
+    macroCarbs: "Carbs target",
+    macroFibre: "Fibre",
     swapsTitle: "The swaps that change a day",
     swaps: [
       { from: "Soft drink", to: "Water", gain: "−139 kcal", why: "Calories that do not fill you up at all: the body fails to count them at the next meal." },
@@ -114,6 +129,13 @@ const copy = {
         why: "Muchas calorías, poca saciedad. Nada está prohibido: más allá de un 10 % de las calorías semanales, desplazan a los alimentos que hacen el trabajo.",
       },
     ],
+    dayTitle: "Un día real, producido por el motor",
+    dayLede: "Este es el día que la aplicación construye para el atleta de la vista previa: 78 kg, ganancia muscular, cuatro sesiones por semana, cuatro comidas. No son cifras escritas a mano para esta página: salen del motor, y un test de integración continua falla si la página y la aplicación dejan de decir lo mismo.",
+    dayTotals: "Total del día",
+    dayTarget: "Objetivo",
+    macroProtein: "Proteína",
+    macroCarbs: "Hidratos objetivo",
+    macroFibre: "Fibra",
     swapsTitle: "Los cambios que transforman un día",
     swaps: [
       { from: "Refresco", to: "Agua", gain: "−139 kcal", why: "Calorías que no sacian nada: el cuerpo no las descuenta en la comida siguiente." },
@@ -135,6 +157,8 @@ const copy = {
 
 export function FoodSection() {
   const t = useCopy(copy);
+  const language = useLanguage();
+  const { day, nutrition } = examples;
 
   return (
     <>
@@ -159,6 +183,63 @@ export function FoodSection() {
               </article>
             ))}
           </div>
+
+          <h3 className="section__subtitle">{t.dayTitle}</h3>
+          <p className="section__lede">{t.dayLede}</p>
+
+          <div className="readout">
+            <div className="readout__item">
+              <div className="readout__value">{day.totalKcal}</div>
+              <div className="readout__label">
+                kcal · {t.dayTarget} {nutrition.calories}
+              </div>
+            </div>
+            <div className="readout__item">
+              <div className="readout__value">{day.totalProteinG} g</div>
+              <div className="readout__label">
+                {t.macroProtein} · {t.dayTarget} {nutrition.proteinG} g
+              </div>
+            </div>
+            <div className="readout__item">
+              <div className="readout__value">{nutrition.carbsG} g</div>
+              <div className="readout__label">{t.macroCarbs}</div>
+            </div>
+            <div className="readout__item">
+              <div className="readout__value">{day.totalFiberG} g</div>
+              <div className="readout__label">{t.macroFibre}</div>
+            </div>
+          </div>
+
+          <div className="day">
+            {day.meals.map((meal) => (
+              <article className="meal" key={meal.slot.fr}>
+                <header className="meal__head">
+                  <h4 className="meal__slot">{meal.slot[language]}</h4>
+                  <span className="meal__macros">
+                    {meal.kcal} kcal · {meal.proteinG} g
+                  </span>
+                </header>
+                <ul className="meal__items">
+                  {meal.items.map((item) => (
+                    <li className="meal__item" key={item.name.fr}>
+                      <span className="meal__grams">{item.grams} g</span>
+                      <span className="meal__name">{item.name[language]}</span>
+                      {item.tier !== "base" && (
+                        <span className="meal__tier">{item.tier === "moderate" ? "•" : "••"}</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+                {meal.note && <p className="meal__note">{meal.note[language]}</p>}
+              </article>
+            ))}
+          </div>
+
+          <ul className="rationale">
+            {day.notes.map((note) => (
+              <li key={note.fr}>{note[language]}</li>
+            ))}
+          </ul>
 
           <h3 className="section__subtitle">{t.swapsTitle}</h3>
           <div className="swaps">

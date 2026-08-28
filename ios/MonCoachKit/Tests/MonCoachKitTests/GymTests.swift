@@ -99,6 +99,28 @@ struct GymSubstitutionTests {
         }
     }
 
+    @Test("Deux remplacements différents ne donnent pas la même justification")
+    func reasonsAreSpecific() {
+        // Trois cartes qui affichent la même phrase générique ressemblent à
+        // un bug plutôt qu'à un conseil : ce qui les distingue, c'est le
+        // matériel, et c'est ce qui change la charge à mettre.
+        let profile = Fixtures.intermediate()
+        for id in ["bench-press", "back-squat", "barbell-row", "overhead-press"] {
+            guard let exercise = ExerciseCatalog.exercise(id: id) else { continue }
+            let options = GymCoach.substitutions(
+                for: exercise,
+                profile: profile,
+                excludingEquipment: exercise.equipment
+            )
+            guard options.count >= 2 else { continue }
+            let distinct = Set(options.map(\.reason.fr))
+            #expect(
+                distinct.count >= max(2, options.count - 1),
+                Comment(rawValue: "\(id) : \(options.count) options pour \(distinct.count) justifications")
+            )
+        }
+    }
+
     @Test("Le squat barre propose bien des squats, pas des extensions de jambes")
     func squatProposesSquats() {
         let profile = Fixtures.intermediate()

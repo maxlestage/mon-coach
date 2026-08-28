@@ -433,24 +433,12 @@ public enum MealPlanner {
         }
 
         let corrected = balance(meals, toward: dayTarget)
-        var dayNotes = notes(target: target, diet: diet, runsToday: runsToday)
-
-        // Une journée d'aliments entiers, et surtout une journée végétarienne
-        // où les légumineuses portent les protéines, dépasse largement la
-        // recommandation de fibres. Ce n'est pas une erreur du plan, mais ce
-        // n'est pas non plus anodin : on le dit plutôt que d'appauvrir
-        // l'assiette pour faire tomber un chiffre.
-        let fibre = corrected.map(\.macros).total.fiberG
-        let recommended = dayTarget.kcal / 1_000 * 14
-        if fibre > recommended * 1.5 {
-            dayNotes.append(
-                LocalizedText(
-                    fr: "Cette journée apporte \(Int(fibre)) g de fibres, pour \(Int(recommended)) g recommandés. C'est volontaire — ce sont les légumineuses et les légumes qui portent tes protéines — mais si tu n'en manges pas autant d'habitude, monte progressivement sur deux semaines et bois davantage : le passage brutal est ce qui rend les fibres désagréables, pas les fibres elles-mêmes.",
-                    en: "This day brings \(Int(fibre)) g of fibre against \(Int(recommended)) g recommended. That is deliberate — pulses and vegetables are carrying your protein — but if you do not normally eat that much, ramp up over two weeks and drink more: it is the sudden jump that makes fibre unpleasant, not the fibre itself.",
-                    es: "Este día aporta \(Int(fibre)) g de fibra frente a los \(Int(recommended)) g recomendados. Es intencionado —las legumbres y las verduras llevan tu proteína— pero si no sueles comer tanta, súbela poco a poco durante dos semanas y bebe más: lo que hace desagradable la fibra es el salto brusco, no la fibra."
-                )
-            )
-        }
+        var dayNotes = notes(
+            target: target,
+            diet: diet,
+            runsToday: runsToday,
+            achievedFibreG: corrected.map(\.macros).total.fiberG
+        )
         let powders = corrected
             .flatMap(\.items)
             .filter { ["whey", "proteine-vegetale"].contains($0.foodID) }
@@ -599,7 +587,12 @@ public enum MealPlanner {
 
     // MARK: - Ce qu'il faut dire en plus des chiffres
 
-    static func notes(target: NutritionTarget, diet: DietPreference, runsToday: Bool) -> [LocalizedText] {
+    static func notes(
+        target: NutritionTarget,
+        diet: DietPreference,
+        runsToday: Bool,
+        achievedFibreG: Double
+    ) -> [LocalizedText] {
         var notes: [LocalizedText] = []
 
         notes.append(
@@ -618,14 +611,33 @@ public enum MealPlanner {
             )
         )
 
-        let fiberTarget = Int((Double(target.calories) / 1_000 * 14).rounded())
-        notes.append(
-            LocalizedText(
-                fr: "Vise environ \(fiberTarget) g de fibres par jour. C'est ce qui fait la différence entre un déficit tenable et un déficit qui craque le jeudi soir.",
-                en: "Aim for roughly \(fiberTarget) g of fibre a day. That is the difference between a deficit you can hold and one that breaks on Thursday night.",
-                es: "Apunta a unos \(fiberTarget) g de fibra al día. Es la diferencia entre un déficit sostenible y uno que se rompe el jueves por la noche."
+        // Une seule note sur les fibres, et le même chiffre des deux côtés :
+        // deux notes voisines qui se contredisent d'un gramme donnent
+        // l'impression que le coach ne sait pas compter.
+        let fibreTarget = Int((Double(target.calories) / 1_000 * 14).rounded())
+        let achieved = Int(achievedFibreG.rounded())
+        if achievedFibreG > Double(fibreTarget) * 1.5 {
+            // Une journée d'aliments entiers, et surtout une journée
+            // végétarienne où les légumineuses portent les protéines, dépasse
+            // largement la recommandation. Ce n'est pas une erreur du plan,
+            // mais ce n'est pas anodin : on le dit plutôt que d'appauvrir
+            // l'assiette pour faire tomber un chiffre.
+            notes.append(
+                LocalizedText(
+                    fr: "Cette journée apporte \(achieved) g de fibres, pour \(fibreTarget) g recommandés. C'est volontaire — ce sont les légumineuses et les légumes qui portent tes protéines — mais si tu n'en manges pas autant d'habitude, monte progressivement sur deux semaines et bois davantage : le passage brutal est ce qui rend les fibres désagréables, pas les fibres elles-mêmes.",
+                    en: "This day brings \(achieved) g of fibre against \(fibreTarget) g recommended. That is deliberate — pulses and vegetables are carrying your protein — but if you do not normally eat that much, ramp up over two weeks and drink more: it is the sudden jump that makes fibre unpleasant, not the fibre itself.",
+                    es: "Este día aporta \(achieved) g de fibra frente a los \(fibreTarget) g recomendados. Es intencionado —las legumbres y las verduras llevan tu proteína— pero si no sueles comer tanta, súbela poco a poco durante dos semanas y bebe más: lo que hace desagradable la fibra es el salto brusco, no la fibra."
+                )
             )
-        )
+        } else {
+            notes.append(
+                LocalizedText(
+                    fr: "Cette journée apporte \(achieved) g de fibres, pour \(fibreTarget) g recommandés. C'est ce qui fait la différence entre un déficit tenable et un déficit qui craque le jeudi soir.",
+                    en: "This day brings \(achieved) g of fibre against \(fibreTarget) g recommended. That is the difference between a deficit you can hold and one that breaks on Thursday night.",
+                    es: "Este día aporta \(achieved) g de fibra frente a los \(fibreTarget) g recomendados. Es la diferencia entre un déficit sostenible y uno que se rompe el jueves por la noche."
+                )
+            )
+        }
 
         if diet == .vegan {
             notes.append(

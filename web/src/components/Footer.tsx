@@ -12,6 +12,7 @@ const copy = {
     simulator: "Simulateur",
     running: "Course à pied",
     food: "Alimentation",
+    gym: "Salle",
     watch: "Apple Watch",
     pricing: "Tarifs",
     app: "Application",
@@ -38,6 +39,7 @@ const copy = {
     simulator: "Simulator",
     running: "Running",
     food: "Food",
+    gym: "Gym",
     watch: "Apple Watch",
     pricing: "Pricing",
     app: "App",
@@ -64,6 +66,7 @@ const copy = {
     simulator: "Simulador",
     running: "Carrera a pie",
     food: "Alimentación",
+    gym: "Sala",
     watch: "Apple Watch",
     pricing: "Precios",
     app: "Aplicación",
@@ -113,6 +116,8 @@ export function Footer() {
             <a href="/#simulateur">{t.simulator}</a>
             <a href="/#course">{t.running}</a>
             <a href="/#alimentation">{t.food}</a>
+            <a href="/#salle">{t.gym}</a>
+          <a href="/#salle">{t.gym}</a>
             <a href="/#montre">{t.watch}</a>
             <a href="/#tarifs">{t.pricing}</a>
           </nav>

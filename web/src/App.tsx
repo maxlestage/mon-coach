@@ -12,6 +12,8 @@ import { Simulator, defaultInput } from "./components/Simulator.tsx";
 import { WatchSection } from "./components/WatchSection.tsx";
 import { RunningSection } from "./components/RunningSection.tsx";
 import { FoodSection } from "./components/FoodSection.tsx";
+import { TechniqueSection } from "./components/TechniqueSection.tsx";
+import { GymSection } from "./components/GymSection.tsx";
 import { simulate } from "./coach/engine.ts";
 import { LanguageProvider } from "./i18n/language.tsx";
 
@@ -30,6 +32,8 @@ export function App() {
         <Simulator />
         <RunningSection />
         <FoodSection />
+        <TechniqueSection />
+        <GymSection />
         <WatchSection />
         <AdaptationSection />
         <PricingSection />

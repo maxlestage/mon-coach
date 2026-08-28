@@ -140,12 +140,20 @@ public enum GymCoach {
         return min(100, score)
     }
 
+    /// Pourquoi ce remplacement, et surtout ce qui change concrètement.
+    ///
+    /// Trois cartes qui affichent la même phrase générique ressemblent à un
+    /// bug plutôt qu'à un conseil. Ce qui distingue les options les unes des
+    /// autres, c'est le matériel : on le dit, parce que c'est ce qui change
+    /// la charge à mettre.
     static func reason(replacing exercise: Exercise, with candidate: Exercise) -> LocalizedText {
+        if let switched = equipmentChange(from: exercise, to: candidate) { return switched }
+
         if candidate.primaryMuscle == exercise.primaryMuscle && candidate.pattern == exercise.pattern {
             return LocalizedText(
-                fr: "Même muscle, même mouvement, autre matériel. Reprends la charge qui te donne le même nombre de répétitions au même effort — elle ne sera pas la même qu'à l'exercice d'origine.",
-                en: "Same muscle, same movement, different kit. Take the load that gives you the same reps at the same effort — it will not be the load from the original exercise.",
-                es: "Mismo músculo, mismo movimiento, otro material. Usa la carga que te dé las mismas repeticiones al mismo esfuerzo: no será la del ejercicio original."
+                fr: "Même muscle, même mouvement. Reprends la charge qui te donne le même nombre de répétitions au même effort : elle ne sera pas celle de l'exercice d'origine.",
+                en: "Same muscle, same movement. Take the load that gives you the same reps at the same effort: it will not be the one from the original exercise.",
+                es: "Mismo músculo, mismo movimiento. Usa la carga que te dé las mismas repeticiones al mismo esfuerzo: no será la del ejercicio original."
             )
         }
         if candidate.primaryMuscle == exercise.primaryMuscle {
@@ -160,6 +168,59 @@ public enum GymCoach {
             en: "Same movement pattern, with the target muscle assisting. This is the furthest option on the list: take it only if the ones above are busy too.",
             es: "Mismo patrón de movimiento, con el músculo objetivo asistiendo. Es la opción más lejana de la lista: tómala solo si las anteriores también están ocupadas."
         )
+    }
+
+    /// Ce que le changement de matériel implique pour la charge.
+    ///
+    /// C'est la seule chose que l'athlète a besoin de savoir sur le moment :
+    /// il sait déjà faire le mouvement, il ne sait pas avec combien.
+    static func equipmentChange(from exercise: Exercise, to candidate: Exercise) -> LocalizedText? {
+        let was = exercise.equipment
+        let now = candidate.equipment
+
+        if now.contains(.bodyweight) && !was.contains(.bodyweight) {
+            return LocalizedText(
+                fr: "Au poids du corps : la charge n'est plus réglable, c'est le nombre de répétitions qui l'est. Vise le même effort en fin de série, pas le même chiffre.",
+                en: "Bodyweight: the load is no longer adjustable, the rep count is. Aim for the same effort at the end of the set, not the same number.",
+                es: "Con el peso corporal: la carga ya no se regula, sí el número de repeticiones. Busca el mismo esfuerzo al final de la serie, no la misma cifra."
+            )
+        }
+        if now.contains(.machine) && (was.contains(.barbell) || was.contains(.dumbbell)) {
+            return LocalizedText(
+                fr: "Sur machine : la trajectoire est guidée, donc tu peux aller plus près de l'échec sans risque. La charge affichée n'a rien à voir avec celle du poids libre, ne compare pas les deux.",
+                en: "On a machine: the path is guided, so you can go closer to failure safely. The number on the stack has nothing to do with the free-weight load — do not compare them.",
+                es: "En máquina: la trayectoria está guiada, así que puedes acercarte más al fallo sin riesgo. El número de la placa no tiene nada que ver con el peso libre: no los compares."
+            )
+        }
+        if (now.contains(.barbell) || now.contains(.dumbbell)) && was.contains(.machine) {
+            return LocalizedText(
+                fr: "En poids libre : plus rien ne guide la trajectoire, et les muscles stabilisateurs entrent en jeu. Commence 20 % plus léger que sur la machine, quitte à monter à la série suivante.",
+                en: "Free weight: nothing guides the path any more, and the stabilisers join in. Start 20 % lighter than on the machine, and go up on the next set if it was easy.",
+                es: "Peso libre: ya nada guía la trayectoria y entran los estabilizadores. Empieza un 20 % más ligero que en la máquina y sube en la serie siguiente si va sobrado."
+            )
+        }
+        if now.contains(.dumbbell) && was.contains(.barbell) {
+            return LocalizedText(
+                fr: "Aux haltères : chaque bras fait son propre travail, ce qui révèle les asymétries. Compte environ 40 % de la charge de la barre, par haltère.",
+                en: "Dumbbells: each arm does its own work, which exposes asymmetries. Reckon on about 40 % of the barbell load, per dumbbell.",
+                es: "Con mancuernas: cada brazo hace su trabajo, lo que revela las asimetrías. Cuenta con un 40 % de la carga de la barra, por mancuerna."
+            )
+        }
+        if now.contains(.cable) && !was.contains(.cable) {
+            return LocalizedText(
+                fr: "À la poulie : la tension reste constante sur toute l'amplitude, y compris là où le mouvement d'origine devenait facile. La charge sera plus basse pour le même effort.",
+                en: "On the cable: tension stays constant through the whole range, including where the original movement got easy. The load will be lower for the same effort.",
+                es: "En polea: la tensión se mantiene constante en todo el recorrido, incluso donde el movimiento original se volvía fácil. La carga será menor para el mismo esfuerzo."
+            )
+        }
+        if now.contains(.band) && !was.contains(.band) {
+            return LocalizedText(
+                fr: "À l'élastique : la résistance augmente en fin de mouvement et disparaît au début. Ralentis le retour pour compenser ce que la position basse a perdu.",
+                en: "With a band: resistance rises at the end of the movement and vanishes at the start. Slow the return down to make up for what the bottom position lost.",
+                es: "Con banda: la resistencia sube al final del movimiento y desaparece al principio. Ralentiza la vuelta para compensar lo que pierde la posición baja."
+            )
+        }
+        return nil
     }
 
     // MARK: - Répondre à une situation
