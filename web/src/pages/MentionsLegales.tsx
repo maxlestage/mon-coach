@@ -33,12 +33,7 @@ export function MentionsLegales() {
       <h2>Signaler un problème</h2>
       <p>
         Pour signaler un contenu, un bug ou une question relative à ces
-        mentions, écris à l'adresse de contact ci-dessus. Le code du projet est
-        consultable sur{" "}
-        <a href="https://github.com/maxlestage/mon-coach" rel="noopener noreferrer">
-          GitHub
-        </a>
-        .
+        mentions, écris à l'adresse de contact ci-dessus.
       </p>
     </ContentPage>
   );

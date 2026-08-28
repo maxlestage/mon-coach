@@ -1,5 +1,9 @@
 # Mon Coach
 
+**Code propriétaire — tous droits réservés.** Ce projet n'est pas open
+source et ne le sera pas : aucune licence n'est accordée, aucune
+contribution n'est acceptée. Voir [LICENSE](LICENSE).
+
 Coach de musculation natif iOS, et le site produit qui l'accompagne.
 
 L'idée tient en une phrase : **un programme d'entraînement n'a de valeur que

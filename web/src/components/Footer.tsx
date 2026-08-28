@@ -36,9 +36,6 @@ export function Footer() {
             <span className="site-footer__soon">iPhone — bientôt sur l'App Store</span>
             <span className="site-footer__soon">Apple Watch et Live Activity incluses</span>
             <a href="/#confidentialite-produit">Confidentialité du produit</a>
-            <a href="https://github.com/maxlestage/mon-coach" rel="noopener noreferrer">
-              Code source sur GitHub
-            </a>
           </nav>
 
           <nav className="site-footer__col" aria-label="Légal">
