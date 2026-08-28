@@ -26,23 +26,38 @@ jobs:
     runs-on: ubuntu-latest
     env:
       HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
-      HEROKU_APP_NAME: ${{ vars.HEROKU_APP_NAME }}
+      # Le nom de l'application n'est pas un secret : il apparaît dans
+      # l'adresse du site. Il est donc écrit ici, avec une variable de dépôt
+      # comme échappatoire si l'application est renommée. Une manipulation de
+      # moins à faire pour mettre le déploiement en route.
+      HEROKU_APP_NAME: ${{ vars.HEROKU_APP_NAME || 'moncoach' }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Vérifier que le déploiement est configuré
         id: config
         run: |
-          if [ -z "$HEROKU_API_KEY" ] || [ -z "$HEROKU_APP_NAME" ]; then
-            echo "::notice::Déploiement non configuré (secret HEROKU_API_KEY ou variable HEROKU_APP_NAME manquant). Voir docs/DEPLOIEMENT.md."
+          if [ -z "$HEROKU_API_KEY" ]; then
+            echo "::notice::Déploiement non configuré : le secret HEROKU_API_KEY manque. Voir docs/DEPLOIEMENT.md."
             echo "ready=false" >> "$GITHUB_OUTPUT"
           else
+            echo "Application visée : $HEROKU_APP_NAME"
             echo "ready=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Passer l'application sur la pile conteneur
         if: steps.config.outputs.ready == 'true'
         run: |
+          # Premier appel à l'API : il vaut vérification que la clé est
+          # valide et que l'application existe bien sous ce nom.
+          if ! curl -sS -o /dev/null -w '%{http_code}' \
+              "https://api.heroku.com/apps/$HEROKU_APP_NAME" \
+              -H "Accept: application/vnd.heroku+json; version=3" \
+              -H "Authorization: Bearer $HEROKU_API_KEY" | grep -q '^200$'; then
+            echo "::error::L'application « $HEROKU_APP_NAME » est introuvable, ou la clé d'API est invalide. Corrige la variable de dépôt HEROKU_APP_NAME ou le secret HEROKU_API_KEY."
+            exit 1
+          fi
+
           # Idempotent : Heroku n'accepte une image Docker que si la pile de
           # construction de l'application est « container ».
           curl -sS --fail-with-body -X PATCH \
