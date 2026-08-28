@@ -45,7 +45,7 @@ Trois modules complètent le programme de salle :
 | Module | Ce qu'il produit |
 | --- | --- |
 | `Running` | Filtrage d'une trace GPS, découpage en kilomètres, dénivelé par hystérésis, et un bloc de course qui cohabite avec la musculation |
-| `Nutrition` | Un catalogue de 87 aliments classés et justifiés, et une journée de repas construite pour atteindre les macros |
+| `Nutrition` | Un catalogue de 238 aliments classés et justifiés, et une journée de repas construite pour atteindre les macros |
 | `Guided` | Une fiche technique par schéma moteur, avec des repères vérifiables sans miroir : l'alternative aux vidéos, pour les débutants |
 
 Deux moteurs travaillent ensuite en continu : `ReadinessEngine` ajuste la

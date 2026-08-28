@@ -39,7 +39,7 @@ public enum MealPlanner {
     /// Les protéines qui se mangent au petit-déjeuner sans effort.
     static let breakfastProteins: Set<String> = [
         "skyr", "fromage-blanc", "cottage", "oeuf", "blanc-oeuf", "tofu",
-        "whey", "proteine-vegetale", "yaourt-soja",
+        "whey", "proteine-vegetale", "yaourt-soja", "petit-suisse", "caseine",
     ]
     /// Les féculents du matin.
     ///
@@ -49,7 +49,8 @@ public enum MealPlanner {
     /// ratait ses glucides de 10 % sans que rien ne le signale.
     static let breakfastCarbs: Set<String> = [
         "flocons-avoine", "pain-complet", "pain-blanc", "cracottes-seigle",
-        "sarrasin", "galettes-riz", "tortilla-mais",
+        "sarrasin", "galettes-riz", "tortilla-mais", "muesli-nature",
+        "pain-seigle", "pain-cereales", "cereales-mais",
     ]
 
     /// Les féculents d'un vrai repas.
@@ -66,6 +67,12 @@ public enum MealPlanner {
     static let mainCarbs: Set<String> = [
         "riz-complet", "riz-blanc", "pates-completes", "pomme-de-terre",
         "patate-douce", "quinoa", "sarrasin", "tortilla-mais",
+        // Les rayons générés : tous sous la barre des ~6 g de protéines aux
+        // 100 g, celle au-delà de laquelle un féculent vide la place de la
+        // source protéique.
+        "boulgour", "semoule", "orge-perle", "epeautre", "millet", "polenta",
+        "riz-basmati", "vermicelles-riz", "pates-blanches", "gnocchis",
+        "petits-pois", "mais-doux",
     ]
 
     static func pool(
@@ -91,7 +98,15 @@ public enum MealPlanner {
     /// vaut un repas imparfait qu'un repas vide.
     static func viableProteins(_ pool: [Food], target: Macros, avoiding avoided: Set<String>) -> [Food] {
         guard target.proteinG > 0 else { return pool }
-        let feasible = pool.filter { $0.proteinG > 0 && target.proteinG / $0.proteinG * 100 <= 350 }
+        // La faisabilité se juge au plafond réel de l'aliment, pas à un
+        // chiffre unique : le plafond de fibres limite un plat de pois
+        // cassés à ce qu'il porte 15 g de fibres, soit une quinzaine de
+        // grammes de protéines — pour un créneau à 35 g, cette source ne
+        // peut pas livrer, et la laisser dans le pool ferait dériver la
+        // journée. Sur un créneau plus léger, elle rejoue.
+        let feasible = pool.filter {
+            $0.proteinG > 0 && target.proteinG / $0.proteinG * 100 <= maximumGrams(for: $0)
+        }
         guard !feasible.isEmpty else { return pool }
         let budget = target.fatG / target.proteinG
         let lean = feasible.filter { $0.fatG / $0.proteinG <= budget * 1.2 }
@@ -104,6 +119,29 @@ public enum MealPlanner {
             if !candidates.isEmpty { return candidates }
         }
         return pool
+    }
+
+    /// Écarte les féculents qui mangeraient la place des protéines.
+    ///
+    /// Le symétrique de `viableProteins`, découvert sur le même genre de
+    /// cas réel : sur un objectif santé — protéines basses, calories
+    /// confortables — la rotation servait 480 g de quinoa, qui apportaient
+    /// à eux seuls 21 g de protéines dans un repas qui n'en demandait que
+    /// 29. La source protéique, déjà à son plancher de portion, ne pouvait
+    /// plus descendre, et la journée dépassait sa cible sans qu'aucun
+    /// aliment ne soit fautif isolément. La règle : servi à hauteur des
+    /// glucides du repas, un féculent ne doit pas apporter plus de la
+    /// moitié des protéines attendues. Sur un repas riche en protéines, le
+    /// quinoa rejoue ; sur un repas léger, le riz prend sa place. Le filtre
+    /// s'efface s'il ne laisse rien.
+    static func viableCarbs(_ pool: [Food], target: Macros) -> [Food] {
+        guard target.carbsG > 0, target.proteinG > 0 else { return pool }
+        let fitting = pool.filter { carb in
+            guard carb.carbsG > 0 else { return true }
+            let grams = min(maximumGrams(for: carb), target.carbsG / carb.carbsG * 100)
+            return grams * carb.proteinG / 100 <= target.proteinG * 0.5
+        }
+        return fitting.isEmpty ? pool : fitting
     }
 
     /// Choisit un aliment de façon déterministe mais variée d'un jour à l'autre.
@@ -265,9 +303,14 @@ public enum MealPlanner {
     /// d'énergie — et il rend le total inatteignable pour un athlète sans
     /// gluten, dont les féculents disponibles sont justement les moins denses.
     static func maximumGrams(for food: Food) -> Double {
-        switch food.role {
+        let roleCeiling: Double = switch food.role {
         case .protein:
-            350
+            // Au plus deux fois et demie la portion déclarée, bornée à
+            // 350 g. Sans le multiple, une poudre à portion de 30 g pouvait
+            // partir à 350 g — un shaker de dix doses — dès que le créneau
+            // avait faim : la portion du catalogue dit ce qui est comestible,
+            // le plafond doit l'écouter.
+            min(350, food.portionG * 2.5)
         case .carb:
             // Aucune assiette de féculent ne dépasse 600 kcal, ni 700 g.
             min(700, 600 / max(0.4, food.kcal / 100))
@@ -281,6 +324,14 @@ public enum MealPlanner {
         case .vegetable, .dairy, .drink, .treat:
             400
         }
+        // Et jamais plus de 15 g de fibres dans un seul plat, quel que soit
+        // le rôle. La borne est digestive avant d'être arithmétique : une
+        // assiette de 300 g de pois cassés en porte 25, et personne ne la
+        // digère. C'est la règle qui empêche les journées végétales de
+        // dériver vers 100 g de fibres quand le rayon des légumineuses
+        // s'agrandit — chaque plat plafonné, la journée suit.
+        guard food.fiberG > 0 else { return roleCeiling }
+        return min(roleCeiling, 15 / food.fiberG * 100)
     }
 
     static func roleOrder(_ item: MealItem) -> Int {
@@ -351,7 +402,7 @@ public enum MealPlanner {
         // de trois repas.
         let items = solve(
             protein: pick(viableProteins(proteinPool, target: target, avoiding: avoided), seed: seed),
-            carb: pick(carbPool, seed: seed + 1),
+            carb: pick(viableCarbs(carbPool, target: target), seed: seed + 1),
             fat: pick(fatPool, seed: seed + 3),
             fixed: fixed,
             vegetableGrams: vegetableGrams,
