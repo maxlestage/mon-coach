@@ -94,6 +94,8 @@ public struct ActivityLog: Codable, Sendable, Equatable, Identifiable {
     /// fois. `nil` pour une activité enregistrée avant qu'ils existent ;
     /// un tableau vide veut dire « calculé, rien trouvé ».
     public var bestEfforts: [BestEffort]?
+    /// Les battements mesurés pendant la sortie, si un capteur était là.
+    public var heartRate: [HeartRateSample]
     /// Effort ressenti, 1 à 10, saisi après la sortie.
     public var perceivedEffort: Int?
     public var note: String?
@@ -110,6 +112,7 @@ public struct ActivityLog: Codable, Sendable, Equatable, Identifiable {
         elevationLoss: Double = 0,
         splits: [Split] = [],
         bestEfforts: [BestEffort]? = nil,
+        heartRate: [HeartRateSample] = [],
         perceivedEffort: Int? = nil,
         note: String? = nil
     ) {
@@ -124,6 +127,7 @@ public struct ActivityLog: Codable, Sendable, Equatable, Identifiable {
         self.elevationLoss = elevationLoss
         self.splits = splits
         self.bestEfforts = bestEfforts
+        self.heartRate = heartRate
         self.perceivedEffort = perceivedEffort
         self.note = note
     }
@@ -143,6 +147,7 @@ public struct ActivityLog: Codable, Sendable, Equatable, Identifiable {
         elevationGain = try container.decode(Double.self, forKey: .elevationGain)
         splits = try container.decode([Split].self, forKey: .splits)
         bestEfforts = try container.decodeIfPresent([BestEffort].self, forKey: .bestEfforts)
+        heartRate = try container.decodeIfPresent([HeartRateSample].self, forKey: .heartRate) ?? []
         perceivedEffort = try container.decodeIfPresent(Int.self, forKey: .perceivedEffort)
         note = try container.decodeIfPresent(String.self, forKey: .note)
     }
