@@ -38,8 +38,8 @@ export function PricingSection() {
           <article className="plan plan--plus">
             <span className="plan__badge">Recommandé</span>
             <h3 className="plan__name">Mon Coach+</h3>
-            <p className="plan__price">4,99 €<span> / mois</span></p>
-            <p className="plan__period">ou 29,99 € par an · 79,99 € à vie</p>
+            <p className="plan__price">14,99 €<span> / mois</span></p>
+            <p className="plan__period">ou 89,99 € par an, soit deux mois sur douze</p>
             <ul className="plan__features">
               <li>Tout le gratuit, évidemment</li>
               <li>Les blocs suivants, reconstruits d'après tes séances réelles</li>
@@ -50,8 +50,9 @@ export function PricingSection() {
             </ul>
             <p className="plan__note">
               Achat via l'App Store, sans compte à créer. Résiliable à tout
-              moment dans les réglages Apple. Rien d'autre à payer, jamais de
-              publicité.
+              moment dans les réglages Apple. À titre de comparaison : une
+              seule séance avec un coach humain coûte plus cher que l'année
+              entière. Jamais de publicité.
             </p>
           </article>
         </div>
