@@ -1124,3 +1124,16 @@ input[type="range"]:focus-visible {
   border-radius: 999px;
   background: var(--warning);
 }
+
+/* ------------------------------------------------------------------ crédit */
+
+.credit {
+  margin-top: 30px;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.credit strong {
+  color: var(--text);
+  font-weight: 700;
+}
