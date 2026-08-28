@@ -6,7 +6,7 @@ public struct VolumePrescription: Sendable, Equatable {
     public let weeklySets: [MuscleGroup: Int]
     /// Multiplier applied to the baseline because of recovery inputs.
     public let recoveryFactor: Double
-    public let rationale: [String]
+    public let rationale: [LocalizedText]
 
     public func sets(for muscle: MuscleGroup) -> Int { weeklySets[muscle] ?? 0 }
 
@@ -40,7 +40,7 @@ public enum VolumeEngine {
     }
 
     public static func prescription(for profile: UserProfile) -> VolumePrescription {
-        var rationale: [String] = []
+        var rationale: [LocalizedText] = []
 
         // Beginners grow on far less; advanced athletes need more to progress.
         let experienceFactor: Double = switch profile.experience {
@@ -49,7 +49,13 @@ public enum VolumeEngine {
         case .advanced: 1.2
         }
         if profile.experience == .beginner {
-            rationale.append("Volume volontairement bas : à ton niveau, la technique et la régularité comptent bien plus que le nombre de séries.")
+            rationale.append(
+                LocalizedText(
+                    fr: "Volume volontairement bas : à ton niveau, la technique et la régularité comptent bien plus que le nombre de séries.",
+                    en: "Volume deliberately low: at your level, technique and consistency matter far more than set count.",
+                    es: "Volumen deliberadamente bajo: a tu nivel, la técnica y la constancia importan mucho más que el número de series."
+                )
+            )
         }
 
         // The goal shifts where volume goes.
@@ -61,17 +67,35 @@ public enum VolumeEngine {
         case .generalHealth: 0.75
         }
         if profile.goal == .strength {
-            rationale.append("Moins de séries mais plus lourdes : la force se construit sur l'intensité, pas sur le tonnage.")
+            rationale.append(
+                LocalizedText(
+                    fr: "Moins de séries mais plus lourdes : la force se construit sur l'intensité, pas sur le tonnage.",
+                    en: "Fewer sets, heavier ones: strength is built on intensity, not on tonnage.",
+                    es: "Menos series pero más pesadas: la fuerza se construye con intensidad, no con tonelaje."
+                )
+            )
         }
         if profile.goal == .fatLoss {
-            rationale.append("Volume légèrement réduit : en déficit, la récupération est le facteur limitant.")
+            rationale.append(
+                LocalizedText(
+                    fr: "Volume légèrement réduit : en déficit, la récupération est le facteur limitant.",
+                    en: "Volume slightly reduced: in a deficit, recovery is the limiting factor.",
+                    es: "Volumen ligeramente reducido: en déficit, la recuperación es el factor limitante."
+                )
+            )
         }
 
         // Recovery capacity from sleep and stress.
         var recovery = 1.0
         if profile.averageSleepHours < 6 {
             recovery -= 0.15
-            rationale.append("Moins de 6 h de sommeil : le volume est réduit de 15 % tant que ça ne bouge pas, sinon tu accumules de la fatigue sans progresser.")
+            rationale.append(
+                LocalizedText(
+                    fr: "Moins de 6 h de sommeil : le volume est réduit de 15 % tant que ça ne bouge pas, sinon tu accumules de la fatigue sans progresser.",
+                    en: "Under 6 h of sleep: volume is cut by 15 % until that changes, otherwise you bank fatigue without progressing.",
+                    es: "Menos de 6 h de sueño: el volumen baja un 15 % mientras eso no cambie, o acumularás fatiga sin progresar."
+                )
+            )
         } else if profile.averageSleepHours < 7 {
             recovery -= 0.07
         } else if profile.averageSleepHours >= 8 {
@@ -79,7 +103,13 @@ public enum VolumeEngine {
         }
         if profile.stressLevel >= 4 {
             recovery -= 0.10
-            rationale.append("Niveau de stress élevé : on garde de la marge pour éviter de transformer chaque séance en dette de récupération.")
+            rationale.append(
+                LocalizedText(
+                    fr: "Niveau de stress élevé : on garde de la marge pour éviter de transformer chaque séance en dette de récupération.",
+                    en: "High stress: we keep some room so every session does not turn into recovery debt.",
+                    es: "Estrés alto: dejamos margen para que cada sesión no se convierta en deuda de recuperación."
+                )
+            )
         }
         if profile.age() >= 45 {
             recovery -= 0.08
@@ -100,7 +130,13 @@ public enum VolumeEngine {
         var scale = 1.0
         if rawTotal > Double(weeklySetCapacity) {
             scale = Double(weeklySetCapacity) / rawTotal
-            rationale.append("Le volume a été ajusté à \(profile.daysPerWeek) séances de \(profile.sessionMinutes) min : mieux vaut un plan que tu termines qu'un plan idéal que tu abandonnes.")
+            rationale.append(
+                LocalizedText(
+                    fr: "Le volume a été ajusté à \(profile.daysPerWeek) séances de \(profile.sessionMinutes) min : mieux vaut un plan que tu termines qu'un plan idéal que tu abandonnes.",
+                    en: "Volume was fitted to \(profile.daysPerWeek) sessions of \(profile.sessionMinutes) min: a plan you finish beats an ideal plan you abandon.",
+                    es: "El volumen se ha ajustado a \(profile.daysPerWeek) sesiones de \(profile.sessionMinutes) min: vale más un plan que terminas que un plan ideal que abandonas."
+                )
+            )
         }
 
         // Below 2 weekly sets a muscle is not being trained; round it to zero

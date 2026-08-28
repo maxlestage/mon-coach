@@ -66,7 +66,13 @@ await Bun.write(`${OUT_DIR}/apple-touch-icon.png`, Bun.file("./src/icons/icon-18
 const pages = ["/", "/mentions-legales", "/confidentialite", "/conditions"];
 const hashedAssets = result.outputs
   .map((artifact) => artifact.path.replace(`${process.cwd()}/dist`, ""))
-  .filter((path) => path.startsWith("/assets/") && !path.endsWith(".map"));
+  .filter((path) => path.startsWith("/assets/") && !path.endsWith(".map"))
+  // MapLibre pèse près d'un mégaoctet et n'est demandé que si le visiteur
+  // ouvre lui-même la carte. Le précharger imposerait ce téléchargement à
+  // tout le monde, ce qui reviendrait exactement à ce que le chargement au
+  // clic cherche à éviter. Il sera mis en cache s'il est réellement utilisé :
+  // la règle « cache-first » sur /assets/ s'en charge à la première visite.
+  .filter((path) => !path.includes("maplibre"));
 const staticFiles = [
   "/manifest.webmanifest",
   "/icons/icon-192.png",

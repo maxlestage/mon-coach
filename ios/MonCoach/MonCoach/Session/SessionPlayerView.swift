@@ -7,6 +7,9 @@ import MonCoachKit
 /// It shows one movement at a time, the exact set that is owed, and a big
 /// enough control to log it without aiming.
 struct SessionPlayerView: View {
+    @Environment(\.language) private var language
+    @State private var guidedExercise: Exercise?
+    @State private var gymObstacleFor: Exercise?
     @Environment(CoachStore.self) private var store
     @Environment(\.dismiss) private var dismiss
 
@@ -36,7 +39,18 @@ struct SessionPlayerView: View {
                         .screenBackground()
                 }
             }
-            .navigationTitle(active?.session.title ?? "Séance")
+            .navigationTitle(active?.session.title[language] ?? "Séance")
+            .sheet(item: $guidedExercise) { exercise in
+                GuidedTechniqueView(exercise: exercise)
+            }
+            .sheet(item: $gymObstacleFor) { exercise in
+                GymCoachView(
+                    exercise: exercise,
+                    session: store.activeSession?.session
+                ) { replacement in
+                    substitute(exercise, with: replacement)
+                }
+            }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -67,7 +81,7 @@ struct SessionPlayerView: View {
             if restRemaining > 0 { restRemaining -= 1 }
         }
         .onAppear {
-            if let active { liveActivity.start(for: active, unit: unit) }
+            if let active { liveActivity.start(for: active, unit: unit, language: language) }
         }
         .onDisappear {
             // Séance terminée ou lecteur fermé : l'écran verrouillé ne doit
@@ -136,24 +150,77 @@ struct SessionPlayerView: View {
         return active.currentExercise
     }
 
+    /// Applique un remplacement à la séance en cours.
+    ///
+    /// La prescription garde son identifiant : les séries déjà enregistrées
+    /// y restent attachées, et elles portent le nom du mouvement sur lequel
+    /// elles ont réellement été faites.
+    private func substitute(_ original: Exercise, with replacement: Exercise) {
+        guard var active = store.activeSession,
+              let prescription = active.session.exercises.first(where: { $0.exerciseID == original.id })
+        else { return }
+        active.substitute(prescription: prescription.id, with: replacement)
+        store.activeSession = active
+    }
+
     private func currentCard(_ active: ActiveSession, prescription: ExercisePrescription) -> some View {
         let exercise = ExerciseCatalog.exercise(id: prescription.exerciseID)
         let set = active.nextSet(of: prescription)
         let done = active.logs(for: prescription)
 
         return Card(
-            title: exercise?.name ?? prescription.exerciseID,
-            subtitle: exercise.map { "\($0.primaryMuscle.label) · \($0.pattern.label)" }
+            title: exercise?.name[language] ?? prescription.exerciseID,
+            subtitle: exercise.map { "\($0.primaryMuscle.label[language]) · \($0.pattern.label[language])" }
         ) {
             if let note = prescription.note {
                 HStack(alignment: .top, spacing: 8) {
                     Image(systemName: "lightbulb.fill")
                         .foregroundStyle(Theme.warning)
                         .font(.system(size: 13))
-                    Text(note)
+                    Text(note[language])
                         .font(Theme.captionFont)
                         .foregroundStyle(Theme.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            // Le mode guidé est à un geste de la série en cours : c'est là
+            // qu'on se demande si on fait le mouvement correctement, pas dans
+            // un menu deux écrans plus loin.
+            if let exercise {
+                HStack(spacing: 18) {
+                    Button {
+                        guidedExercise = exercise
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "figure.strengthtraining.traditional")
+                            Text(LocalizedText(fr: "Mode guidé", en: "Guided mode", es: "Modo guiado")[language])
+                        }
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(Theme.accent)
+                    }
+                    .buttonStyle(.plain)
+
+                    // Le bouton est ici, à côté de la série en cours, parce
+                    // que c'est là qu'on se tient quand on découvre que le
+                    // rack est occupé.
+                    Button {
+                        gymObstacleFor = exercise
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "person.2.slash")
+                            Text(
+                                LocalizedText(
+                                    fr: "L'appareil est pris",
+                                    en: "Equipment is taken",
+                                    es: "La máquina está ocupada"
+                                )[language]
+                            )
+                        }
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(Theme.warning)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
 
@@ -249,7 +316,7 @@ struct SessionPlayerView: View {
                             Image(systemName: active.isComplete(prescription) ? "checkmark.circle.fill" : "circle")
                                 .foregroundStyle(active.isComplete(prescription) ? Theme.accent : Theme.secondaryText)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(ExerciseCatalog.exercise(id: prescription.exerciseID)?.name ?? prescription.exerciseID)
+                                Text(ExerciseCatalog.exercise(id: prescription.exerciseID)?.name[language] ?? prescription.exerciseID)
                                     .font(.system(size: 14, weight: .medium))
                                     .foregroundStyle(Theme.primaryText)
                                 Text("\(active.logs(for: prescription).count) / \(prescription.sets.count) séries")
@@ -292,6 +359,7 @@ struct SessionPlayerView: View {
             liveActivity.update(
                 for: active,
                 unit: unit,
+                language: language,
                 restEndsAt: Date().addingTimeInterval(TimeInterval(restSeconds))
             )
         }

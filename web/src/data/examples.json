@@ -1,0 +1,617 @@
+{
+  "athlete" : {
+    "age" : 30,
+    "bodyFatPercent" : 16,
+    "daysPerWeek" : 4,
+    "diet" : {
+      "en" : "Omnivore",
+      "es" : "Omnívoro",
+      "fr" : "Omnivore"
+    },
+    "goal" : {
+      "en" : "Build muscle",
+      "es" : "Ganar músculo",
+      "fr" : "Prise de muscle"
+    },
+    "heightCm" : 178,
+    "sex" : "male",
+    "weightKg" : 78
+  },
+  "day" : {
+    "meals" : [
+      {
+        "items" : [
+          {
+            "grams" : 80,
+            "name" : {
+              "en" : "Cottage cheese",
+              "es" : "Requesón",
+              "fr" : "Cottage cheese"
+            },
+            "reason" : {
+              "en" : "Rich in casein: the protein that holds longest between meals.",
+              "es" : "Rico en caseína: la proteína que más aguanta entre comidas.",
+              "fr" : "Riche en caséine : c'est la protéine qui tient le plus longtemps entre deux repas."
+            },
+            "tier" : "base"
+          },
+          {
+            "grams" : 195,
+            "name" : {
+              "en" : "Wholegrain sourdough",
+              "es" : "Pan integral de masa madre",
+              "fr" : "Pain complet au levain"
+            },
+            "reason" : {
+              "en" : "Sourdough and bran lower the glycaemic load and raise the fibre.",
+              "es" : "La masa madre y el salvado bajan la carga glucémica y suben la fibra.",
+              "fr" : "Le levain et le son font descendre la charge glycémique et montent les fibres."
+            },
+            "tier" : "base"
+          },
+          {
+            "grams" : 150,
+            "name" : {
+              "en" : "Grapes",
+              "es" : "Uvas",
+              "fr" : "Raisin"
+            },
+            "reason" : {
+              "en" : "Little fibre for a lot of sugar: one of the few fruits you can eat without noticing.",
+              "es" : "Poca fibra para mucho azúcar: una de las pocas frutas que se comen sin darse cuenta.",
+              "fr" : "Peu de fibres pour beaucoup de sucre : un des rares fruits qu'on peut manger sans s'en rendre compte."
+            },
+            "tier" : "moderate"
+          },
+          {
+            "grams" : 16,
+            "name" : {
+              "en" : "Ground flaxseed",
+              "es" : "Semillas de lino molidas",
+              "fr" : "Graines de lin moulues"
+            },
+            "reason" : {
+              "en" : "They have to be ground: whole, they pass straight through without delivering anything.",
+              "es" : "Hay que molerlas: enteras atraviesan el intestino sin aportar nada.",
+              "fr" : "Il faut les moudre : entières, elles traversent l'intestin sans rien livrer."
+            },
+            "tier" : "base"
+          }
+        ],
+        "kcal" : 749,
+        "note" : {
+          "en" : "Thirty grams of protein first thing blunts hunger for the whole day: this is the highest-return meal to fix.",
+          "es" : "Treinta gramos de proteína a primera hora cortan el hambre de todo el día: es la comida más rentable de corregir.",
+          "fr" : "Trente grammes de protéines dès le matin coupent la faim de la journée entière : c'est le repas le plus rentable à corriger."
+        },
+        "proteinG" : 38,
+        "slot" : {
+          "en" : "Breakfast",
+          "es" : "Desayuno",
+          "fr" : "Petit-déjeuner"
+        }
+      },
+      {
+        "items" : [
+          {
+            "grams" : 90,
+            "name" : {
+              "en" : "Edamame",
+              "es" : "Edamame",
+              "fr" : "Édamame"
+            },
+            "reason" : {
+              "en" : "A snack that brings real plant protein and fibre.",
+              "es" : "Un tentempié con proteína vegetal de verdad y fibra.",
+              "fr" : "Une collation qui apporte de vraies protéines végétales et des fibres."
+            },
+            "tier" : "base"
+          },
+          {
+            "grams" : 460,
+            "name" : {
+              "en" : "Cooked whole-wheat pasta",
+              "es" : "Pasta integral cocida",
+              "fr" : "Pâtes complètes cuites"
+            },
+            "reason" : {
+              "en" : "Twice as filling as white pasta, and barely different once there is sauce on it.",
+              "es" : "El doble de saciantes que la pasta blanca, y apenas distintas con salsa.",
+              "fr" : "Deux fois plus rassasiantes que les pâtes blanches, pour un goût à peine différent une fois en sauce."
+            },
+            "tier" : "base"
+          },
+          {
+            "grams" : 150,
+            "name" : {
+              "en" : "Cabbage",
+              "es" : "Col",
+              "fr" : "Chou"
+            },
+            "reason" : {
+              "en" : "It keeps for three weeks and costs next to nothing.",
+              "es" : "Se conserva tres semanas y cuesta casi nada.",
+              "fr" : "Il se garde trois semaines et coûte trois fois rien."
+            },
+            "tier" : "base"
+          },
+          {
+            "grams" : 150,
+            "name" : {
+              "en" : "Courgette",
+              "es" : "Calabacín",
+              "fr" : "Courgette"
+            },
+            "reason" : {
+              "en" : "17 kcal per 100 g: it doubles the volume of a dish without touching the total.",
+              "es" : "17 kcal por 100 g: duplica el volumen de un plato sin tocar el total.",
+              "fr" : "17 kcal aux 100 g : elle double le volume d'un plat sans rien changer au total."
+            },
+            "tier" : "base"
+          },
+          {
+            "grams" : 13,
+            "name" : {
+              "en" : "Extra-virgin olive oil",
+              "es" : "Aceite de oliva virgen extra",
+              "fr" : "Huile d'olive vierge extra"
+            },
+            "reason" : {
+              "en" : "The best-documented fat for cardiovascular health. One tablespoon is 120 kcal — this is where deficits quietly die.",
+              "es" : "La grasa mejor documentada para la salud cardiovascular. Una cucharada son 120 kcal: ahí es donde se pierden los déficits.",
+              "fr" : "Le gras le mieux documenté sur la santé cardiovasculaire. Une cuillère à soupe pèse 120 kcal : c'est là que les déficits se perdent."
+            },
+            "tier" : "base"
+          }
+        ],
+        "kcal" : 857,
+        "proteinG" : 38,
+        "slot" : {
+          "en" : "Lunch",
+          "es" : "Comida",
+          "fr" : "Déjeuner"
+        }
+      },
+      {
+        "items" : [
+          {
+            "grams" : 280,
+            "name" : {
+              "en" : "Egg whites",
+              "es" : "Claras de huevo",
+              "fr" : "Blancs d'œufs"
+            },
+            "reason" : {
+              "en" : "Useful for adding protein without calories — alongside whole eggs, not instead of them.",
+              "es" : "Útiles para subir proteína sin calorías, junto a los huevos enteros, no en su lugar.",
+              "fr" : "Utiles pour monter les protéines sans les calories, en complément des œufs entiers, pas à leur place."
+            },
+            "tier" : "base"
+          },
+          {
+            "grams" : 295,
+            "name" : {
+              "en" : "Kiwi",
+              "es" : "Kiwi",
+              "fr" : "Kiwi"
+            },
+            "reason" : {
+              "en" : "Two kiwis cover the day's vitamin C, and they help things move.",
+              "es" : "Dos kiwis cubren la vitamina C del día y ayudan al tránsito.",
+              "fr" : "Deux kiwis couvrent la vitamine C de la journée, et ils aident au transit."
+            },
+            "tier" : "base"
+          },
+          {
+            "grams" : 11,
+            "name" : {
+              "en" : "Almonds",
+              "es" : "Almendras",
+              "fr" : "Amandes"
+            },
+            "reason" : {
+              "en" : "Vitamin E, magnesium and fibre. A handful is 30 g: past that, the portion doubles unseen.",
+              "es" : "Vitamina E, magnesio y fibra. Un puñado son 30 g: más allá, la ración se dobla sin verlo.",
+              "fr" : "Vitamine E, magnésium et fibres. Une poignée, c'est 30 g : au-delà, la portion double sans qu'on le voie."
+            },
+            "tier" : "base"
+          }
+        ],
+        "kcal" : 389,
+        "proteinG" : 36,
+        "slot" : {
+          "en" : "Snack",
+          "es" : "Merienda",
+          "fr" : "Collation"
+        }
+      },
+      {
+        "items" : [
+          {
+            "grams" : 75,
+            "name" : {
+              "en" : "Drained tinned sardines",
+              "es" : "Sardinas en aceite escurridas",
+              "fr" : "Sardines à l'huile égouttées"
+            },
+            "reason" : {
+              "en" : "Omega-3s, calcium from the bones and vitamin D, for almost nothing.",
+              "es" : "Omega-3, calcio de las espinas y vitamina D, por muy poco dinero.",
+              "fr" : "Oméga-3, calcium des arêtes et vitamine D, pour un prix dérisoire."
+            },
+            "tier" : "base"
+          },
+          {
+            "grams" : 375,
+            "name" : {
+              "en" : "Cooked brown rice",
+              "es" : "Arroz integral cocido",
+              "fr" : "Riz complet cuit"
+            },
+            "reason" : {
+              "en" : "A little more fibre and magnesium than white rice, for the same job.",
+              "es" : "Algo más de fibra y magnesio que el arroz blanco, para el mismo uso.",
+              "fr" : "Un peu plus de fibres et de magnésium que le riz blanc, pour le même usage."
+            },
+            "tier" : "base"
+          },
+          {
+            "grams" : 150,
+            "name" : {
+              "en" : "Green beans",
+              "es" : "Judías verdes",
+              "fr" : "Haricots verts"
+            },
+            "reason" : {
+              "en" : "The simplest side vegetable: frozen, it never rots at the back of the fridge.",
+              "es" : "La guarnición más simple: congeladas, nunca se pierden al fondo de la nevera.",
+              "fr" : "Le légume d'accompagnement le plus simple : surgelé, il ne se perd jamais au fond du frigo."
+            },
+            "tier" : "base"
+          },
+          {
+            "grams" : 150,
+            "name" : {
+              "en" : "Salad leaves",
+              "es" : "Hojas de ensalada",
+              "fr" : "Salade verte"
+            },
+            "reason" : {
+              "en" : "Volume for nothing, as long as you watch what goes on top.",
+              "es" : "Volumen por nada, siempre que vigiles lo que le pones encima.",
+              "fr" : "Du volume pour rien, à condition de surveiller ce qu'on met dessus."
+            },
+            "tier" : "base"
+          },
+          {
+            "grams" : 16,
+            "name" : {
+              "en" : "Chia seeds",
+              "es" : "Semillas de chía",
+              "fr" : "Graines de chia"
+            },
+            "reason" : {
+              "en" : "34 g of fibre per 100 g: two spoons cover a quarter of the day.",
+              "es" : "34 g de fibra por 100 g: dos cucharadas cubren un cuarto del día.",
+              "fr" : "34 g de fibres aux 100 g : deux cuillères couvrent un quart de la journée."
+            },
+            "tier" : "base"
+          }
+        ],
+        "kcal" : 764,
+        "note" : {
+          "en" : "Eating late does not make you fat: the day's total is what counts. A protein-rich dinner just helps you sleep.",
+          "es" : "Cenar tarde no engorda: lo que cuenta es el total del día. Una cena proteica solo ayuda a dormir mejor.",
+          "fr" : "Manger tard ne fait pas grossir : c'est le total de la journée qui compte. Un dîner protéiné aide simplement à mieux dormir."
+        },
+        "proteinG" : 36,
+        "slot" : {
+          "en" : "Dinner",
+          "es" : "Cena",
+          "fr" : "Dîner"
+        }
+      }
+    ],
+    "notes" : [
+      {
+        "en" : "These amounts are a starting point, not a prescription. Weigh for a week to learn what a portion looks like, then serve by eye: the goal is to stop needing the scale.",
+        "es" : "Estas cantidades son un punto de partida, no una receta. Pesa una semana para aprender cómo es una ración y luego sírvete a ojo: el objetivo es dejar de necesitar la báscula.",
+        "fr" : "Ces quantités sont des points de départ, pas une ordonnance. Pèse une semaine pour apprendre à quoi ressemble une portion, puis sers-toi à l'œil : le but est de ne plus avoir besoin de la balance."
+      },
+      {
+        "en" : "Starches are given cooked. Packets give them raw: 100 g of dry rice becomes roughly 300 g cooked.",
+        "es" : "Los farináceos se dan cocidos. En el paquete vienen crudos: 100 g de arroz seco son unos 300 g cocidos.",
+        "fr" : "Les féculents sont donnés cuits. Sur le paquet, ils sont donnés crus : 100 g de riz sec deviennent environ 300 g de riz cuit."
+      },
+      {
+        "en" : "This day brings 75 g of fibre against 39 g recommended. That is deliberate — pulses and vegetables are carrying your protein — but if you do not normally eat that much, ramp up over two weeks and drink more: it is the sudden jump that makes fibre unpleasant, not the fibre itself.",
+        "es" : "Este día aporta 75 g de fibra frente a los 39 g recomendados. Es intencionado —las legumbres y las verduras llevan tu proteína— pero si no sueles comer tanta, súbela poco a poco durante dos semanas y bebe más: lo que hace desagradable la fibra es el salto brusco, no la fibra.",
+        "fr" : "Cette journée apporte 75 g de fibres, pour 39 g recommandés. C'est volontaire — ce sont les légumineuses et les légumes qui portent tes protéines — mais si tu n'en manges pas autant d'habitude, monte progressivement sur deux semaines et bois davantage : le passage brutal est ce qui rend les fibres désagréables, pas les fibres elles-mêmes."
+      }
+    ],
+    "totalFiberG" : 75,
+    "totalKcal" : 2759,
+    "totalProteinG" : 148
+  },
+  "nutrition" : {
+    "calories" : 2768,
+    "carbsG" : 407,
+    "fatG" : 62,
+    "proteinG" : 144
+  },
+  "substitution" : {
+    "busyEquipment" : [
+      {
+        "en" : "Bench",
+        "es" : "Banco",
+        "fr" : "Banc"
+      },
+      {
+        "en" : "Barbell",
+        "es" : "Barra olímpica",
+        "fr" : "Barre olympique"
+      }
+    ],
+    "detail" : {
+      "en" : "Move to the next movement in your session and come back to this one when the station frees up. Order matters less than people think: what matters is doing the hard sets while you still have strength.",
+      "es" : "Pasa al siguiente movimiento de tu sesión y vuelve a este cuando se libere el puesto. El orden importa menos de lo que se cree: lo que importa es hacer las series duras con fuerza disponible.",
+      "fr" : "Passe au mouvement suivant de ta séance et reviens sur celui-ci quand le poste se libère. L'ordre compte moins qu'on ne le croit : ce qui compte, c'est de faire les séries dures avec de la force disponible."
+    },
+    "exercise" : {
+      "en" : "Bench press",
+      "es" : "Press de banca",
+      "fr" : "Développé couché"
+    },
+    "headline" : {
+      "en" : "Change the order before you change the exercise",
+      "es" : "Cambia el orden antes de cambiar el ejercicio",
+      "fr" : "Change l'ordre avant de changer l'exercice"
+    },
+    "muscle" : {
+      "en" : "Chest",
+      "es" : "Pectorales",
+      "fr" : "Pectoraux"
+    },
+    "options" : [
+      {
+        "closeness" : 100,
+        "equipment" : [
+          {
+            "en" : "Dip station",
+            "es" : "Paralelas \/ fondos",
+            "fr" : "Barres parallèles \/ dips"
+          }
+        ],
+        "name" : {
+          "en" : "Dips",
+          "es" : "Fondos",
+          "fr" : "Dips"
+        },
+        "reason" : {
+          "en" : "Same muscle, same movement. Take the load that gives you the same reps at the same effort: it will not be the one from the original exercise.",
+          "es" : "Mismo músculo, mismo movimiento. Usa la carga que te dé las mismas repeticiones al mismo esfuerzo: no será la del ejercicio original.",
+          "fr" : "Même muscle, même mouvement. Reprends la charge qui te donne le même nombre de répétitions au même effort : elle ne sera pas celle de l'exercice d'origine."
+        }
+      },
+      {
+        "closeness" : 96,
+        "equipment" : [
+          {
+            "en" : "Bodyweight",
+            "es" : "Peso corporal",
+            "fr" : "Poids du corps"
+          }
+        ],
+        "name" : {
+          "en" : "Push-ups",
+          "es" : "Flexiones",
+          "fr" : "Pompes"
+        },
+        "reason" : {
+          "en" : "Bodyweight: the load is no longer adjustable, the rep count is. Aim for the same effort at the end of the set, not the same number.",
+          "es" : "Con el peso corporal: la carga ya no se regula, sí el número de repeticiones. Busca el mismo esfuerzo al final de la serie, no la misma cifra.",
+          "fr" : "Au poids du corps : la charge n'est plus réglable, c'est le nombre de répétitions qui l'est. Vise le même effort en fin de série, pas le même chiffre."
+        }
+      },
+      {
+        "closeness" : 93,
+        "equipment" : [
+          {
+            "en" : "Machines",
+            "es" : "Máquinas guiadas",
+            "fr" : "Machines guidées"
+          }
+        ],
+        "name" : {
+          "en" : "Machine chest press",
+          "es" : "Press de pecho en máquina",
+          "fr" : "Développé machine"
+        },
+        "reason" : {
+          "en" : "On a machine: the path is guided, so you can go closer to failure safely. The number on the stack has nothing to do with the free-weight load — do not compare them.",
+          "es" : "En máquina: la trayectoria está guiada, así que puedes acercarte más al fallo sin riesgo. El número de la placa no tiene nada que ver con el peso libre: no los compares.",
+          "fr" : "Sur machine : la trajectoire est guidée, donc tu peux aller plus près de l'échec sans risque. La charge affichée n'a rien à voir avec celle du poids libre, ne compare pas les deux."
+        }
+      },
+      {
+        "closeness" : 48,
+        "equipment" : [
+          {
+            "en" : "Cables",
+            "es" : "Poleas",
+            "fr" : "Poulies"
+          }
+        ],
+        "name" : {
+          "en" : "Cable fly",
+          "es" : "Aperturas en polea",
+          "fr" : "Écarté à la poulie"
+        },
+        "reason" : {
+          "en" : "On the cable: tension stays constant through the whole range, including where the original movement got easy. The load will be lower for the same effort.",
+          "es" : "En polea: la tensión se mantiene constante en todo el recorrido, incluso donde el movimiento original se volvía fácil. La carga será menor para el mismo esfuerzo.",
+          "fr" : "À la poulie : la tension reste constante sur toute l'amplitude, y compris là où le mouvement d'origine devenait facile. La charge sera plus basse pour le même effort."
+        }
+      }
+    ]
+  },
+  "technique" : {
+    "breathing" : {
+      "en" : "Breathe in and hold at the top, keep the air for the whole rep, breathe out once you are standing. Never exhale on the way up: you lose the brace exactly when you need it most.",
+      "es" : "Inspira y bloquea arriba, mantén el aire toda la repetición y espira al volver de pie. Nunca sueltes el aire al subir: pierdes el bloqueo justo cuando más lo necesitas.",
+      "fr" : "Inspire et bloque en haut, garde l'air pendant toute la répétition, expire une fois revenu debout. Ne souffle jamais dans la remontée : tu perds le verrou au moment où tu en as le plus besoin."
+    },
+    "easier" : {
+      "en" : "Bodyweight squat holding a door frame, then goblet squat with a dumbbell at the chest: the counterweight in front helps you stay upright.",
+      "es" : "Sentadilla con el peso corporal agarrando el marco de una puerta, luego sentadilla goblet con una mancuerna al pecho: el contrapeso delante ayuda a mantenerte erguido.",
+      "fr" : "Squat au poids du corps en tenant un montant de porte, puis squat goblet avec un haltère contre la poitrine : le contrepoids devant t'aide à rester droit."
+    },
+    "exercise" : {
+      "en" : "Back squat",
+      "es" : "Sentadilla trasera",
+      "fr" : "Squat barre"
+    },
+    "harder" : {
+      "en" : "Add a two-second pause at the bottom: it reveals whether the position is genuinely held or merely passed through.",
+      "es" : "Añade una pausa de dos segundos abajo: revela si de verdad sostienes la posición o solo la atraviesas.",
+      "fr" : "Ajoute une pause de deux secondes en bas : c'est ce qui révèle si la position est vraiment tenue ou seulement traversée."
+    },
+    "mistakes" : [
+      {
+        "cause" : {
+          "en" : "Stiff ankles, or a stance that is too narrow.",
+          "es" : "Tobillos rígidos o una apertura demasiado estrecha.",
+          "fr" : "Chevilles raides, ou écartement trop étroit."
+        },
+        "fix" : {
+          "en" : "Widen the stance by five centimetres and turn the toes out more. If that is not enough, put 2.5 cm plates under your heels.",
+          "es" : "Separa los pies cinco centímetros y abre más las puntas. Si no basta, pon discos de 2,5 cm bajo los talones.",
+          "fr" : "Écarte les pieds de cinq centimètres et ouvre davantage les pointes. Si ça ne suffit pas, cale des disques de 2,5 cm sous les talons."
+        },
+        "symptom" : {
+          "en" : "You tip forward and end up on your toes.",
+          "es" : "Te vas hacia delante y acabas sobre los dedos.",
+          "fr" : "Tu bascules vers l'avant et tu finis sur les orteils."
+        }
+      },
+      {
+        "cause" : {
+          "en" : "The pelvis tucks under because you go deeper than your mobility allows.",
+          "es" : "La pelvis se retroversa porque bajas más de lo que permite tu movilidad.",
+          "fr" : "Le bassin bascule en arrière parce que tu descends plus bas que ta mobilité ne le permet."
+        },
+        "fix" : {
+          "en" : "Stop the descent five centimetres higher. Depth comes back on its own within weeks.",
+          "es" : "Detén la bajada cinco centímetros más arriba. La profundidad volverá sola en unas semanas.",
+          "fr" : "Arrête la descente cinq centimètres plus haut. La profondeur reviendra toute seule en quelques semaines."
+        },
+        "symptom" : {
+          "en" : "Your low back complains, mostly at the bottom.",
+          "es" : "Te tira la zona lumbar, sobre todo abajo.",
+          "fr" : "Le bas du dos tire, surtout en bas du mouvement."
+        }
+      },
+      {
+        "cause" : {
+          "en" : "Too much load, or glutes that are not contributing.",
+          "es" : "Demasiada carga, o glúteos que no participan.",
+          "fr" : "Charge trop lourde, ou fessiers qui ne participent pas."
+        },
+        "fix" : {
+          "en" : "Drop the load by 10 % and think about spreading the floor apart with your feet the whole way up.",
+          "es" : "Baja la carga un 10 % y piensa en «separar el suelo» con los pies durante toda la subida.",
+          "fr" : "Baisse la charge de 10 % et pense à « écarter le sol » avec les pieds pendant toute la remontée."
+        },
+        "symptom" : {
+          "en" : "Your knees cave inward on the way up.",
+          "es" : "Las rodillas se meten hacia dentro al subir.",
+          "fr" : "Tes genoux rentrent vers l'intérieur dans la remontée."
+        }
+      }
+    ],
+    "oneThing" : {
+      "en" : "Hips and shoulders rise together. Everything else can be fixed later.",
+      "es" : "Caderas y hombros suben juntos. Todo lo demás se corrige después.",
+      "fr" : "Les hanches et les épaules montent ensemble. Tout le reste se corrige plus tard."
+    },
+    "steps" : [
+      {
+        "checkpoint" : {
+          "en" : "You should feel your weight between the heel and the base of the big toe, not on the toes.",
+          "es" : "Debes notar el peso repartido entre el talón y la base del dedo gordo, no en los dedos.",
+          "fr" : "Tu dois sentir ton poids réparti entre le talon et la base du gros orteil, pas sur les orteils."
+        },
+        "detail" : {
+          "en" : "Shoulder width, toes turned out 15 to 30°. Your right stance is the one where you can descend without the low back rounding: try it unloaded before you load it.",
+          "es" : "A la anchura de los hombros, puntas abiertas de 15 a 30°. Tu apertura correcta es aquella en la que puedes bajar sin que se redondee la zona lumbar: pruébalo sin carga antes de cargar.",
+          "fr" : "Écartement des épaules, pointes ouvertes de 15 à 30°. Ton écartement juste est celui où tu peux descendre sans que le bas du dos s'arrondisse : essaie sans charge avant de charger."
+        },
+        "index" : 1,
+        "title" : {
+          "en" : "Set the feet",
+          "es" : "Colocar los pies",
+          "fr" : "Placer les pieds"
+        }
+      },
+      {
+        "checkpoint" : {
+          "en" : "Your midsection should be hard at the sides, not only at the front.",
+          "es" : "Tu abdomen debe estar duro por los lados, no solo por delante.",
+          "fr" : "Ton ventre doit être dur sur les côtés, pas seulement devant."
+        },
+        "detail" : {
+          "en" : "Breathe into the belly, then brace your abs as if someone were about to punch you. That lock is what protects your low back — not the belt.",
+          "es" : "Inspira hacia el abdomen y aprieta como si fueran a darte un puñetazo. Ese bloqueo es lo que protege tu zona lumbar, no el cinturón.",
+          "fr" : "Inspire par le ventre, puis serre les abdominaux comme si quelqu'un allait te donner un coup de poing. C'est ce verrou qui protège le bas du dos, pas la ceinture."
+        },
+        "index" : 2,
+        "title" : {
+          "en" : "Brace before you descend",
+          "es" : "Activa el core antes de bajar",
+          "fr" : "Gainer avant de descendre"
+        }
+      },
+      {
+        "checkpoint" : {
+          "en" : "Your heels stay down from start to finish.",
+          "es" : "Los talones no se despegan en ningún momento.",
+          "fr" : "Tes talons restent au sol du début à la fin."
+        },
+        "detail" : {
+          "en" : "Bend knees and hips together over three seconds. The knees travel forward — that is normal and safe. Go until the hip crease passes below the knee, or as far as you can without rounding.",
+          "es" : "Flexiona rodillas y caderas a la vez durante tres segundos. Las rodillas se adelantan: es normal y seguro. Baja hasta que el pliegue de la cadera pase por debajo de la rodilla, o hasta donde puedas sin redondear.",
+          "fr" : "Plie les genoux et les hanches en même temps, en trois secondes. Les genoux avancent, c'est normal et sans danger. Descends jusqu'à ce que le pli de la hanche passe sous le genou, ou jusqu'où tu peux aller sans t'arrondir."
+        },
+        "index" : 3,
+        "title" : {
+          "en" : "Descend",
+          "es" : "Bajar",
+          "fr" : "Descendre"
+        }
+      },
+      {
+        "detail" : {
+          "en" : "Push the floor away with the whole foot and let hips and shoulders rise at the same speed. Do not lead with the hips: if they rise first, the bar pulls you forward.",
+          "es" : "Empuja el suelo con todo el pie y sube caderas y hombros a la misma velocidad. No saques primero la cadera: si sube antes, la barra te lleva hacia delante.",
+          "fr" : "Pousse le sol avec tout le pied et remonte hanches et épaules à la même vitesse. Ne cherche pas à « sortir les fesses » : si les hanches montent plus vite, la barre te tire vers l'avant."
+        },
+        "index" : 4,
+        "title" : {
+          "en" : "Stand up",
+          "es" : "Subir",
+          "fr" : "Remonter"
+        }
+      }
+    ],
+    "tempo" : {
+      "en" : "Three seconds down, no pause, up as fast as you can while staying in control.",
+      "es" : "Tres segundos para bajar, sin pausa, subida tan rápida como puedas manteniendo el control.",
+      "fr" : "Trois secondes pour descendre, aucune pause, remontée aussi vite que tu peux tout en gardant le contrôle."
+    },
+    "title" : {
+      "en" : "Squatting under load",
+      "es" : "Ponerse en cuclillas con carga",
+      "fr" : "S'accroupir avec une charge"
+    }
+  }
+}

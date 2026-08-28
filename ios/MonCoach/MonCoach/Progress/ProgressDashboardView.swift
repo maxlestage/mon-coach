@@ -19,6 +19,7 @@ struct LiftHistory: Identifiable, Equatable {
 
 /// What actually changed: body weight, estimated maxes, volume, consistency.
 struct ProgressDashboardView: View {
+    @Environment(\.language) private var language
     @Environment(CoachStore.self) private var store
 
     private var unit: UnitSystem { store.profile?.unit ?? .metric }
@@ -178,7 +179,7 @@ struct ProgressDashboardView: View {
         let daily = dailyBest(sets)
         return VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text(exercise.name)
+                Text(exercise.name[language])
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(Theme.primaryText)
                 Spacer()

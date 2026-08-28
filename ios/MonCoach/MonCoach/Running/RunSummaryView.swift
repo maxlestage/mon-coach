@@ -1,0 +1,150 @@
+import SwiftUI
+import MonCoachKit
+
+/// Ce que l'athlète voit en franchissant la ligne.
+struct RunSummaryView: View {
+    var run: RunLog
+    /// Appelé après l'enregistrement, pour que l'écran appelant se referme
+    /// lui aussi. L'enregistrement lui-même se fait ici : deux endroits qui
+    /// enregistrent la même sortie, c'est la sortie en double.
+    var onSaved: () -> Void = {}
+
+    @Environment(CoachStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.language) private var language
+
+    @State private var effort: Int = 5
+    @State private var note: String = ""
+
+    private var unit: UnitSystem { store.profile?.unit ?? .metric }
+    private var weightKg: Double { store.profile?.weightKg ?? 70 }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: Theme.stackSpacing) {
+                    RunMapView(points: run.points, loadsTiles: store.profile?.loadsMapTiles ?? true)
+                        .frame(height: 220)
+
+                    Card {
+                        HStack(spacing: 12) {
+                            StatTile(
+                                value: Format.distance(meters: run.meters, unit: unit, language: language),
+                                label: UI.distance[language]
+                            )
+                            StatTile(
+                                value: Format.stopwatch(seconds: run.duration),
+                                label: UI.duration[language]
+                            )
+                            StatTile(
+                                value: Format.pace(secondsPerKm: run.paceSecondsPerKm, unit: unit),
+                                label: UI.pace[language]
+                            )
+                        }
+                        HStack(spacing: 12) {
+                            StatTile(
+                                value: "\(Int(run.elevationGain)) m",
+                                label: UI.elevation[language],
+                                tint: Theme.warning
+                            )
+                            StatTile(
+                                value: "\(Int(RunMath.energyKcal(meters: run.meters, elevationGain: run.elevationGain, weightKg: weightKg)))",
+                                label: UI.calories[language],
+                                tint: Theme.warning
+                            )
+                            StatTile(
+                                value: run.type.label[language],
+                                label: LocalizedText(fr: "Type", en: "Type", es: "Tipo")[language],
+                                tint: Theme.secondaryText
+                            )
+                        }
+                    }
+
+                    if !run.splits.isEmpty {
+                        Card(title: UI.splits[language]) {
+                            SplitList(splits: run.splits, unit: unit)
+                        }
+                    }
+
+                    Card(
+                        title: LocalizedText(
+                            fr: "Effort ressenti",
+                            en: "Perceived effort",
+                            es: "Esfuerzo percibido"
+                        )[language],
+                        subtitle: LocalizedText(
+                            fr: "1 = promenade, 10 = tout donné",
+                            en: "1 = a stroll, 10 = everything you had",
+                            es: "1 = un paseo, 10 = todo lo que tenías"
+                        )[language]
+                    ) {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Stepper(value: $effort, in: 1...10) {
+                                Text("\(effort) / 10")
+                                    .font(Theme.headlineFont)
+                                    .foregroundStyle(Theme.accent)
+                            }
+                            TextField(
+                                LocalizedText(
+                                    fr: "Une note, si tu veux t'en souvenir",
+                                    en: "A note, if you want to remember it",
+                                    es: "Una nota, si quieres recordarlo"
+                                )[language],
+                                text: $note,
+                                axis: .vertical
+                            )
+                            .textFieldStyle(.plain)
+                            .font(Theme.bodyFont)
+                            .foregroundStyle(Theme.primaryText)
+                            .padding(10)
+                            .background(Theme.surfaceRaised, in: RoundedRectangle(cornerRadius: 10))
+                        }
+                    }
+
+                    if let insight = qualityInsight {
+                        Card { CoachText(insight, color: Theme.primaryText) }
+                    }
+
+                    PrimaryButton(title: UI.save[language], systemImage: "checkmark") {
+                        var saved = run
+                        saved.perceivedEffort = effort
+                        saved.note = note.isEmpty ? nil : note
+                        store.recordRun(saved)
+                        dismiss()
+                        onSaved()
+                    }
+                }
+                .padding(16)
+            }
+            .screenBackground()
+            .navigationTitle(
+                LocalizedText(fr: "Sortie terminée", en: "Run finished", es: "Rodaje terminado")[language]
+            )
+            .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+
+    /// Ce que la sortie apprend au coach, quand elle apprend quelque chose.
+    private var qualityInsight: LocalizedText? {
+        let trace = RunAnalysis.clean(run.points)
+        if !run.points.isEmpty && trace.retention < 0.85 {
+            let dropped = Int((1 - trace.retention) * 100)
+            return LocalizedText(
+                fr: "\(dropped) % des points GPS ont été écartés — signal dégradé, sans doute sous les arbres ou entre des immeubles. La distance est donc une estimation basse.",
+                en: "\(dropped) % of the GPS points were discarded — degraded signal, probably under trees or between buildings. The distance is therefore an underestimate.",
+                es: "Se ha descartado el \(dropped) % de los puntos GPS: señal degradada, probablemente bajo árboles o entre edificios. La distancia es, por tanto, una estimación baja."
+            )
+        }
+        guard [RunType.tempo, .intervals, .race].contains(run.type), run.meters >= 2_000,
+              let threshold = RunMath.thresholdPace(fromDistance: run.meters, time: run.duration)
+        else { return nil }
+        let known = store.profile?.running?.thresholdPaceSecondsPerKm
+        guard known == nil || threshold < (known ?? .greatestFiniteMagnitude) else { return nil }
+        let pace = Format.pace(secondsPerKm: threshold, unit: unit)
+        return LocalizedText(
+            fr: "Nouvelle référence : ton allure de seuil passe à \(pace). Les allures de tes prochaines séances sont recalculées dessus.",
+            en: "New reference: your threshold pace moves to \(pace). The paces in your next sessions are recalculated from it.",
+            es: "Nueva referencia: tu ritmo de umbral pasa a \(pace). Los ritmos de tus próximas sesiones se recalculan a partir de ahí."
+        )
+    }
+}

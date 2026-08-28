@@ -7,8 +7,10 @@ import MonCoachKit
 /// Deux flux, deux mécanismes, choisis pour leurs garanties :
 /// - l'instantané du jour arrive par `applicationContext` — le système ne
 ///   garde que le plus récent, exactement la sémantique voulue ;
-/// - les séances terminées partent par `transferUserInfo` — file persistante,
-///   livrée même si le téléphone est hors de portée au moment de l'envoi.
+/// - les séances terminées et les sorties de course partent par
+///   `transferUserInfo` — file persistante, livrée même si le téléphone est
+///   hors de portée au moment de l'envoi. C'est exactement le cas d'une
+///   sortie faite sans téléphone, qui est tout l'intérêt du GPS au poignet.
 final class PhoneLink: NSObject, WCSessionDelegate {
 
     var onSnapshot: ((WatchSnapshot) -> Void)?
@@ -24,6 +26,11 @@ final class PhoneLink: NSObject, WCSessionDelegate {
     func send(_ log: SessionLog) {
         guard let data = try? WatchSyncCodec.encode(log) else { return }
         WCSession.default.transferUserInfo([WatchSyncCodec.sessionLogKey: data])
+    }
+
+    func send(_ log: RunLog) {
+        guard let data = try? WatchSyncCodec.encode(log) else { return }
+        WCSession.default.transferUserInfo([WatchSyncCodec.runLogKey: data])
     }
 
     // MARK: - WCSessionDelegate

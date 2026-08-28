@@ -3,24 +3,27 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Mon Coach — le coach de musculation qui s'adapte à toi</title>
+    <title>Mon Coach — le coach de musculation et de course qui s'adapte à toi</title>
     <meta
       name="description"
-      content="Mon Coach construit ton programme de musculation à partir de ton corps, de ton matériel et de ton emploi du temps, puis le réécrit chaque semaine à partir de tes séances réelles. Application iOS native, tout est calculé sur ton téléphone."
+      content="Mon Coach construit ton programme de musculation, ton plan de course et ta journée alimentaire à partir de ton corps, de ton matériel et de ton emploi du temps, puis les réécrit chaque semaine à partir de ce que tu as réellement fait. Application iOS native, en français, anglais et espagnol : tout est calculé sur ton téléphone."
     />
     <meta name="theme-color" content="#0d0f14" />
     <meta property="og:title" content="Mon Coach" />
     <meta
       property="og:description"
-      content="Un coach de musculation qui s'adapte à toi, pas l'inverse."
+      content="Un coach de musculation et de course qui s'adapte à toi, pas l'inverse."
     />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="fr_FR" />
+    <!-- Le site se rend dans la langue du visiteur ; ces variantes
+         disent aux moteurs de recherche que les trois existent. -->
+    <link rel="alternate" hreflang="fr" href="/" />
+    <link rel="alternate" hreflang="en" href="/?lang=en" />
+    <link rel="alternate" hreflang="es" href="/?lang=es" />
+    <link rel="alternate" hreflang="x-default" href="/" />
     <link rel="stylesheet" href="./styles.css" />
-    <link
-      rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230d0f14'/%3E%3Cpath d='M8 12h3v8H8zm13 0h3v8h-3zM12 15h8v2h-8z' fill='%235ad98d'/%3E%3C/svg%3E"
-    />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22.5' fill='%230b0d12'/%3E%3Cg transform='translate(15,15) scale(0.7)'%3E%3Cpath d='M24.73,84.79 A43,43 0 0 1 35.29,9.59' fill='none' stroke='%237cf0a8' stroke-opacity='0.18' stroke-width='2.4' stroke-linecap='butt'/%3E%3Cpath d='M35.29,9.59 A43,43 0 0 1 90.41,35.29' fill='none' stroke='%237cf0a8' stroke-opacity='0.42' stroke-width='3.2' stroke-linecap='butt'/%3E%3Cpath d='M90.41,35.29 A43,43 0 0 1 77.64,82.94' fill='none' stroke='%237cf0a8' stroke-opacity='0.9' stroke-width='4.4' stroke-linecap='butt'/%3E%3Ccircle cx='24.73' cy='84.79' r='1.2' fill='%237cf0a8' fill-opacity='0.18'/%3E%3Ccircle cx='77.64' cy='82.94' r='2.2' fill='%237cf0a8' fill-opacity='0.9'/%3E%3Cpath d='M28,68C30.8,65.2 40.3,52.7 45,51C49.7,49.3 51.8,59.5 56,58C60.2,56.5 67.7,44.7 70,42' fill='none' stroke='%237cf0a8' stroke-width='5.95' stroke-linecap='round'/%3E%3Ccircle cx='70' cy='42' r='7' fill='%237cf0a8'/%3E%3C/g%3E%3C/svg%3E" />
   </head>
   <body>
     <div id="root"></div>

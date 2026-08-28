@@ -10,7 +10,12 @@ import { PricingSection } from "./components/PricingSection.tsx";
 import { PrivacySection } from "./components/PrivacySection.tsx";
 import { Simulator, defaultInput } from "./components/Simulator.tsx";
 import { WatchSection } from "./components/WatchSection.tsx";
+import { RunningSection } from "./components/RunningSection.tsx";
+import { FoodSection } from "./components/FoodSection.tsx";
+import { TechniqueSection } from "./components/TechniqueSection.tsx";
+import { GymSection } from "./components/GymSection.tsx";
 import { simulate } from "./coach/engine.ts";
+import { LanguageProvider } from "./i18n/language.tsx";
 
 export function App() {
   // L'aperçu du téléphone en tête de page montre de vrais chiffres, produits
@@ -18,13 +23,17 @@ export function App() {
   const preview = useMemo(() => simulate(defaultInput), []);
 
   return (
-    <>
+    <LanguageProvider>
       <Header />
       <main>
         <Hero preview={preview} />
         <InputsSection />
         <PipelineSection />
         <Simulator />
+        <RunningSection />
+        <FoodSection />
+        <TechniqueSection />
+        <GymSection />
         <WatchSection />
         <AdaptationSection />
         <PricingSection />
@@ -32,6 +41,6 @@ export function App() {
         <FaqSection />
       </main>
       <Footer />
-    </>
+    </LanguageProvider>
   );
 }

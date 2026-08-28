@@ -31,7 +31,7 @@ struct CoachEngineTests {
         for prescription in session.exercises {
             let decision = briefing.loadDecisions[prescription.id]
             #expect(decision != nil, "\(prescription.exerciseID) sans décision de charge")
-            #expect(!decision!.reason.isEmpty)
+            #expect(decision!.reason.isComplete)
 
             let exercise = ExerciseCatalog.exercise(id: prescription.exerciseID)!
             if exercise.loadFactor > 0 {

@@ -6,6 +6,7 @@ import MonCoachKit
 /// Every question here changes something concrete downstream, and each step
 /// says which — people answer honestly when they can see why it is asked.
 struct OnboardingView: View {
+    @Environment(\.language) private var language
 
     enum Step: Int, CaseIterable {
         case welcome, identity, body, experience, goal, availability, equipment, limitations, lifestyle, baselines, summary
@@ -150,7 +151,7 @@ struct OnboardingView: View {
             }
             .padding(.top, 6)
 
-            Text("Créé et fait par Maxime Nathan Lestage")
+            Text("Conçu et développé par Maxime Nathan Lestage")
                 .font(Theme.captionFont)
                 .foregroundStyle(Theme.secondaryText)
                 .padding(.top, 10)
@@ -188,7 +189,7 @@ struct OnboardingView: View {
             }
             Card(title: "Sexe", subtitle: "Utilisé uniquement là où les formules en ont besoin : métabolisme de base, masse maigre estimée, repères de force.") {
                 Picker("", selection: $draft.sex) {
-                    ForEach(Sex.allCases, id: \.self) { Text($0.label).tag($0) }
+                    ForEach(Sex.allCases, id: \.self) { Text($0.label[language]).tag($0) }
                 }
                 .pickerStyle(.segmented)
             }
@@ -199,7 +200,7 @@ struct OnboardingView: View {
         VStack(spacing: Theme.stackSpacing) {
             Card(title: "Unités") {
                 Picker("", selection: $draft.unit) {
-                    ForEach(UnitSystem.allCases, id: \.self) { Text($0.label).tag($0) }
+                    ForEach(UnitSystem.allCases, id: \.self) { Text($0.label[language]).tag($0) }
                 }
                 .pickerStyle(.segmented)
             }
@@ -270,7 +271,7 @@ struct OnboardingView: View {
                     get: { draft.experience },
                     set: { draft.experienceOverride = $0 }
                 )) {
-                    ForEach(ExperienceLevel.allCases, id: \.self) { Text($0.label).tag($0) }
+                    ForEach(ExperienceLevel.allCases, id: \.self) { Text($0.label[language]).tag($0) }
                 }
                 .pickerStyle(.segmented)
 
@@ -299,7 +300,7 @@ struct OnboardingView: View {
                 VStack(spacing: 8) {
                     ForEach(PrimaryGoal.allCases, id: \.self) { goal in
                         SelectableRow(
-                            title: goal.label,
+                            title: goal.label[language],
                             subtitle: goalSubtitle(goal),
                             isSelected: draft.goal == goal
                         ) {
@@ -355,7 +356,7 @@ struct OnboardingView: View {
                 }
                 .pickerStyle(.segmented)
 
-                Text(SplitPlanner.split(for: previewProfile).rationale)
+                Text(SplitPlanner.split(for: previewProfile).rationale[language])
                     .font(Theme.captionFont)
                     .foregroundStyle(Theme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
@@ -392,7 +393,7 @@ struct OnboardingView: View {
             ) {
                 FlowSelection(
                     items: Equipment.allCases,
-                    label: { $0.label },
+                    label: { $0.label[language] },
                     isSelected: { draft.equipment.contains($0) },
                     toggle: { item in
                         if draft.equipment.contains(item) {
@@ -408,7 +409,7 @@ struct OnboardingView: View {
                 subtitle: "Les charges suggérées sont arrondies à ce que tu peux vraiment charger."
             ) {
                 Picker("", selection: $draft.loadIncrement) {
-                    ForEach(LoadIncrement.allCases, id: \.self) { Text($0.label).tag($0) }
+                    ForEach(LoadIncrement.allCases, id: \.self) { Text($0.label[language]).tag($0) }
                 }
                 .pickerStyle(.inline)
                 .labelsHidden()
@@ -441,7 +442,7 @@ struct OnboardingView: View {
             ) {
                 FlowSelection(
                     items: Limitation.allCases,
-                    label: { $0.label },
+                    label: { $0.label[language] },
                     isSelected: { draft.limitations.contains($0) },
                     toggle: { item in
                         if draft.limitations.contains(item) {
@@ -469,7 +470,7 @@ struct OnboardingView: View {
         VStack(spacing: Theme.stackSpacing) {
             Card(title: "Activité en dehors des séances", subtitle: "Détermine ta dépense énergétique, donc tes calories.") {
                 Picker("", selection: $draft.activityLevel) {
-                    ForEach(ActivityLevel.allCases, id: \.self) { Text($0.label).tag($0) }
+                    ForEach(ActivityLevel.allCases, id: \.self) { Text($0.label[language]).tag($0) }
                 }
                 .pickerStyle(.inline)
                 .labelsHidden()
@@ -495,7 +496,7 @@ struct OnboardingView: View {
             }
             Card(title: "Alimentation", subtitle: "N'affecte pas les chiffres, seulement les conseils de répartition.") {
                 Picker("", selection: $draft.dietPreference) {
-                    ForEach(DietPreference.allCases, id: \.self) { Text($0.label).tag($0) }
+                    ForEach(DietPreference.allCases, id: \.self) { Text($0.label[language]).tag($0) }
                 }
                 .pickerStyle(.menu)
                 .tint(Theme.accent)
@@ -513,7 +514,7 @@ struct OnboardingView: View {
                     ForEach(ProfileDraft.baselineLiftIDs, id: \.self) { id in
                         if let exercise = ExerciseCatalog.exercise(id: id) {
                             OneRepMaxRow(
-                                name: exercise.name,
+                                name: exercise.name[language],
                                 unit: draft.unit,
                                 valueKg: Binding(
                                     get: { draft.oneRepMax[id] ?? 0 },
@@ -534,7 +535,7 @@ struct OnboardingView: View {
     private var summaryStep: some View {
         let program = CoachEngine.buildProgram(for: previewProfile)
         return VStack(spacing: Theme.stackSpacing) {
-            Card(title: "Ce que le coach a décidé", subtitle: program.plan.split.label) {
+            Card(title: "Ce que le coach a décidé", subtitle: program.plan.split.label[language]) {
                 HStack(spacing: 12) {
                     StatTile(value: "\(program.plan.weekCount)", label: "semaines dans le bloc")
                     StatTile(value: "\(previewProfile.daysPerWeek)", label: "séances par semaine")

@@ -54,8 +54,38 @@ public struct UserProfile: Codable, Sendable, Equatable, Identifiable {
     /// the engine falls back to strength standards when it is empty.
     public var knownOneRepMax: [String: Double]
 
+    // MARK: Food
+    /// Repas par jour, 3 à 5. Optionnel dans le stockage : un profil
+    /// enregistré avant l'arrivée du programme alimentaire doit continuer à
+    /// se relire, pas déclencher une erreur de décodage qui coûterait tout
+    /// l'historique de l'athlète.
+    public var mealsPerDay: Int?
+    /// Les aliments que l'athlète ne veut pas voir apparaître.
+    public var dislikedFoodIDs: Set<String>?
+
+    /// Le nombre de repas effectivement utilisé par le planificateur.
+    public var mealCount: Int { (mealsPerDay ?? 4).clamped(to: 3...5) }
+    public var excludedFoods: Set<String> { dislikedFoodIDs ?? [] }
+
+    // MARK: Running
+    /// The runner side of the athlete. Nil when they only lift — the whole
+    /// running feature stays out of the way until they say they run.
+    public var running: RunningProfile?
+    /// Whether the run map may fetch OpenStreetMap tiles. Nil means yes.
+    ///
+    /// Tiles are the one thing in this app that reaches a server. An athlete
+    /// who would rather nothing left the phone can turn them off and keep the
+    /// route trace, drawn locally from their own points.
+    public var mapTiles: Bool?
+
+    /// Whether the run map is allowed to contact a tile server.
+    public var loadsMapTiles: Bool { mapTiles ?? true }
+
     // MARK: Preferences
     public var unit: UnitSystem
+    /// Chosen display language. Nil means "follow the system", which is what
+    /// every new profile starts as.
+    public var language: Language?
 
     public init(
         id: UUID = UUID(),
@@ -82,7 +112,12 @@ public struct UserProfile: Codable, Sendable, Equatable, Identifiable {
         stressLevel: Int = 3,
         dietPreference: DietPreference = .omnivore,
         knownOneRepMax: [String: Double] = [:],
-        unit: UnitSystem = .metric
+        mealsPerDay: Int? = nil,
+        dislikedFoodIDs: Set<String>? = nil,
+        running: RunningProfile? = nil,
+        mapTiles: Bool? = nil,
+        unit: UnitSystem = .metric,
+        language: Language? = nil
     ) {
         self.id = id
         self.firstName = firstName
@@ -108,8 +143,20 @@ public struct UserProfile: Codable, Sendable, Equatable, Identifiable {
         self.stressLevel = stressLevel.clamped(to: 1...5)
         self.dietPreference = dietPreference
         self.knownOneRepMax = knownOneRepMax
+        self.mealsPerDay = mealsPerDay
+        self.dislikedFoodIDs = dislikedFoodIDs
+        self.running = running
+        self.mapTiles = mapTiles
         self.unit = unit
+        self.language = language
     }
+
+    /// The language to render every coach text in.
+    public func language(matchingSystem preferred: [String]) -> Language {
+        language ?? Language.best(matching: preferred)
+    }
+
+    public var runs: Bool { running != nil }
 
     public func age(on date: Date = Date(), calendar: Calendar = .current) -> Int {
         calendar.dateComponents([.year], from: birthDate, to: date).year ?? 0

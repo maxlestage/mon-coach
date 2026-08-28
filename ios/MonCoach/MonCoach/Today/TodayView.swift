@@ -3,11 +3,13 @@ import MonCoachKit
 
 /// The home screen: what to do today, and why.
 struct TodayView: View {
+    @Environment(\.language) private var language
     @Environment(CoachStore.self) private var store
 
     @State private var showingReadiness = false
     @State private var showingWeighIn = false
     @State private var now = Date()
+    @State private var showingRunTracker = false
 
     private var briefing: TodayBriefing? { store.briefing(on: now) }
     private var unit: UnitSystem { store.profile?.unit ?? .metric }
@@ -17,8 +19,14 @@ struct TodayView: View {
             ScrollView {
                 VStack(spacing: Theme.stackSpacing) {
                     if let briefing {
+                        if let step = beginnerStep {
+                            FirstSessionsCard(step: step)
+                        }
                         readinessCard(briefing)
                         stateCard(briefing)
+                        if let run = briefing.plannedRun {
+                            plannedRunCard(run, done: briefing.recordedRun)
+                        }
                         nutritionCard(briefing.nutrition)
                         insightsCard
                     } else {
@@ -49,6 +57,9 @@ struct TodayView: View {
                     store.recordReadiness(check)
                 }
             }
+            .sheet(isPresented: $showingRunTracker) {
+                RunTrackerView(plannedRun: briefing?.plannedRun)
+            }
             .sheet(isPresented: $showingWeighIn) {
                 WeighInSheet(unit: unit, currentKg: store.profile?.weightKg ?? 70) { log in
                     store.recordBodyLog(log)
@@ -56,6 +67,48 @@ struct TodayView: View {
             }
         }
         .tint(Theme.accent)
+    }
+
+    /// L'étape du parcours débutant, quand il y en a une.
+    private var beginnerStep: FirstSessionsStep? {
+        guard let profile = store.profile, let plan = store.plan else { return nil }
+        return FirstSessions.step(for: profile, startedOn: plan.startDate, on: now)
+    }
+
+    /// La sortie du jour, prête à être lancée.
+    private func plannedRunCard(_ run: PlannedRun, done: RunLog?) -> some View {
+        Card(
+            title: run.type.label[language],
+            subtitle: UI.running[language]
+        ) {
+            VStack(alignment: .leading, spacing: 12) {
+                CoachText(run.note, color: Theme.primaryText)
+                if let done {
+                    HStack(spacing: 12) {
+                        StatTile(
+                            value: Format.distance(meters: done.meters, unit: unit, language: language),
+                            label: UI.distance[language]
+                        )
+                        StatTile(
+                            value: Format.stopwatch(seconds: done.duration),
+                            label: UI.duration[language]
+                        )
+                        StatTile(
+                            value: Format.pace(secondsPerKm: done.paceSecondsPerKm, unit: unit),
+                            label: UI.pace[language]
+                        )
+                    }
+                    Pill(
+                        text: LocalizedText(fr: "Fait", en: "Done", es: "Hecho")[language],
+                        tint: Theme.accent
+                    )
+                } else {
+                    PrimaryButton(title: UI.start[language], systemImage: "figure.run") {
+                        showingRunTracker = true
+                    }
+                }
+            }
+        }
     }
 
     private var greeting: String {
@@ -72,7 +125,7 @@ struct TodayView: View {
     // MARK: - Cards
 
     private func readinessCard(_ briefing: TodayBriefing) -> some View {
-        Card(title: briefing.readiness.headline, subtitle: "Forme du jour") {
+        Card(title: briefing.readiness.headline[language], subtitle: "Forme du jour") {
             HStack(alignment: .center, spacing: 16) {
                 ZStack {
                     Circle()
@@ -87,7 +140,7 @@ struct TodayView: View {
                 }
                 .frame(width: 64, height: 64)
 
-                Text(briefing.readiness.advice)
+                Text(briefing.readiness.advice[language])
                     .font(Theme.bodyFont)
                     .foregroundStyle(Theme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
@@ -119,7 +172,7 @@ struct TodayView: View {
         switch briefing.state {
         case let .training(session):
             Card(
-                title: session.title,
+                title: session.title[language],
                 subtitle: briefing.isDeloadWeek
                     ? "Semaine \(briefing.weekIndex ?? 0) · décharge"
                     : "Semaine \(briefing.weekIndex ?? 0)"
@@ -127,7 +180,7 @@ struct TodayView: View {
                 if !session.focus.isEmpty {
                     FlowLayout(spacing: 6) {
                         ForEach(session.focus, id: \.self) { muscle in
-                            Pill(text: muscle.label)
+                            Pill(text: muscle.label[language])
                         }
                     }
                 }

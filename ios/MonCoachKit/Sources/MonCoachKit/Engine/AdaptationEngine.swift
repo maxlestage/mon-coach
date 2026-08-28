@@ -23,10 +23,16 @@ public struct CoachInsight: Sendable, Equatable, Identifiable {
     public let id: UUID
     public let kind: Kind
     public let severity: Severity
-    public let title: String
-    public let message: String
+    public let title: LocalizedText
+    public let message: LocalizedText
 
-    public init(id: UUID = UUID(), kind: Kind, severity: Severity, title: String, message: String) {
+    public init(
+        id: UUID = UUID(),
+        kind: Kind,
+        severity: Severity,
+        title: LocalizedText,
+        message: LocalizedText
+    ) {
         self.id = id
         self.kind = kind
         self.severity = severity
@@ -88,15 +94,23 @@ public enum AdaptationEngine {
             insights.append(CoachInsight(
                 kind: .adherence,
                 severity: .info,
-                title: "Semaine complète",
-                message: "\(logged.count) séances sur \(plannedSessions). C'est exactement ce qui fait la différence sur trois mois."
+                title: LocalizedText(fr: "Semaine complète", en: "Full week", es: "Semana completa"),
+                message: LocalizedText(
+                    fr: "\(logged.count) séances sur \(plannedSessions). C'est exactement ce qui fait la différence sur trois mois.",
+                    en: "\(logged.count) sessions out of \(plannedSessions). This is exactly what makes the difference over three months.",
+                    es: "\(logged.count) sesiones de \(plannedSessions). Esto es justo lo que marca la diferencia en tres meses."
+                )
             ))
         } else if adherence < 0.6 {
             insights.append(CoachInsight(
                 kind: .adherence,
                 severity: .warning,
-                title: "Moins de séances que prévu",
-                message: "\(logged.count) séances sur \(plannedSessions). Avant de toucher au programme : est-ce que \(plannedSessions) séances par semaine est réaliste en ce moment ? Un plan à \(max(2, plannedSessions - 1)) séances que tu tiens vaut mieux."
+                title: LocalizedText(fr: "Moins de séances que prévu", en: "Fewer sessions than planned", es: "Menos sesiones de las previstas"),
+                message: LocalizedText(
+                    fr: "\(logged.count) séances sur \(plannedSessions). Avant de toucher au programme : est-ce que \(plannedSessions) séances par semaine est réaliste en ce moment ? Un plan à \(max(2, plannedSessions - 1)) séances que tu tiens vaut mieux.",
+                    en: "\(logged.count) sessions out of \(plannedSessions). Before changing the programme: is \(plannedSessions) sessions a week realistic right now? A \(max(2, plannedSessions - 1))-session plan you actually keep is worth more.",
+                    es: "\(logged.count) sesiones de \(plannedSessions). Antes de tocar el programa: ¿son \(plannedSessions) sesiones semanales realistas ahora mismo? Vale más un plan de \(max(2, plannedSessions - 1)) sesiones que sí cumplas."
+                )
             ))
         }
 
@@ -113,21 +127,29 @@ public enum AdaptationEngine {
         let progressingLifts = strengthTrend.filter { $0.value > 0.25 }.keys.sorted()
 
         if !progressingLifts.isEmpty {
-            let names = progressingLifts.compactMap { ExerciseCatalog.exercise(id: $0)?.name }
+            let names = progressingLifts.compactMap { ExerciseCatalog.exercise(id: $0)?.name }.joined(separator: ", ")
             insights.append(CoachInsight(
                 kind: .strength,
                 severity: .info,
-                title: "Ça progresse",
-                message: "Ton 1RM estimé monte sur : \(names.joined(separator: ", ")). Ne change rien à ces mouvements."
+                title: LocalizedText(fr: "Ça progresse", en: "Moving up", es: "Va progresando"),
+                message: LocalizedText(
+                    fr: "Ton 1RM estimé monte sur : \(names.fr). Ne change rien à ces mouvements.",
+                    en: "Your estimated 1RM is rising on: \(names.en). Change nothing about these movements.",
+                    es: "Tu 1RM estimado sube en: \(names.es). No cambies nada en estos movimientos."
+                )
             ))
         }
         if stalledLifts.count >= 2, adherence >= 0.75 {
-            let names = stalledLifts.compactMap { ExerciseCatalog.exercise(id: $0)?.name }
+            let names = stalledLifts.compactMap { ExerciseCatalog.exercise(id: $0)?.name }.joined(separator: ", ")
             insights.append(CoachInsight(
                 kind: .strength,
                 severity: .suggestion,
-                title: "Plateau sur plusieurs mouvements",
-                message: "\(names.joined(separator: ", ")) stagnent alors que tu es assidu. C'est en général un signal de fatigue accumulée, pas de manque de volume."
+                title: LocalizedText(fr: "Plateau sur plusieurs mouvements", en: "Plateau on several lifts", es: "Estancamiento en varios movimientos"),
+                message: LocalizedText(
+                    fr: "\(names.fr) stagnent alors que tu es assidu. C'est en général un signal de fatigue accumulée, pas de manque de volume.",
+                    en: "\(names.en) have stalled even though you are showing up. That usually signals accumulated fatigue, not a lack of volume.",
+                    es: "\(names.es) se han estancado aunque estás siendo constante. Suele ser señal de fatiga acumulada, no de falta de volumen."
+                )
             ))
         }
 
@@ -146,27 +168,41 @@ public enum AdaptationEngine {
                 // 7 700 kcal per kg, spread over the week.
                 calorieAdjustment = Int((-error * 7_700 / 7 / 25).rounded()) * 25
                 calorieAdjustment = calorieAdjustment.clamped(to: -400...400)
-                let direction = calorieAdjustment > 0 ? "augmenter" : "réduire"
+                let direction = calorieAdjustment > 0
+                    ? LocalizedText(fr: "augmenter", en: "increase", es: "aumentar")
+                    : LocalizedText(fr: "réduire", en: "reduce", es: "reducir")
                 insights.append(CoachInsight(
                     kind: .nutrition,
                     severity: .suggestion,
-                    title: "Ajustement calorique",
-                    message: "Ton poids évolue de \(formatSigned(trend)) kg/semaine alors qu'on visait \(formatSigned(target)). Je te propose de \(direction) de \(abs(calorieAdjustment)) kcal par jour."
+                    title: LocalizedText(fr: "Ajustement calorique", en: "Calorie adjustment", es: "Ajuste calórico"),
+                    message: LocalizedText(
+                        fr: "Ton poids évolue de \(formatSigned(trend)) kg/semaine alors qu'on visait \(formatSigned(target)). Je te propose de \(direction.fr) de \(abs(calorieAdjustment)) kcal par jour.",
+                        en: "Your weight is moving \(formatSigned(trend)) kg/week when we were aiming for \(formatSigned(target)). I suggest you \(direction.en) by \(abs(calorieAdjustment)) kcal a day.",
+                        es: "Tu peso evoluciona \(formatSigned(trend)) kg/semana cuando buscábamos \(formatSigned(target)). Te propongo \(direction.es) \(abs(calorieAdjustment)) kcal al día."
+                    )
                 ))
             } else {
                 insights.append(CoachInsight(
                     kind: .bodyWeight,
                     severity: .info,
-                    title: "Poids sur la trajectoire",
-                    message: "\(formatSigned(trend)) kg/semaine : tu es dans la fenêtre visée. On ne touche à rien."
+                    title: LocalizedText(fr: "Poids sur la trajectoire", en: "Weight on track", es: "Peso en la trayectoria"),
+                    message: LocalizedText(
+                        fr: "\(formatSigned(trend)) kg/semaine : tu es dans la fenêtre visée. On ne touche à rien.",
+                        en: "\(formatSigned(trend)) kg/week: you are inside the window we aimed for. Nothing changes.",
+                        es: "\(formatSigned(trend)) kg/semana: estás dentro de la ventana buscada. No tocamos nada."
+                    )
                 ))
             }
         } else if bodyPoints.count < 4 {
             insights.append(CoachInsight(
                 kind: .bodyWeight,
                 severity: .suggestion,
-                title: "Pèse-toi plus souvent",
-                message: "Il me faut au moins quatre pesées sur quatre semaines pour distinguer une vraie tendance des variations d'eau. Le matin, à jeun, c'est le plus fiable."
+                title: LocalizedText(fr: "Pèse-toi plus souvent", en: "Weigh yourself more often", es: "Pésate más a menudo"),
+                message: LocalizedText(
+                    fr: "Il me faut au moins quatre pesées sur quatre semaines pour distinguer une vraie tendance des variations d'eau. Le matin, à jeun, c'est le plus fiable.",
+                    en: "I need at least four weigh-ins over four weeks to tell a real trend from water swings. First thing in the morning, fasted, is the most reliable.",
+                    es: "Necesito al menos cuatro pesajes en cuatro semanas para distinguir una tendencia real de las variaciones de agua. Por la mañana, en ayunas, es lo más fiable."
+                )
             ))
         }
 
@@ -177,12 +213,19 @@ public enum AdaptationEngine {
 
         let painfulExerciseIDs = Set(painSessions.flatMap(\.sets).filter(\.painFlag).map(\.exerciseID)).sorted()
         if !painfulExerciseIDs.isEmpty {
-            let names = painfulExerciseIDs.compactMap { ExerciseCatalog.exercise(id: $0)?.name }.sorted()
+            let names = painfulExerciseIDs
+                .compactMap { ExerciseCatalog.exercise(id: $0)?.name }
+                .sortedStably()
+                .joined(separator: ", ")
             insights.append(CoachInsight(
                 kind: .technique,
                 severity: .warning,
-                title: "Douleur signalée",
-                message: "Tu as signalé une douleur sur : \(names.joined(separator: ", ")). Ces mouvements passent en charge réduite. Si ça revient la semaine prochaine, je les remplace."
+                title: LocalizedText(fr: "Douleur signalée", en: "Pain reported", es: "Dolor señalado"),
+                message: LocalizedText(
+                    fr: "Tu as signalé une douleur sur : \(names.fr). Ces mouvements passent en charge réduite. Si ça revient la semaine prochaine, je les remplace.",
+                    en: "You flagged pain on: \(names.en). Those movements move to reduced load. If it comes back next week, I replace them.",
+                    es: "Has señalado dolor en: \(names.es). Esos movimientos pasan a carga reducida. Si vuelve la semana que viene, los sustituyo."
+                )
             ))
         }
 
@@ -196,8 +239,12 @@ public enum AdaptationEngine {
             insights.append(CoachInsight(
                 kind: .recovery,
                 severity: .warning,
-                title: "Décharge anticipée",
-                message: "Ta forme moyenne est à \(Int(average))/100 depuis une semaine. On avance la décharge : ce n'est pas un recul, c'est ce qui permet à la progression de reprendre."
+                title: LocalizedText(fr: "Décharge anticipée", en: "Deload brought forward", es: "Descarga adelantada"),
+                message: LocalizedText(
+                    fr: "Ta forme moyenne est à \(Int(average))/100 depuis une semaine. On avance la décharge : ce n'est pas un recul, c'est ce qui permet à la progression de reprendre.",
+                    en: "Your average readiness has been \(Int(average))/100 for a week. We are bringing the deload forward: that is not a step back, it is what lets progress restart.",
+                    es: "Tu forma media lleva una semana en \(Int(average))/100. Adelantamos la descarga: no es un retroceso, es lo que permite que la progresión se reanude."
+                )
             ))
         }
 
@@ -212,8 +259,12 @@ public enum AdaptationEngine {
             insights.append(CoachInsight(
                 kind: .volume,
                 severity: .suggestion,
-                title: "On peut monter le volume",
-                message: "Tu as terminé \(Int(completionRate * 100)) % des séries prévues en récupérant bien. Le prochain bloc ajoutera 2 séries par semaine sur les gros groupes."
+                title: LocalizedText(fr: "On peut monter le volume", en: "We can raise the volume", es: "Podemos subir el volumen"),
+                message: LocalizedText(
+                    fr: "Tu as terminé \(Int(completionRate * 100)) % des séries prévues en récupérant bien. Le prochain bloc ajoutera 2 séries par semaine sur les gros groupes.",
+                    en: "You finished \(Int(completionRate * 100)) % of the planned sets while recovering well. The next block adds 2 sets a week on the big groups.",
+                    es: "Has completado el \(Int(completionRate * 100)) % de las series previstas recuperando bien. El próximo bloque añade 2 series semanales en los grupos grandes."
+                )
             ))
         } else if completionRate < 0.7 || (averageReadiness ?? 70) < 45 {
             for muscle in MuscleGroup.primary {
@@ -222,8 +273,12 @@ public enum AdaptationEngine {
             insights.append(CoachInsight(
                 kind: .volume,
                 severity: .suggestion,
-                title: "On réduit le volume",
-                message: "Le volume prévu n'est pas absorbé. Le prochain bloc retire 2 séries par semaine sur les gros groupes — moins de séries réellement dures valent mieux que plus de séries bâclées."
+                title: LocalizedText(fr: "On réduit le volume", en: "We are cutting the volume", es: "Reducimos el volumen"),
+                message: LocalizedText(
+                    fr: "Le volume prévu n'est pas absorbé. Le prochain bloc retire 2 séries par semaine sur les gros groupes — moins de séries réellement dures valent mieux que plus de séries bâclées.",
+                    en: "The planned volume is not being absorbed. The next block removes 2 sets a week on the big groups — fewer genuinely hard sets beat more sloppy ones.",
+                    es: "El volumen previsto no se está asimilando. El próximo bloque quita 2 series semanales en los grupos grandes: valen más pocas series realmente duras que muchas mal hechas."
+                )
             ))
         }
 

@@ -51,16 +51,32 @@ extension ActiveSession {
 
     /// L'état de la Live Activity pour l'instant présent de la séance.
     ///
-    /// - Parameter restEndsAt: fin du repos en cours, si un repos vient
-    ///   d'être lancé par l'enregistrement d'une série.
-    public func activitySnapshot(unit: UnitSystem, restEndsAt: Date? = nil) -> WorkoutActivitySnapshot {
+    /// - Parameters:
+    ///   - restEndsAt: fin du repos en cours, si un repos vient d'être lancé
+    ///     par l'enregistrement d'une série.
+    ///   - language: la Live Activity vit dans une extension, hors de portée
+    ///     du magasin : les textes sont donc rendus ici, une fois, dans la
+    ///     langue de l'athlète, et traversent la frontière déjà traduits.
+    public func activitySnapshot(
+        unit: UnitSystem,
+        language: Language = .french,
+        restEndsAt: Date? = nil
+    ) -> WorkoutActivitySnapshot {
         guard let prescription = currentExercise,
               let set = nextSet(of: prescription)
         else {
             return WorkoutActivitySnapshot(
-                sessionTitle: session.title,
-                exerciseName: "Séance terminée",
-                setLabel: "\(loggedSetCount) séries enregistrées",
+                sessionTitle: session.title[language],
+                exerciseName: LocalizedText(
+                    fr: "Séance terminée",
+                    en: "Session finished",
+                    es: "Sesión terminada"
+                )[language],
+                setLabel: LocalizedText(
+                    fr: "\(loggedSetCount) séries enregistrées",
+                    en: "\(loggedSetCount) sets logged",
+                    es: "\(loggedSetCount) series registradas"
+                )[language],
                 suggestedLoadKg: nil,
                 unit: unit,
                 completedSets: loggedSetCount,
@@ -72,9 +88,13 @@ extension ActiveSession {
 
         let exercise = ExerciseCatalog.exercise(id: prescription.exerciseID)
         return WorkoutActivitySnapshot(
-            sessionTitle: session.title,
-            exerciseName: exercise?.name ?? prescription.exerciseID,
-            setLabel: "Série \(set.index + 1) sur \(prescription.sets.count) · \(set.repsLabel) rép",
+            sessionTitle: session.title[language],
+            exerciseName: exercise?.name[language] ?? prescription.exerciseID,
+            setLabel: LocalizedText(
+                fr: "Série \(set.index + 1) sur \(prescription.sets.count) · \(set.repsLabel) rép",
+                en: "Set \(set.index + 1) of \(prescription.sets.count) · \(set.repsLabel) reps",
+                es: "Serie \(set.index + 1) de \(prescription.sets.count) · \(set.repsLabel) rep"
+            )[language],
             suggestedLoadKg: set.suggestedLoadKg,
             unit: unit,
             completedSets: loggedSetCount,

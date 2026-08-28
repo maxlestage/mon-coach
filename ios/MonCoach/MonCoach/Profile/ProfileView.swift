@@ -5,6 +5,7 @@ import MonCoachKit
 /// Everything the athlete told the coach, editable, plus what the coach
 /// derived from it.
 struct ProfileView: View {
+    @Environment(\.language) private var language
     @Environment(CoachStore.self) private var store
 
     @State private var showingEditor = false
@@ -20,6 +21,8 @@ struct ProfileView: View {
                         derivedCard(program)
                         trainingCard(profile)
                         constraintsCard(profile)
+                        preferencesCard(profile)
+                        runningCard(profile)
                         dataCard
                         creditFooter
                     } else {
@@ -60,7 +63,7 @@ struct ProfileView: View {
     }
 
     private func identityCard(_ profile: UserProfile) -> some View {
-        Card(title: profile.firstName, subtitle: "\(profile.age()) ans · \(profile.sex.label)") {
+        Card(title: profile.firstName, subtitle: "\(profile.age()) ans · \(profile.sex.label[language])") {
             HStack(spacing: 12) {
                 StatTile(value: Format.height(profile.heightCm, unit: profile.unit), label: "taille")
                 StatTile(value: Format.weight(profile.weightKg, unit: profile.unit), label: "poids")
@@ -92,13 +95,13 @@ struct ProfileView: View {
 
     private func trainingCard(_ profile: UserProfile) -> some View {
         Card(title: "Entraînement") {
-            LabeledRow(label: "Objectif", value: profile.goal.label)
-            LabeledRow(label: "Niveau", value: profile.experience.label)
+            LabeledRow(label: "Objectif", value: profile.goal.label[language])
+            LabeledRow(label: "Niveau", value: profile.experience.label[language])
             LabeledRow(label: "Fréquence", value: "\(profile.daysPerWeek) séances / semaine")
             LabeledRow(label: "Durée", value: Format.duration(minutes: profile.sessionMinutes))
-            LabeledRow(label: "Incrément", value: profile.loadIncrement.label)
+            LabeledRow(label: "Incrément", value: profile.loadIncrement.label[language])
             LabeledRow(label: "Sommeil", value: "\(Format.number(profile.averageSleepHours, decimals: 1)) h")
-            LabeledRow(label: "Activité", value: profile.activityLevel.label)
+            LabeledRow(label: "Activité", value: profile.activityLevel.label[language])
         }
     }
 
@@ -110,7 +113,7 @@ struct ProfileView: View {
                     .foregroundStyle(Theme.secondaryText)
                 FlowLayout(spacing: 6) {
                     ForEach(Array(profile.equipment).sorted { $0.rawValue < $1.rawValue }, id: \.self) {
-                        Pill(text: $0.label)
+                        Pill(text: $0.label[language])
                     }
                 }
                 if !profile.limitations.isEmpty {
@@ -120,7 +123,7 @@ struct ProfileView: View {
                         .padding(.top, 4)
                     FlowLayout(spacing: 6) {
                         ForEach(Array(profile.limitations).sorted { $0.rawValue < $1.rawValue }, id: \.self) {
-                            Pill(text: $0.label, tint: Theme.warning)
+                            Pill(text: $0.label[language], tint: Theme.warning)
                         }
                     }
                 }
@@ -159,7 +162,7 @@ struct ProfileView: View {
             }
             .buttonStyle(.plain)
 
-            if let error = store.saveError {
+            if let error = store.saveError?[language] {
                 Text(error)
                     .font(Theme.captionFont)
                     .foregroundStyle(Theme.danger)
@@ -167,8 +170,161 @@ struct ProfileView: View {
         }
     }
 
+    /// Langue et fond de carte : les deux réglages qui ne se déduisent pas
+    /// du corps de l'athlète.
+    private func preferencesCard(_ profile: UserProfile) -> some View {
+        Card(title: LocalizedText(fr: "Préférences", en: "Preferences", es: "Preferencias")[language]) {
+            VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(UI.language[language])
+                        .font(Theme.captionFont)
+                        .foregroundStyle(Theme.secondaryText)
+                    Picker(UI.language[language], selection: languageBinding) {
+                        Text(UI.systemLanguage[language]).tag(Language?.none)
+                        ForEach(Language.allCases) { option in
+                            Text(option.endonym).tag(Language?.some(option))
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
+
+                Toggle(isOn: mapTilesBinding) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(LocalizedText(fr: "Fond de carte", en: "Map background", es: "Fondo de mapa")[language])
+                            .font(Theme.captionFont)
+                            .foregroundStyle(Theme.primaryText)
+                        CoachText(
+                            LocalizedText(
+                                fr: "Les cartes de tes sorties chargent des tuiles OpenStreetMap. C'est la seule chose, dans toute l'application, qui contacte un serveur. Désactive-le et tu gardes ton tracé, dessiné sur le téléphone à partir de tes propres points.",
+                                en: "Your run maps load OpenStreetMap tiles. It is the only thing in the whole app that contacts a server. Turn it off and you keep your route, drawn on the phone from your own points.",
+                                es: "Los mapas de tus rodajes cargan teselas de OpenStreetMap. Es lo único en toda la aplicación que contacta con un servidor. Desactívalo y conservas tu traza, dibujada en el teléfono con tus propios puntos."
+                            ),
+                            font: .system(size: 11)
+                        )
+                    }
+                }
+                .tint(Theme.accent)
+            }
+        }
+    }
+
+    /// La course : présente si l'athlète court, proposée sinon.
+    private func runningCard(_ profile: UserProfile) -> some View {
+        Card(title: UI.running[language]) {
+            VStack(alignment: .leading, spacing: 12) {
+                Toggle(isOn: runsBinding) {
+                    Text(
+                        LocalizedText(
+                            fr: "Je cours aussi",
+                            en: "I run as well",
+                            es: "También corro"
+                        )[language]
+                    )
+                    .font(Theme.captionFont)
+                    .foregroundStyle(Theme.primaryText)
+                }
+                .tint(Theme.accent)
+
+                if let running = profile.running {
+                    LabeledRow(
+                        label: LocalizedText(fr: "Objectif", en: "Goal", es: "Objetivo")[language],
+                        value: running.goal.label[language]
+                    )
+                    LabeledRow(
+                        label: LocalizedText(fr: "Sorties par semaine", en: "Runs per week", es: "Rodajes por semana")[language],
+                        value: "\(running.runsPerWeek)"
+                    )
+                    LabeledRow(
+                        label: LocalizedText(fr: "Kilométrage actuel", en: "Current mileage", es: "Kilometraje actual")[language],
+                        value: Format.distance(meters: running.currentWeeklyMeters, unit: profile.unit, language: language)
+                    )
+                    Picker(
+                        LocalizedText(fr: "Objectif", en: "Goal", es: "Objetivo")[language],
+                        selection: runningGoalBinding
+                    ) {
+                        ForEach(RunningGoal.allCases, id: \.self) { goal in
+                            Text(goal.label[language]).tag(goal)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .tint(Theme.accent)
+
+                    Stepper(value: runsPerWeekBinding, in: 1...6) {
+                        Text(
+                            LocalizedText(
+                                fr: "\(running.runsPerWeek) sorties par semaine",
+                                en: "\(running.runsPerWeek) runs a week",
+                                es: "\(running.runsPerWeek) rodajes por semana"
+                            )[language]
+                        )
+                        .font(Theme.captionFont)
+                        .foregroundStyle(Theme.secondaryText)
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Liaisons
+
+    private var languageBinding: Binding<Language?> {
+        Binding(
+            get: { store.profile?.language },
+            set: { store.setLanguage($0) }
+        )
+    }
+
+    private var mapTilesBinding: Binding<Bool> {
+        Binding(
+            get: { store.profile?.loadsMapTiles ?? true },
+            set: { newValue in
+                guard var profile = store.profile else { return }
+                profile.mapTiles = newValue
+                store.updateProfile(profile)
+            }
+        )
+    }
+
+    private var runsBinding: Binding<Bool> {
+        Binding(
+            get: { store.profile?.runs ?? false },
+            set: { newValue in
+                guard var profile = store.profile else { return }
+                // Désactiver la course efface le profil de coureur : garder un
+                // objectif fantôme ferait réapparaître un plan que l'athlète
+                // a explicitement rangé.
+                profile.running = newValue ? RunningProfile() : nil
+                store.updateProfile(profile)
+            }
+        )
+    }
+
+    private var runningGoalBinding: Binding<RunningGoal> {
+        Binding(
+            get: { store.profile?.running?.goal ?? .endurance },
+            set: { newValue in
+                guard var profile = store.profile, var running = profile.running else { return }
+                running.goal = newValue
+                profile.running = running
+                store.updateProfile(profile)
+            }
+        )
+    }
+
+    private var runsPerWeekBinding: Binding<Int> {
+        Binding(
+            get: { store.profile?.running?.runsPerWeek ?? 3 },
+            set: { newValue in
+                guard var profile = store.profile, var running = profile.running else { return }
+                running.runsPerWeek = newValue
+                profile.running = running
+                store.updateProfile(profile)
+            }
+        )
+    }
+
     private var creditFooter: some View {
-        Text("Mon Coach — créé et fait par Maxime Nathan Lestage")
+        Text("Mon Coach — conçu et développé par Maxime Nathan Lestage")
             .font(Theme.captionFont)
             .foregroundStyle(Theme.secondaryText)
             .frame(maxWidth: .infinity)

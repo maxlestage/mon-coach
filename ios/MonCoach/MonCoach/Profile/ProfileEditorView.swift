@@ -7,6 +7,7 @@ import MonCoachKit
 /// built for four sessions a week is the wrong plan the moment the athlete
 /// drops to three.
 struct ProfileEditorView: View {
+    @Environment(\.language) private var language
     @Environment(\.dismiss) private var dismiss
 
     @State private var draft: ProfileDraft
@@ -90,7 +91,7 @@ struct ProfileEditorView: View {
                 )
             }
             Picker("Unités", selection: $draft.unit) {
-                ForEach(UnitSystem.allCases, id: \.self) { Text($0.label).tag($0) }
+                ForEach(UnitSystem.allCases, id: \.self) { Text($0.label[language]).tag($0) }
             }
             .pickerStyle(.segmented)
         }
@@ -99,7 +100,7 @@ struct ProfileEditorView: View {
     private var goalSection: some View {
         Card(title: "Objectif") {
             Picker("", selection: $draft.goal) {
-                ForEach(PrimaryGoal.allCases, id: \.self) { Text($0.label).tag($0) }
+                ForEach(PrimaryGoal.allCases, id: \.self) { Text($0.label[language]).tag($0) }
             }
             .pickerStyle(.inline)
             .labelsHidden()
@@ -140,7 +141,7 @@ struct ProfileEditorView: View {
         Card(title: "Matériel") {
             FlowSelection(
                 items: Equipment.allCases,
-                label: { $0.label },
+                label: { $0.label[language] },
                 isSelected: { draft.equipment.contains($0) },
                 toggle: { item in
                     if draft.equipment.contains(item) {
@@ -151,7 +152,7 @@ struct ProfileEditorView: View {
                 }
             )
             Picker("Incrément", selection: $draft.loadIncrement) {
-                ForEach(LoadIncrement.allCases, id: \.self) { Text($0.label).tag($0) }
+                ForEach(LoadIncrement.allCases, id: \.self) { Text($0.label[language]).tag($0) }
             }
             .pickerStyle(.menu)
             .tint(Theme.accent)
@@ -162,7 +163,7 @@ struct ProfileEditorView: View {
         Card(title: "Zones sensibles", subtitle: "Tout mouvement qui sollicite directement une zone cochée est retiré du programme.") {
             FlowSelection(
                 items: Limitation.allCases,
-                label: { $0.label },
+                label: { $0.label[language] },
                 isSelected: { draft.limitations.contains($0) },
                 toggle: { item in
                     if draft.limitations.contains(item) {
@@ -178,7 +179,7 @@ struct ProfileEditorView: View {
     private var lifestyleSection: some View {
         Card(title: "Quotidien") {
             Picker("Activité", selection: $draft.activityLevel) {
-                ForEach(ActivityLevel.allCases, id: \.self) { Text($0.label).tag($0) }
+                ForEach(ActivityLevel.allCases, id: \.self) { Text($0.label[language]).tag($0) }
             }
             .pickerStyle(.menu)
             .tint(Theme.accent)
@@ -198,7 +199,7 @@ struct ProfileEditorView: View {
                 display: "Stress : \(draft.stressLevel) / 5"
             )
             Picker("Alimentation", selection: $draft.dietPreference) {
-                ForEach(DietPreference.allCases, id: \.self) { Text($0.label).tag($0) }
+                ForEach(DietPreference.allCases, id: \.self) { Text($0.label[language]).tag($0) }
             }
             .pickerStyle(.menu)
             .tint(Theme.accent)

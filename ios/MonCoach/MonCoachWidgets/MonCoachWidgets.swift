@@ -7,6 +7,7 @@ import MonCoachKit
 struct MonCoachWidgets: WidgetBundle {
     var body: some Widget {
         WorkoutLiveActivity()
+        RunLiveActivity()
     }
 }
 
@@ -124,5 +125,130 @@ private struct BottomBar: View {
             ProgressView(value: state.progress)
                 .tint(.green)
         }
+    }
+}
+
+/// La sortie en cours, sur l'écran verrouillé et dans la Dynamic Island.
+///
+/// C'est le seul écran qui compte pendant une course : le téléphone est dans
+/// une poche ou un brassard, et le déverrouiller en courant n'arrive pas.
+struct RunLiveActivity: Widget {
+    var body: some WidgetConfiguration {
+        ActivityConfiguration(for: RunAttributes.self) { context in
+            RunLockScreenView(state: context.state)
+                .activityBackgroundTint(Color(red: 0.05, green: 0.06, blue: 0.08))
+                .activitySystemActionForegroundColor(.green)
+        } dynamicIsland: { context in
+            DynamicIsland {
+                DynamicIslandExpandedRegion(.leading) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(context.state.distance)
+                            .font(.system(size: 17, weight: .bold, design: .rounded))
+                            .foregroundStyle(.green)
+                        Text(context.state.typeLabel)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+                DynamicIslandExpandedRegion(.trailing) {
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text(context.state.pace)
+                            .font(.system(size: 17, weight: .bold, design: .rounded))
+                        if context.state.elevationGain >= 10 {
+                            Text("+\(context.state.elevationGain) m")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                DynamicIslandExpandedRegion(.bottom) {
+                    RunTimer(state: context.state)
+                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.secondary)
+                }
+            } compactLeading: {
+                Image(systemName: "figure.run")
+                    .foregroundStyle(.green)
+            } compactTrailing: {
+                Text(context.state.distance)
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+            } minimal: {
+                Image(systemName: "figure.run")
+                    .foregroundStyle(.green)
+            }
+            .keylineTint(.green)
+        }
+    }
+}
+
+/// Le chrono d'une sortie.
+///
+/// En marche, le système anime le compteur tout seul à partir de la date de
+/// départ, sans réveiller l'application une seule fois. En pause, on affiche
+/// le temps figé : laisser tourner un chrono à l'arrêt est un mensonge que
+/// l'athlète paiera en relisant sa sortie.
+struct RunTimer: View {
+    var state: RunActivitySnapshot
+
+    var body: some View {
+        if state.isPaused {
+            Text(Format.stopwatch(seconds: state.movingSeconds))
+        } else {
+            Text(state.startedAt, style: .timer)
+        }
+    }
+}
+
+struct RunLockScreenView: View {
+    var state: RunActivitySnapshot
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Label(state.typeLabel, systemImage: "figure.run")
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.green)
+                Spacer()
+                if state.hasWeakSignal {
+                    Image(systemName: "antenna.radiowaves.left.and.right.slash")
+                        .font(.caption2)
+                        .foregroundStyle(.orange)
+                }
+                if state.isPaused {
+                    Text("⏸")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                }
+            }
+
+            HStack(alignment: .firstTextBaseline, spacing: 16) {
+                Text(state.distance)
+                    .font(.system(size: 30, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                VStack(alignment: .leading, spacing: 2) {
+                    RunTimer(state: state)
+                        .font(.system(size: 17, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.white)
+                    Text(state.pace)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                if state.elevationGain >= 10 {
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text("+\(state.elevationGain)")
+                            .font(.system(size: 17, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.orange)
+                        Text("m")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+        }
+        .padding(14)
     }
 }

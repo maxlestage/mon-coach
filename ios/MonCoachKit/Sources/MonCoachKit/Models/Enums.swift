@@ -6,10 +6,10 @@ public enum Sex: String, Codable, CaseIterable, Sendable {
     case male
     case female
 
-    public var label: String {
+    public var label: LocalizedText {
         switch self {
-        case .male: "Homme"
-        case .female: "Femme"
+        case .male: LocalizedText(fr: "Homme", en: "Male", es: "Hombre")
+        case .female: LocalizedText(fr: "Femme", en: "Female", es: "Mujer")
         }
     }
 }
@@ -21,11 +21,11 @@ public enum ExperienceLevel: String, Codable, CaseIterable, Sendable, Comparable
     case intermediate
     case advanced
 
-    public var label: String {
+    public var label: LocalizedText {
         switch self {
-        case .beginner: "Débutant"
-        case .intermediate: "Intermédiaire"
-        case .advanced: "Avancé"
+        case .beginner: LocalizedText(fr: "Débutant", en: "Beginner", es: "Principiante")
+        case .intermediate: LocalizedText(fr: "Intermédiaire", en: "Intermediate", es: "Intermedio")
+        case .advanced: LocalizedText(fr: "Avancé", en: "Advanced", es: "Avanzado")
         }
     }
 
@@ -60,13 +60,13 @@ public enum PrimaryGoal: String, Codable, CaseIterable, Sendable {
     case recomposition
     case generalHealth
 
-    public var label: String {
+    public var label: LocalizedText {
         switch self {
-        case .hypertrophy: "Prise de muscle"
-        case .strength: "Force maximale"
-        case .fatLoss: "Perte de gras"
-        case .recomposition: "Recomposition"
-        case .generalHealth: "Forme générale"
+        case .hypertrophy: LocalizedText(fr: "Prise de muscle", en: "Build muscle", es: "Ganar músculo")
+        case .strength: LocalizedText(fr: "Force maximale", en: "Maximal strength", es: "Fuerza máxima")
+        case .fatLoss: LocalizedText(fr: "Perte de gras", en: "Fat loss", es: "Pérdida de grasa")
+        case .recomposition: LocalizedText(fr: "Recomposition", en: "Recomposition", es: "Recomposición")
+        case .generalHealth: LocalizedText(fr: "Forme générale", en: "General fitness", es: "Forma general")
         }
     }
 
@@ -101,13 +101,13 @@ public enum ActivityLevel: String, Codable, CaseIterable, Sendable {
     case high
     case veryHigh
 
-    public var label: String {
+    public var label: LocalizedText {
         switch self {
-        case .sedentary: "Sédentaire (bureau, peu de marche)"
-        case .light: "Légèrement actif"
-        case .moderate: "Modérément actif"
-        case .high: "Très actif"
-        case .veryHigh: "Extrêmement actif (métier physique)"
+        case .sedentary: LocalizedText(fr: "Sédentaire (bureau, peu de marche)", en: "Sedentary (desk job, little walking)", es: "Sedentario (oficina, poco caminar)")
+        case .light: LocalizedText(fr: "Légèrement actif", en: "Lightly active", es: "Ligeramente activo")
+        case .moderate: LocalizedText(fr: "Modérément actif", en: "Moderately active", es: "Moderadamente activo")
+        case .high: LocalizedText(fr: "Très actif", en: "Very active", es: "Muy activo")
+        case .veryHigh: LocalizedText(fr: "Extrêmement actif (métier physique)", en: "Extremely active (physical job)", es: "Extremadamente activo (trabajo físico)")
         }
     }
 
@@ -138,19 +138,19 @@ public enum Equipment: String, Codable, CaseIterable, Sendable {
     case bench
     case dipStation
 
-    public var label: String {
+    public var label: LocalizedText {
         switch self {
-        case .bodyweight: "Poids du corps"
-        case .barbell: "Barre olympique"
-        case .dumbbell: "Haltères"
-        case .kettlebell: "Kettlebells"
-        case .machine: "Machines guidées"
-        case .cable: "Poulies"
-        case .smithMachine: "Smith machine"
-        case .band: "Élastiques"
-        case .pullUpBar: "Barre de traction"
-        case .bench: "Banc"
-        case .dipStation: "Barres parallèles / dips"
+        case .bodyweight: LocalizedText(fr: "Poids du corps", en: "Bodyweight", es: "Peso corporal")
+        case .barbell: LocalizedText(fr: "Barre olympique", en: "Barbell", es: "Barra olímpica")
+        case .dumbbell: LocalizedText(fr: "Haltères", en: "Dumbbells", es: "Mancuernas")
+        case .kettlebell: LocalizedText(fr: "Kettlebells", en: "Kettlebells", es: "Pesas rusas")
+        case .machine: LocalizedText(fr: "Machines guidées", en: "Machines", es: "Máquinas guiadas")
+        case .cable: LocalizedText(fr: "Poulies", en: "Cables", es: "Poleas")
+        case .smithMachine: LocalizedText(fr: "Smith machine", en: "Smith machine", es: "Máquina Smith")
+        case .band: LocalizedText(fr: "Élastiques", en: "Resistance bands", es: "Bandas elásticas")
+        case .pullUpBar: LocalizedText(fr: "Barre de traction", en: "Pull-up bar", es: "Barra de dominadas")
+        case .bench: LocalizedText(fr: "Banc", en: "Bench", es: "Banco")
+        case .dipStation: LocalizedText(fr: "Barres parallèles / dips", en: "Dip station", es: "Paralelas / fondos")
         }
     }
 
@@ -177,22 +177,22 @@ public enum MuscleGroup: String, Codable, CaseIterable, Sendable {
     case calves
     case core
 
-    public var label: String {
+    public var label: LocalizedText {
         switch self {
-        case .chest: "Pectoraux"
-        case .back: "Dos (épaisseur)"
-        case .lats: "Dorsaux (largeur)"
-        case .traps: "Trapèzes"
-        case .shoulders: "Épaules"
-        case .rearDelts: "Deltoïdes postérieurs"
-        case .biceps: "Biceps"
-        case .triceps: "Triceps"
-        case .forearms: "Avant-bras"
-        case .quads: "Quadriceps"
-        case .hamstrings: "Ischio-jambiers"
-        case .glutes: "Fessiers"
-        case .calves: "Mollets"
-        case .core: "Gainage / abdominaux"
+        case .chest: LocalizedText(fr: "Pectoraux", en: "Chest", es: "Pectorales")
+        case .back: LocalizedText(fr: "Dos (épaisseur)", en: "Back (thickness)", es: "Espalda (grosor)")
+        case .lats: LocalizedText(fr: "Dorsaux (largeur)", en: "Lats (width)", es: "Dorsales (anchura)")
+        case .traps: LocalizedText(fr: "Trapèzes", en: "Traps", es: "Trapecios")
+        case .shoulders: LocalizedText(fr: "Épaules", en: "Shoulders", es: "Hombros")
+        case .rearDelts: LocalizedText(fr: "Deltoïdes postérieurs", en: "Rear delts", es: "Deltoides posteriores")
+        case .biceps: LocalizedText(fr: "Biceps", en: "Biceps", es: "Bíceps")
+        case .triceps: LocalizedText(fr: "Triceps", en: "Triceps", es: "Tríceps")
+        case .forearms: LocalizedText(fr: "Avant-bras", en: "Forearms", es: "Antebrazos")
+        case .quads: LocalizedText(fr: "Quadriceps", en: "Quads", es: "Cuádriceps")
+        case .hamstrings: LocalizedText(fr: "Ischio-jambiers", en: "Hamstrings", es: "Isquiotibiales")
+        case .glutes: LocalizedText(fr: "Fessiers", en: "Glutes", es: "Glúteos")
+        case .calves: LocalizedText(fr: "Mollets", en: "Calves", es: "Gemelos")
+        case .core: LocalizedText(fr: "Gainage / abdominaux", en: "Core", es: "Core / abdomen")
         }
     }
 
@@ -216,18 +216,18 @@ public enum MovementPattern: String, Codable, CaseIterable, Sendable {
     case carry
     case coreBrace
 
-    public var label: String {
+    public var label: LocalizedText {
         switch self {
-        case .horizontalPush: "Poussée horizontale"
-        case .verticalPush: "Poussée verticale"
-        case .horizontalPull: "Tirage horizontal"
-        case .verticalPull: "Tirage vertical"
-        case .squat: "Squat"
-        case .hinge: "Charnière de hanche"
-        case .lunge: "Fente / unilatéral"
-        case .isolation: "Isolation"
-        case .carry: "Port de charge"
-        case .coreBrace: "Gainage"
+        case .horizontalPush: LocalizedText(fr: "Poussée horizontale", en: "Horizontal push", es: "Empuje horizontal")
+        case .verticalPush: LocalizedText(fr: "Poussée verticale", en: "Vertical push", es: "Empuje vertical")
+        case .horizontalPull: LocalizedText(fr: "Tirage horizontal", en: "Horizontal pull", es: "Tirón horizontal")
+        case .verticalPull: LocalizedText(fr: "Tirage vertical", en: "Vertical pull", es: "Tirón vertical")
+        case .squat: LocalizedText(fr: "Squat", en: "Squat", es: "Sentadilla")
+        case .hinge: LocalizedText(fr: "Charnière de hanche", en: "Hip hinge", es: "Bisagra de cadera")
+        case .lunge: LocalizedText(fr: "Fente / unilatéral", en: "Lunge / single-leg", es: "Zancada / unilateral")
+        case .isolation: LocalizedText(fr: "Isolation", en: "Isolation", es: "Aislamiento")
+        case .carry: LocalizedText(fr: "Port de charge", en: "Carry", es: "Transporte de carga")
+        case .coreBrace: LocalizedText(fr: "Gainage", en: "Bracing", es: "Core")
         }
     }
 }
@@ -244,16 +244,16 @@ public enum Limitation: String, Codable, CaseIterable, Sendable {
     case neck
     case ankle
 
-    public var label: String {
+    public var label: LocalizedText {
         switch self {
-        case .shoulder: "Épaule"
-        case .lowerBack: "Bas du dos"
-        case .knee: "Genou"
-        case .hip: "Hanche"
-        case .elbow: "Coude"
-        case .wrist: "Poignet"
-        case .neck: "Nuque"
-        case .ankle: "Cheville"
+        case .shoulder: LocalizedText(fr: "Épaule", en: "Shoulder", es: "Hombro")
+        case .lowerBack: LocalizedText(fr: "Bas du dos", en: "Low back", es: "Zona lumbar")
+        case .knee: LocalizedText(fr: "Genou", en: "Knee", es: "Rodilla")
+        case .hip: LocalizedText(fr: "Hanche", en: "Hip", es: "Cadera")
+        case .elbow: LocalizedText(fr: "Coude", en: "Elbow", es: "Codo")
+        case .wrist: LocalizedText(fr: "Poignet", en: "Wrist", es: "Muñeca")
+        case .neck: LocalizedText(fr: "Nuque", en: "Neck", es: "Cuello")
+        case .ankle: LocalizedText(fr: "Cheville", en: "Ankle", es: "Tobillo")
         }
     }
 }
@@ -267,14 +267,14 @@ public enum DietPreference: String, Codable, CaseIterable, Sendable {
     case halal
     case glutenFree
 
-    public var label: String {
+    public var label: LocalizedText {
         switch self {
-        case .omnivore: "Omnivore"
-        case .vegetarian: "Végétarien"
-        case .vegan: "Végétalien"
-        case .pescatarian: "Pescétarien"
-        case .halal: "Halal"
-        case .glutenFree: "Sans gluten"
+        case .omnivore: LocalizedText(fr: "Omnivore", en: "Omnivore", es: "Omnívoro")
+        case .vegetarian: LocalizedText(fr: "Végétarien", en: "Vegetarian", es: "Vegetariano")
+        case .vegan: LocalizedText(fr: "Végétalien", en: "Vegan", es: "Vegano")
+        case .pescatarian: LocalizedText(fr: "Pescétarien", en: "Pescatarian", es: "Pescetariano")
+        case .halal: LocalizedText(fr: "Halal", en: "Halal", es: "Halal")
+        case .glutenFree: LocalizedText(fr: "Sans gluten", en: "Gluten-free", es: "Sin gluten")
         }
     }
 }
@@ -284,10 +284,10 @@ public enum UnitSystem: String, Codable, CaseIterable, Sendable {
     case metric
     case imperial
 
-    public var label: String {
+    public var label: LocalizedText {
         switch self {
-        case .metric: "Métrique (kg / cm)"
-        case .imperial: "Impérial (lb / in)"
+        case .metric: LocalizedText(fr: "Métrique (kg / cm)", en: "Metric (kg / cm)", es: "Métrico (kg / cm)")
+        case .imperial: LocalizedText(fr: "Impérial (lb / in)", en: "Imperial (lb / in)", es: "Imperial (lb / in)")
         }
     }
 }
@@ -307,11 +307,11 @@ public enum LoadIncrement: String, Codable, CaseIterable, Sendable {
         }
     }
 
-    public var label: String {
+    public var label: LocalizedText {
         switch self {
-        case .fine: "Micro-charges (1 kg)"
-        case .standard: "Disques standards (2,5 kg)"
-        case .coarse: "Haltères fixes (5 kg)"
+        case .fine: LocalizedText(fr: "Micro-charges (1 kg)", en: "Micro-plates (1 kg)", es: "Microcargas (1 kg)")
+        case .standard: LocalizedText(fr: "Disques standards (2,5 kg)", en: "Standard plates (2.5 kg)", es: "Discos estándar (2,5 kg)")
+        case .coarse: LocalizedText(fr: "Haltères fixes (5 kg)", en: "Fixed dumbbells (5 kg)", es: "Mancuernas fijas (5 kg)")
         }
     }
 }

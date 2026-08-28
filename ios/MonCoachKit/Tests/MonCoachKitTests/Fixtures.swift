@@ -59,6 +59,24 @@ enum Fixtures {
         )
     }
 
+    /// Seasoned lifter and runner, six years in, full gym.
+    static func advanced(daysPerWeek: Int = 5) -> UserProfile {
+        UserProfile(
+            firstName: "Sofia",
+            birthDate: date(1992, 2, 18),
+            sex: .male,
+            heightCm: 182,
+            weightKg: 80,
+            bodyFatPercent: 11,
+            trainingMonths: 72,
+            goal: .strength,
+            daysPerWeek: daysPerWeek,
+            sessionMinutes: 80,
+            equipment: Equipment.fullGym,
+            activityLevel: .moderate
+        )
+    }
+
     /// Logs a session where every set hit the top of its rep range at the
     /// target RPE — the textbook case for adding load.
     static func perfectSession(

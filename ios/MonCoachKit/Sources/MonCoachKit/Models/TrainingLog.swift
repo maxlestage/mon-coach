@@ -138,15 +138,18 @@ public struct TrainingHistory: Codable, Sendable, Equatable {
     public var sessions: [SessionLog]
     public var bodyLogs: [BodyLog]
     public var readiness: [ReadinessCheck]
+    public var runs: [RunLog]
 
     public init(
         sessions: [SessionLog] = [],
         bodyLogs: [BodyLog] = [],
-        readiness: [ReadinessCheck] = []
+        readiness: [ReadinessCheck] = [],
+        runs: [RunLog] = []
     ) {
         self.sessions = sessions
         self.bodyLogs = bodyLogs
         self.readiness = readiness
+        self.runs = runs
     }
 
     public static let empty = TrainingHistory()
@@ -157,6 +160,37 @@ public struct TrainingHistory: Codable, Sendable, Equatable {
 
     public func bodyLogs(in interval: DateInterval) -> [BodyLog] {
         bodyLogs.filter { interval.contains($0.date) }
+    }
+
+    public func runs(in interval: DateInterval) -> [RunLog] {
+        runs.filter { interval.contains($0.startedAt) }
+    }
+
+    /// The run recorded on a given day, if there is one.
+    public func run(on date: Date, calendar: Calendar = .current) -> RunLog? {
+        runs
+            .filter { calendar.isDate($0.startedAt, inSameDayAs: date) }
+            .max { $0.startedAt < $1.startedAt }
+    }
+
+    /// Distance run over the seven days ending on `date`, in metres.
+    public func weeklyRunMeters(endingOn date: Date, calendar: Calendar = .current) -> Double {
+        guard let start = calendar.date(byAdding: .day, value: -6, to: calendar.startOfDay(for: date)),
+              let end = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: date))
+        else { return 0 }
+        return runs(in: DateInterval(start: start, end: end)).reduce(0) { $0 + $1.meters }
+    }
+
+    /// Best threshold pace the athlete has demonstrated, in seconds per km.
+    ///
+    /// Only tempo runs, intervals and races count: an easy run says nothing
+    /// about the ceiling, and letting it in would make the estimate drift
+    /// slower every week the athlete trains correctly.
+    public func demonstratedThresholdPace() -> Double? {
+        runs
+            .filter { $0.meters >= 2_000 && [.tempo, .intervals, .race].contains($0.type) }
+            .compactMap { RunMath.thresholdPace(fromDistance: $0.meters, time: $0.duration) }
+            .min()
     }
 
     /// All logged sets for an exercise, oldest first.

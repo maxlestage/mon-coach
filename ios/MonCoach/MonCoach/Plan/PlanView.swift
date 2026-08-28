@@ -11,6 +11,8 @@ struct VolumeEntry: Identifiable, Equatable {
 
 /// The whole block, week by week, so the athlete can see where this is going.
 struct PlanView: View {
+    @Environment(\.language) private var language
+    @State private var showsGymCoach = false
     @Environment(CoachStore.self) private var store
 
     @State private var expandedWeek: Int?
@@ -38,13 +40,29 @@ struct PlanView: View {
                 .padding(20)
             }
             .screenBackground()
+            .sheet(isPresented: $showsGymCoach) {
+                // Ouvert hors séance, le coach de salle sert de guide : pas
+                // d'exercice en cours, donc pas de remplacement à proposer,
+                // mais tout ce qu'on aurait aimé savoir avant d'y entrer.
+                GymCoachView()
+            }
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showsGymCoach = true
+                    } label: {
+                        Image(systemName: "building.2")
+                    }
+                    .tint(Theme.accent)
+                }
+            }
             .navigationTitle("Mon plan")
         }
         .tint(Theme.accent)
     }
 
     private func overviewCard(_ plan: Mesocycle) -> some View {
-        Card(title: plan.split.label, subtitle: plan.goal.label) {
+        Card(title: plan.split.label[language], subtitle: plan.goal.label[language]) {
             HStack(spacing: 12) {
                 StatTile(value: "\(plan.weekCount)", label: "semaines")
                 StatTile(value: "\(plan.weeks.first?.sessions.count ?? 0)", label: "séances / semaine")
@@ -53,7 +71,7 @@ struct PlanView: View {
                     label: "semaine en cours"
                 )
             }
-            Text(plan.split.rationale)
+            Text(plan.split.rationale[language])
                 .font(Theme.captionFont)
                 .foregroundStyle(Theme.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
@@ -73,7 +91,7 @@ struct PlanView: View {
             VStack(spacing: 8) {
                 ForEach(entries) { entry in
                     HStack(spacing: 10) {
-                        Text(entry.muscle.label)
+                        Text(entry.muscle.label[language])
                             .font(.system(size: 13))
                             .foregroundStyle(Theme.secondaryText)
                             .frame(width: 130, alignment: .leading)
@@ -118,7 +136,7 @@ struct PlanView: View {
                 VStack(spacing: 16) {
                     ForEach(week.sessions) { session in
                         VStack(alignment: .leading, spacing: 8) {
-                            Text(session.title)
+                            Text(session.title[language])
                                 .font(.system(size: 14, weight: .bold))
                                 .foregroundStyle(Theme.primaryText)
                             SessionSummary(session: session, unit: unit, showsLoads: false)

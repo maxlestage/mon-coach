@@ -9,20 +9,20 @@ public struct LoadDecision: Sendable, Equatable {
         case decrease
         case deload
 
-        public var label: String {
+        public var label: LocalizedText {
             switch self {
-            case .start: "Première fois"
-            case .increase: "On monte"
-            case .hold: "On garde"
-            case .decrease: "On réduit"
-            case .deload: "Décharge"
+            case .start: LocalizedText(fr: "Première fois", en: "First time", es: "Primera vez")
+            case .increase: LocalizedText(fr: "On monte", en: "Going up", es: "Subimos")
+            case .hold: LocalizedText(fr: "On garde", en: "Holding", es: "Mantenemos")
+            case .decrease: LocalizedText(fr: "On réduit", en: "Backing off", es: "Bajamos")
+            case .deload: LocalizedText(fr: "Décharge", en: "Deload", es: "Descarga")
             }
         }
     }
 
     public let action: Action
     public let loadKg: Double?
-    public let reason: String
+    public let reason: LocalizedText
 }
 
 /// Turns history into the next load prescription.
@@ -54,8 +54,16 @@ public enum ProgressionEngine {
                 action: .start,
                 loadKg: seed,
                 reason: seed == nil
-                    ? "Première exposition : choisis une charge que tu contrôles sur toutes les répétitions, on ajustera dès la prochaine séance."
-                    : "Estimation de départ à partir de ton profil. Si c'est trop facile ou trop lourd, corrige — la séance suivante en tiendra compte."
+                    ? LocalizedText(
+                        fr: "Première exposition : choisis une charge que tu contrôles sur toutes les répétitions, on ajustera dès la prochaine séance.",
+                        en: "First exposure: pick a load you control on every rep, and we adjust from the next session on.",
+                        es: "Primera exposición: elige una carga que controles en todas las repeticiones y ajustamos ya en la siguiente sesión."
+                    )
+                    : LocalizedText(
+                        fr: "Estimation de départ à partir de ton profil. Si c'est trop facile ou trop lourd, corrige — la séance suivante en tiendra compte.",
+                        en: "A starting estimate from your profile. If it is too easy or too heavy, change it — the next session will take that into account.",
+                        es: "Estimación inicial a partir de tu perfil. Si es demasiado fácil o pesada, corrígela: la siguiente sesión lo tendrá en cuenta."
+                    )
             )
         }
 
@@ -66,7 +74,11 @@ public enum ProgressionEngine {
             return LoadDecision(
                 action: .deload,
                 loadKg: load,
-                reason: "Semaine de décharge : 60 % de ta charge habituelle. Le but est de récupérer, pas de performer."
+                reason: LocalizedText(
+                    fr: "Semaine de décharge : 60 % de ta charge habituelle. Le but est de récupérer, pas de performer.",
+                    en: "Deload week: 60 % of your usual load. The point is to recover, not to perform.",
+                    es: "Semana de descarga: el 60 % de tu carga habitual. El objetivo es recuperar, no rendir."
+                )
             )
         }
 
@@ -76,7 +88,11 @@ public enum ProgressionEngine {
             return LoadDecision(
                 action: .decrease,
                 loadKg: load,
-                reason: "Tu as signalé une douleur articulaire la dernière fois : −15 % et on surveille. Si ça persiste, on changera d'exercice."
+                reason: LocalizedText(
+                    fr: "Tu as signalé une douleur articulaire la dernière fois : −15 % et on surveille. Si ça persiste, on changera d'exercice.",
+                    en: "You flagged joint pain last time: −15 % and we watch it. If it persists, we change the exercise.",
+                    es: "Señalaste dolor articular la última vez: −15 % y lo vigilamos. Si persiste, cambiamos de ejercicio."
+                )
             )
         }
 
@@ -93,7 +109,11 @@ public enum ProgressionEngine {
             return LoadDecision(
                 action: .increase,
                 loadKg: load,
-                reason: "Toutes les séries au sommet de la fourchette à RPE \(format(averageRPE)) : la charge monte à \(format(load)) kg."
+                reason: LocalizedText(
+                    fr: "Toutes les séries au sommet de la fourchette à RPE \(format(averageRPE)) : la charge monte à \(format(load)) kg.",
+                    en: "Every set at the top of the range at RPE \(format(averageRPE)): the load goes up to \(format(load)) kg.",
+                    es: "Todas las series en la parte alta del rango a RPE \(format(averageRPE)): la carga sube a \(format(load)) kg."
+                )
             )
         }
 
@@ -102,14 +122,22 @@ public enum ProgressionEngine {
             return LoadDecision(
                 action: .decrease,
                 loadKg: min(load, lastLoad),
-                reason: "Les répétitions sont tombées sous la fourchette : on recule de 8 % pour repartir sur des séries propres."
+                reason: LocalizedText(
+                    fr: "Les répétitions sont tombées sous la fourchette : on recule de 8 % pour repartir sur des séries propres.",
+                    en: "Reps dropped below the range: we step back 8 % to restart on clean sets.",
+                    es: "Las repeticiones han caído por debajo del rango: retrocedemos un 8 % para volver a series limpias."
+                )
             )
         }
 
         return LoadDecision(
             action: .hold,
             loadKg: lastLoad,
-            reason: "Même charge : ajoute des répétitions cette fois-ci. On montera quand toutes les séries atteindront \(prescription.repUpperBound)."
+            reason: LocalizedText(
+                fr: "Même charge : ajoute des répétitions cette fois-ci. On montera quand toutes les séries atteindront \(prescription.repUpperBound).",
+                en: "Same load: add reps this time. We go up when every set reaches \(prescription.repUpperBound).",
+                es: "Misma carga: añade repeticiones esta vez. Subiremos cuando todas las series lleguen a \(prescription.repUpperBound)."
+            )
         )
     }
 

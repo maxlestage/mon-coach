@@ -21,6 +21,8 @@ jobs:
           # qui doivent rester identiques à l'octet près.
           diff ios/MonCoach/MonCoach/Session/WorkoutAttributes.swift \
                ios/MonCoach/MonCoachWidgets/WorkoutAttributes.swift
+          diff ios/MonCoach/MonCoach/Session/RunAttributes.swift \
+               ios/MonCoach/MonCoachWidgets/RunAttributes.swift
 
   site-web:
     name: Site web
@@ -57,6 +59,13 @@ jobs:
           for attempt in $(seq 1 30); do
             curl -sf http://127.0.0.1:8080/ -o /tmp/page.html && break
             sleep 1
+          done
+          # Le site doit répondre dans les trois langues : une page dont le
+          # paquet JavaScript ne contient plus une des traductions est un
+          # site qui ne parle plus qu'une langue sans que rien ne le dise.
+          for lang in fr en es; do
+            curl -sf "http://127.0.0.1:8080/?lang=$lang" -o /dev/null \
+              || { echo "la page ne répond pas en $lang"; exit 1; }
           done
           grep -q "Mon Coach" /tmp/page.html
           asset=$(grep -oE '/assets/[a-zA-Z0-9._-]+\.js' /tmp/page.html | head -1)
@@ -109,11 +118,58 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Régénération des valeurs de référence
-        run: swift run --package-path tools/FixtureGenerator > /tmp/engine-reference.json
+        run: swift run --package-path tools/FixtureGenerator FixtureGenerator moteur > /tmp/engine-reference.json
       - name: Comparaison avec le fichier versionné
         run: |
           if ! diff -u web/src/coach/__fixtures__/engine-reference.json /tmp/engine-reference.json; then
             echo "::error::Le moteur Swift a changé sans que les valeurs de référence du site soient régénérées."
-            echo "Lance : swift run --package-path tools/FixtureGenerator > web/src/coach/__fixtures__/engine-reference.json"
+            echo "Lance : swift run --package-path tools/FixtureGenerator FixtureGenerator moteur > web/src/coach/__fixtures__/engine-reference.json"
+            exit 1
+          fi
+      - name: Régénération des exemples affichés par le site
+        run: swift run --package-path tools/FixtureGenerator FixtureGenerator exemples > /tmp/examples.json
+      - name: Le site montre bien ce que l'application produit
+        run: |
+          # La journée de repas, la fiche technique et le remplacement
+          # d'exercice affichés sur le site sortent du moteur. Sans cette
+          # comparaison, la page continuerait d'annoncer un plan que
+          # l'application ne produit plus.
+          if ! diff -u web/src/data/examples.json /tmp/examples.json; then
+            echo "::error::Le moteur a changé sans que les exemples du site soient régénérés."
+            echo "Lance : swift run --package-path tools/FixtureGenerator FixtureGenerator exemples > web/src/data/examples.json"
+            exit 1
+          fi
+
+  marque:
+    name: Marque
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Installation de Pillow
+        # Pas de version épinglée : seules les sorties textuelles sont
+        # comparées, et elles ne dépendent pas du rasteriseur.
+        run: pip install pillow
+      - name: Régénération de la marque
+        run: python3 tools/brand/generate.py
+      - name: Le dessin du site est bien celui du générateur
+        run: |
+          # Seules les sorties textuelles sont comparées. Le rendu des PNG
+          # dépend de l'anticrénelage de Pillow, qui peut changer d'une
+          # version à l'autre sans que le dessin change : le comparer
+          # octet à octet ferait échouer la CI pour rien. Le composant React,
+          # le SVG et les favicons, eux, sont déterministes — et ce sont eux
+          # qu'une retouche à la main ferait diverger des icônes.
+          if ! git diff --exit-code -- \
+            web/src/components/BrandMark.tsx \
+            web/src/icons/mark.svg \
+            web/src/index.html \
+            web/src/mentions-legales.html \
+            web/src/confidentialite.html \
+            web/src/conditions.html; then
+            echo "::error::La marque a été retouchée à la main au lieu d'être régénérée."
+            echo "Modifie la géométrie dans tools/brand/generate.py puis lance : python3 tools/brand/generate.py"
             exit 1
           fi

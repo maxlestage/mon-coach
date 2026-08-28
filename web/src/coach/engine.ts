@@ -11,6 +11,7 @@ import type {
   SplitTemplate,
   VolumePrescription,
 } from "./types.ts";
+import type { Localized } from "./types.ts";
 
 /**
  * Port TypeScript du moteur de MonCoachKit.
@@ -85,7 +86,7 @@ export function nutritionTarget(
   metrics: BodyMetrics,
 ): NutritionTarget {
   const maintenance = metrics.tdee;
-  const rationale: string[] = [];
+  const rationale: Localized<string>[] = [];
 
   // Le rythme est exprimé en part du poids de corps : il reste sensé à 55 kg
   // comme à 110 kg.
@@ -95,7 +96,11 @@ export function nutritionTarget(
       const rate = (input.bodyFatPercent ?? 22) < 15 ? 0.005 : 0.0075;
       weeklyChangeKg = -input.weightKg * rate;
       rationale.push(
-        `Déficit calibré pour perdre environ ${Math.abs(weeklyChangeKg).toFixed(1).replace(".", ",")} kg par semaine, le rythme qui préserve le mieux la masse musculaire.`,
+        {
+          fr: `Déficit calibré pour perdre environ ${Math.abs(weeklyChangeKg).toFixed(1).replace(".", ",")} kg par semaine, le rythme qui préserve le mieux la masse musculaire.`,
+          en: `Deficit set to lose about ${Math.abs(weeklyChangeKg).toFixed(1)} kg a week, the rate that best preserves muscle.`,
+          es: `Déficit calibrado para perder unos ${Math.abs(weeklyChangeKg).toFixed(1).replace(".", ",")} kg por semana, el ritmo que mejor preserva el músculo.`,
+        },
       );
       break;
     }
@@ -103,26 +108,42 @@ export function nutritionTarget(
       const rate = input.experience === "beginner" ? 0.0035 : 0.002;
       weeklyChangeKg = input.weightKg * rate;
       rationale.push(
-        `Léger surplus : viser plus de ${weeklyChangeKg.toFixed(1).replace(".", ",")} kg par semaine ferait surtout gagner du gras.`,
+        {
+          fr: `Léger surplus : viser plus de ${weeklyChangeKg.toFixed(1).replace(".", ",")} kg par semaine ferait surtout gagner du gras.`,
+          en: `A small surplus: aiming for more than ${weeklyChangeKg.toFixed(1)} kg a week would mostly add fat.`,
+          es: `Superávit ligero: buscar más de ${weeklyChangeKg.toFixed(1).replace(".", ",")} kg por semana añadiría sobre todo grasa.`,
+        },
       );
       break;
     }
     case "strength":
       weeklyChangeKg = input.weightKg * 0.0015;
       rationale.push(
-        "Surplus minime : assez pour soutenir la récupération sans alourdir les mouvements au poids de corps.",
+        {
+          fr: "Surplus minime : assez pour soutenir la récupération sans alourdir les mouvements au poids de corps.",
+          en: "A minimal surplus: enough to support recovery without weighing down your bodyweight work.",
+          es: "Superávit mínimo: suficiente para sostener la recuperación sin lastrar los movimientos con peso corporal.",
+        },
       );
       break;
     case "recomposition":
       weeklyChangeKg = 0;
       rationale.push(
-        "Calories de maintien : la recomposition se joue sur les protéines et la progression à l'entraînement, pas sur le déficit.",
+        {
+          fr: "Calories de maintien : la recomposition se joue sur les protéines et la progression à l'entraînement, pas sur le déficit.",
+          en: "Maintenance calories: recomposition is won on protein and training progress, not on a deficit.",
+          es: "Calorías de mantenimiento: la recomposición se juega en la proteína y en la progresión del entrenamiento, no en el déficit.",
+        },
       );
       break;
     case "generalHealth":
       weeklyChangeKg = 0;
       rationale.push(
-        "Calories de maintien, l'objectif étant la régularité plutôt qu'une variation de poids.",
+        {
+          fr: "Calories de maintien, l'objectif étant la régularité plutôt qu'une variation de poids.",
+          en: "Maintenance calories, since the goal is consistency rather than a change in weight.",
+          es: "Calorías de mantenimiento, ya que el objetivo es la constancia y no un cambio de peso.",
+        },
       );
       break;
   }
@@ -134,7 +155,11 @@ export function nutritionTarget(
   if (calories < floor) {
     calories = floor;
     rationale.push(
-      "Le déficit a été plafonné : descendre plus bas compromettrait la récupération et les apports en micronutriments.",
+      {
+        fr: "Le déficit a été plafonné : descendre plus bas compromettrait la récupération et les apports en micronutriments.",
+        en: "The deficit was capped: going lower would compromise recovery and micronutrient intake.",
+        es: "El déficit se ha limitado: bajar más comprometería la recuperación y el aporte de micronutrientes.",
+      },
     );
   }
 
@@ -155,13 +180,21 @@ export function nutritionTarget(
     fatG = Math.max(input.weightKg * 0.5, fatG - deficit / 9);
     carbsG = (calories - proteinG * 4 - fatG * 9) / 4;
     rationale.push(
-      "Les lipides ont été réduits au minimum physiologique pour garder assez de glucides autour des séances.",
+      {
+        fr: "Les lipides ont été réduits au minimum physiologique pour garder assez de glucides autour des séances.",
+        en: "Fat was cut to the physiological minimum to keep enough carbohydrate around training.",
+        es: "Las grasas se han reducido al mínimo fisiológico para mantener hidratos suficientes alrededor del entrenamiento.",
+      },
     );
   }
   carbsG = Math.max(carbsG, 30);
 
   rationale.push(
-    `${Math.round(proteinG)} g de protéines, soit ${proteinPerKgLean.toFixed(1).replace(".", ",")} g par kg de masse maigre : c'est le levier numéro un, avant même le total calorique.`,
+    {
+      fr: `${Math.round(proteinG)} g de protéines, soit ${proteinPerKgLean.toFixed(1).replace(".", ",")} g par kg de masse maigre : c'est le levier numéro un, avant même le total calorique.`,
+      en: `${Math.round(proteinG)} g of protein, or ${proteinPerKgLean.toFixed(1)} g per kg of lean mass: the number-one lever, ahead of the calorie total itself.`,
+      es: `${Math.round(proteinG)} g de proteína, es decir ${proteinPerKgLean.toFixed(1).replace(".", ",")} g por kg de masa magra: la palanca número uno, por delante del total calórico.`,
+    },
   );
 
   return {
@@ -215,21 +248,33 @@ export function weeklySetCapacity(input: SimulatorInput): number {
 }
 
 export function volumePrescription(input: SimulatorInput): VolumePrescription {
-  const rationale: string[] = [];
+  const rationale: Localized<string>[] = [];
 
   if (input.experience === "beginner") {
     rationale.push(
-      "Volume volontairement bas : à ce niveau, la technique et la régularité comptent bien plus que le nombre de séries.",
+      {
+        fr: "Volume volontairement bas : à ce niveau, la technique et la régularité comptent bien plus que le nombre de séries.",
+        en: "Volume deliberately low: at this level, technique and consistency matter far more than set count.",
+        es: "Volumen deliberadamente bajo: a este nivel, la técnica y la constancia importan mucho más que el número de series.",
+      },
     );
   }
   if (input.goal === "strength") {
     rationale.push(
-      "Moins de séries mais plus lourdes : la force se construit sur l'intensité, pas sur le tonnage.",
+      {
+        fr: "Moins de séries mais plus lourdes : la force se construit sur l'intensité, pas sur le tonnage.",
+        en: "Fewer sets, heavier ones: strength is built on intensity, not on tonnage.",
+        es: "Menos series pero más pesadas: la fuerza se construye con intensidad, no con tonelaje.",
+      },
     );
   }
   if (input.goal === "fatLoss") {
     rationale.push(
-      "Volume légèrement réduit : en déficit, la récupération est le facteur limitant.",
+      {
+        fr: "Volume légèrement réduit : en déficit, la récupération est le facteur limitant.",
+        en: "Volume slightly reduced: in a deficit, recovery is the limiting factor.",
+        es: "Volumen ligeramente reducido: en déficit, la recuperación es el factor limitante.",
+      },
     );
   }
 
@@ -237,7 +282,11 @@ export function volumePrescription(input: SimulatorInput): VolumePrescription {
   if (input.sleepHours < 6) {
     recovery -= 0.15;
     rationale.push(
-      "Moins de 6 h de sommeil : le volume est réduit de 15 % tant que ça ne bouge pas, sinon la fatigue s'accumule sans progression.",
+      {
+        fr: "Moins de 6 h de sommeil : le volume est réduit de 15 % tant que ça ne bouge pas, sinon la fatigue s'accumule sans progression.",
+        en: "Under 6 h of sleep: volume is cut by 15 % until that changes, otherwise fatigue banks up without progress.",
+        es: "Menos de 6 h de sueño: el volumen baja un 15 % mientras eso no cambie, o la fatiga se acumula sin progreso.",
+      },
     );
   } else if (input.sleepHours < 7) {
     recovery -= 0.07;
@@ -247,7 +296,11 @@ export function volumePrescription(input: SimulatorInput): VolumePrescription {
   if (input.stressLevel >= 4) {
     recovery -= 0.1;
     rationale.push(
-      "Niveau de stress élevé : on garde de la marge pour éviter de transformer chaque séance en dette de récupération.",
+      {
+        fr: "Niveau de stress élevé : on garde de la marge pour éviter de transformer chaque séance en dette de récupération.",
+        en: "High stress: we keep some room so every session does not turn into recovery debt.",
+        es: "Estrés alto: dejamos margen para que cada sesión no se convierta en deuda de recuperación.",
+      },
     );
   }
   if (input.age >= 45) {
@@ -270,7 +323,11 @@ export function volumePrescription(input: SimulatorInput): VolumePrescription {
   if (rawTotal > capacity) {
     scale = capacity / rawTotal;
     rationale.push(
-      `Le volume a été ajusté à ${input.daysPerWeek} séances de ${input.sessionMinutes} min : mieux vaut un plan terminé qu'un plan idéal abandonné.`,
+      {
+        fr: `Le volume a été ajusté à ${input.daysPerWeek} séances de ${input.sessionMinutes} min : mieux vaut un plan terminé qu'un plan idéal abandonné.`,
+        en: `Volume was fitted to ${input.daysPerWeek} sessions of ${input.sessionMinutes} min: a plan you finish beats an ideal plan you abandon.`,
+        es: `El volumen se ha ajustado a ${input.daysPerWeek} sesiones de ${input.sessionMinutes} min: vale más un plan que terminas que un plan ideal que abandonas.`,
+      },
     );
   }
 

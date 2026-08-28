@@ -39,7 +39,7 @@ public final class CoachStore {
 
     /// Surfaces a write failure to the UI instead of swallowing it — losing a
     /// training log silently is the one thing this app must not do.
-    public private(set) var saveError: String?
+    public private(set) var saveError: LocalizedText?
 
     private let storage: StateStorage
 
@@ -54,6 +54,26 @@ public final class CoachStore {
     // MARK: - Derived state
 
     public var isOnboarded: Bool { profile != nil && plan != nil }
+
+    /// La langue dans laquelle tout le texte du coach est rendu.
+    ///
+    /// Le profil peut la fixer explicitement ; sinon on suit le système. Un
+    /// athlète qui n'a jamais touché au réglage doit voir l'application
+    /// changer de langue quand il change celle de son téléphone.
+    public var language: Language {
+        profile?.language ?? CoachStore.systemLanguage
+    }
+
+    /// La langue du système, résolue une fois.
+    public static let systemLanguage: Language = Language.best(matching: Locale.preferredLanguages)
+
+    /// Fixe la langue, ou revient à celle du système avec `nil`.
+    public func setLanguage(_ language: Language?) {
+        guard var profile else { return }
+        profile.language = language
+        self.profile = profile
+        save()
+    }
 
     public var program: CoachingProgram? {
         guard let profile, let plan else { return nil }
@@ -122,6 +142,37 @@ public final class CoachStore {
         save()
     }
 
+    /// Files a finished run, and lets it teach the coach something.
+    ///
+    /// A tempo run, an interval session or a race says where the threshold
+    /// actually sits. When the new evidence is better than what the profile
+    /// holds, the profile is updated and the block is rebuilt around the real
+    /// pace — otherwise every prescribed pace would stay wrong all block.
+    public func recordRun(_ run: RunLog) {
+        history.runs.removeAll { $0.id == run.id }
+        history.runs.append(run)
+        history.runs.sort { $0.startedAt < $1.startedAt }
+
+        if var profile, var running = profile.running,
+           let demonstrated = history.demonstratedThresholdPace() {
+            let known = running.thresholdPaceSecondsPerKm
+            // Lower is faster: only a genuinely better performance moves it.
+            if known == nil || demonstrated < (known ?? .greatestFiniteMagnitude) {
+                running.thresholdPaceSecondsPerKm = demonstrated
+                profile.running = running
+                self.profile = profile
+            }
+        }
+        save()
+    }
+
+    /// Removes a run the athlete decided was not theirs — a phantom trace,
+    /// a forgotten stop, a ride recorded by mistake.
+    public func deleteRun(_ id: UUID) {
+        history.runs.removeAll { $0.id == id }
+        save()
+    }
+
     public func startSession(_ session: PlannedSession) {
         activeSession = ActiveSession(session: session)
     }
@@ -186,7 +237,11 @@ public final class CoachStore {
             try storage.save(state)
             saveError = nil
         } catch {
-            saveError = "Impossible d'enregistrer tes données : \(error.localizedDescription)"
+            saveError = LocalizedText(
+                fr: "Impossible d'enregistrer tes données : \(error.localizedDescription)",
+                en: "Could not save your data: \(error.localizedDescription)",
+                es: "No se han podido guardar tus datos: \(error.localizedDescription)"
+            )
         }
     }
 

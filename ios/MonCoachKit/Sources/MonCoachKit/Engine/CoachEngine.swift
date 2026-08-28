@@ -8,6 +8,9 @@ public struct CoachingProgram: Sendable, Equatable {
     public let plan: Mesocycle
     /// Weeks to the target weight at the prescribed rate, when a target exists.
     public let weeksToGoal: Int?
+    /// The running block, when the athlete runs. Nil otherwise, and every
+    /// running screen stays hidden.
+    public let runningBlock: RunningBlock?
 }
 
 /// What the app shows on the home screen for a given day.
@@ -27,6 +30,13 @@ public struct TodayBriefing: Sendable, Equatable {
     /// Load decisions per exercise, keyed by prescription id, so the UI can
     /// explain every number it shows.
     public let loadDecisions: [UUID: LoadDecision]
+    /// The run scheduled today, if any. A day can carry both a lift and a
+    /// run: they are two different asks, not two states of one.
+    public let plannedRun: PlannedRun?
+    /// The run already recorded today, if the athlete has been out.
+    public let recordedRun: RunLog?
+    /// What to eat today, built around the same macros as `nutrition`.
+    public let food: DayPlan
 
     public var session: PlannedSession? {
         if case let .training(session) = state { return session }
@@ -56,7 +66,33 @@ public enum CoachEngine {
             metrics: metrics,
             nutrition: nutrition,
             plan: plan,
-            weeksToGoal: NutritionEngine.weeksToTarget(profile: profile, target: nutrition)
+            weeksToGoal: NutritionEngine.weeksToTarget(profile: profile, target: nutrition),
+            runningBlock: runningBlock(for: profile, plan: plan, on: startDate, calendar: calendar)
+        )
+    }
+
+    /// The running block that goes with a strength plan.
+    ///
+    /// Hard runs are steered away from the days the strength plan expects to
+    /// use, which is what `shouldTrain` already decides for the lifting side.
+    static func runningBlock(
+        for profile: UserProfile,
+        plan: Mesocycle,
+        on date: Date,
+        calendar: Calendar
+    ) -> RunningBlock? {
+        guard let running = profile.running else { return nil }
+        let sessionsPerWeek = plan.week(at: 1)?.sessions.count ?? profile.daysPerWeek
+        let strengthDays = Set(
+            (0..<7).filter { shouldTrain(daysElapsed: $0, sessionsPerWeek: sessionsPerWeek) }
+        )
+        return RunPlanner.block(
+            profile: profile,
+            running: running,
+            weekCount: plan.weeks.count,
+            strengthDays: strengthDays,
+            today: date,
+            calendar: calendar
         )
     }
 
@@ -78,7 +114,8 @@ public enum CoachEngine {
             metrics: metrics,
             nutrition: nutrition,
             plan: plan,
-            weeksToGoal: NutritionEngine.weeksToTarget(profile: profile, target: nutrition)
+            weeksToGoal: NutritionEngine.weeksToTarget(profile: profile, target: nutrition),
+            runningBlock: runningBlock(for: profile, plan: plan, on: plan.startDate, calendar: .current)
         )
     }
 
@@ -103,9 +140,15 @@ public enum CoachEngine {
                 isDeloadWeek: false,
                 readiness: verdict,
                 nutrition: program.nutrition,
-                loadDecisions: [:]
+                loadDecisions: [:],
+                plannedRun: nil,
+                recordedRun: history.run(on: date, calendar: calendar),
+                food: dayPlan(for: program, on: date, trains: false, runs: false, calendar: calendar)
             )
         }
+
+        let plannedRun = scheduledRun(for: program, weekIndex: weekIndex, on: date, calendar: calendar)
+        let recordedRun = history.run(on: date, calendar: calendar)
 
         guard let planned = scheduledSession(in: week, on: date, program: program, history: history, calendar: calendar) else {
             return TodayBriefing(
@@ -115,7 +158,16 @@ public enum CoachEngine {
                 isDeloadWeek: week.isDeload,
                 readiness: verdict,
                 nutrition: program.nutrition,
-                loadDecisions: [:]
+                loadDecisions: [:],
+                plannedRun: plannedRun,
+                recordedRun: recordedRun,
+                food: dayPlan(
+                    for: program,
+                    on: date,
+                    trains: false,
+                    runs: plannedRun != nil,
+                    calendar: calendar
+                )
             )
         }
 
@@ -134,7 +186,37 @@ public enum CoachEngine {
             isDeloadWeek: week.isDeload,
             readiness: verdict,
             nutrition: program.nutrition,
-            loadDecisions: decisions
+            loadDecisions: decisions,
+            plannedRun: plannedRun,
+            recordedRun: recordedRun,
+            food: dayPlan(for: program, on: date, trains: true, runs: plannedRun != nil, calendar: calendar)
+        )
+    }
+
+    /// The food plan for a given day.
+    ///
+    /// The day index feeds the planner's rotation, so the week actually
+    /// varies instead of serving the same four meals seven times.
+    static func dayPlan(
+        for program: CoachingProgram,
+        on date: Date,
+        trains: Bool,
+        runs: Bool,
+        calendar: Calendar
+    ) -> DayPlan {
+        let elapsed = calendar.dateComponents(
+            [.day],
+            from: calendar.startOfDay(for: program.plan.startDate),
+            to: calendar.startOfDay(for: date)
+        ).day ?? 0
+        return MealPlanner.day(
+            target: program.nutrition,
+            diet: program.profile.dietPreference,
+            dayIndex: ((elapsed % 7) + 7) % 7,
+            mealsPerDay: program.profile.mealCount,
+            excluding: program.profile.excludedFoods,
+            trainsToday: trains,
+            runsToday: runs
         )
     }
 
@@ -181,6 +263,33 @@ public enum CoachEngine {
         return remaining.count >= daysLeft || shouldTrain(daysElapsed: daysElapsed, sessionsPerWeek: week.sessions.count)
             ? remaining.first
             : nil
+    }
+
+    /// The run prescribed for a given day, if the athlete runs.
+    ///
+    /// Run days are anchored on the plan's own week, so day 0 is the first
+    /// day of the block rather than a Monday the athlete never agreed to.
+    static func scheduledRun(
+        for program: CoachingProgram,
+        weekIndex: Int,
+        on date: Date,
+        calendar: Calendar
+    ) -> PlannedRun? {
+        guard let block = program.runningBlock,
+              weekIndex >= 1, weekIndex <= block.weeks.count
+        else { return nil }
+        let weekStart = calendar.date(
+            byAdding: .day,
+            value: (weekIndex - 1) * 7,
+            to: program.plan.startDate
+        ) ?? program.plan.startDate
+        let dayIndex = calendar.dateComponents(
+            [.day],
+            from: calendar.startOfDay(for: weekStart),
+            to: calendar.startOfDay(for: date)
+        ).day ?? 0
+        guard (0..<7).contains(dayIndex) else { return nil }
+        return block.weeks[weekIndex - 1].runs.first { $0.dayIndex == dayIndex }
     }
 
     /// Evenly spaced training days across the week.
@@ -292,6 +401,7 @@ public enum CoachEngine {
             let base = next.nutrition
             let calories = base.calories + review.calorieAdjustment
             let carbs = max(30, (Double(calories) - Double(base.proteinG) * 4 - Double(base.fatG) * 9) / 4)
+            let signed = "\(review.calorieAdjustment > 0 ? "+" : "")\(review.calorieAdjustment)"
             next = CoachingProgram(
                 profile: next.profile,
                 metrics: next.metrics,
@@ -303,11 +413,16 @@ public enum CoachEngine {
                     weeklyWeightChangeKg: base.weeklyWeightChangeKg,
                     maintenanceCalories: base.maintenanceCalories,
                     rationale: base.rationale + [
-                        "Ajustement de \(review.calorieAdjustment > 0 ? "+" : "")\(review.calorieAdjustment) kcal issu de l'évolution réelle de ton poids sur le bloc précédent."
+                        LocalizedText(
+                            fr: "Ajustement de \(signed) kcal issu de l'évolution réelle de ton poids sur le bloc précédent.",
+                            en: "A \(signed) kcal adjustment, taken from how your weight actually moved over the previous block.",
+                            es: "Ajuste de \(signed) kcal a partir de cómo evolucionó realmente tu peso en el bloque anterior."
+                        )
                     ]
                 ),
                 plan: next.plan,
-                weeksToGoal: next.weeksToGoal
+                weeksToGoal: next.weeksToGoal,
+                runningBlock: next.runningBlock
             )
         }
 

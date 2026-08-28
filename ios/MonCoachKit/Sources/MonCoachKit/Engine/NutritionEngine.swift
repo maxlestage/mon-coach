@@ -10,7 +10,7 @@ public struct NutritionTarget: Sendable, Equatable {
     /// Negative for a cut, positive for a lean bulk, zero when holding.
     public let weeklyWeightChangeKg: Double
     public let maintenanceCalories: Int
-    public let rationale: [String]
+    public let rationale: [LocalizedText]
 
     public var proteinKcal: Int { proteinG * 4 }
     public var fatKcal: Int { fatG * 9 }
@@ -22,7 +22,7 @@ public enum NutritionEngine {
 
     public static func target(for profile: UserProfile, metrics: BodyMetrics) -> NutritionTarget {
         let maintenance = metrics.tdee
-        var rationale: [String] = []
+        var rationale: [LocalizedText] = []
 
         // Rate of change is expressed as a share of body weight per week so
         // that it stays sane at 55 kg and at 110 kg.
@@ -32,20 +32,50 @@ public enum NutritionEngine {
             // Leaner athletes must go slower or they pay for it in lean mass.
             let rate = (profile.bodyFatPercent ?? 22) < 15 ? 0.005 : 0.0075
             weeklyChangeKg = -profile.weightKg * rate
-            rationale.append("Déficit calibré pour perdre environ \(String(format: "%.1f", abs(weeklyChangeKg))) kg par semaine, soit le rythme qui préserve le mieux la masse musculaire.")
+            rationale.append(
+                LocalizedText(
+                    fr: "Déficit calibré pour perdre environ \(String(format: "%.1f", abs(weeklyChangeKg))) kg par semaine, soit le rythme qui préserve le mieux la masse musculaire.",
+                    en: "Deficit set to lose about \(String(format: "%.1f", abs(weeklyChangeKg))) kg a week, the rate that best preserves muscle.",
+                    es: "Déficit calibrado para perder unos \(String(format: "%.1f", abs(weeklyChangeKg))) kg por semana, el ritmo que mejor preserva el músculo."
+                )
+            )
         case .hypertrophy:
             let rate = profile.experience == .beginner ? 0.0035 : 0.002
             weeklyChangeKg = profile.weightKg * rate
-            rationale.append("Léger surplus : viser plus de \(String(format: "%.1f", weeklyChangeKg)) kg par semaine ferait surtout gagner du gras.")
+            rationale.append(
+                LocalizedText(
+                    fr: "Léger surplus : viser plus de \(String(format: "%.1f", weeklyChangeKg)) kg par semaine ferait surtout gagner du gras.",
+                    en: "A small surplus: aiming for more than \(String(format: "%.1f", weeklyChangeKg)) kg a week would mostly add fat.",
+                    es: "Superávit ligero: buscar más de \(String(format: "%.1f", weeklyChangeKg)) kg por semana añadiría sobre todo grasa."
+                )
+            )
         case .strength:
             weeklyChangeKg = profile.weightKg * 0.0015
-            rationale.append("Surplus minime : assez pour soutenir la récupération sans alourdir les mouvements au poids de corps.")
+            rationale.append(
+                LocalizedText(
+                    fr: "Surplus minime : assez pour soutenir la récupération sans alourdir les mouvements au poids de corps.",
+                    en: "A minimal surplus: enough to support recovery without weighing down your bodyweight work.",
+                    es: "Superávit mínimo: suficiente para sostener la recuperación sin lastrar los movimientos con peso corporal."
+                )
+            )
         case .recomposition:
             weeklyChangeKg = 0
-            rationale.append("Calories de maintien : la recomposition se joue sur les protéines et la progression à l'entraînement, pas sur le déficit.")
+            rationale.append(
+                LocalizedText(
+                    fr: "Calories de maintien : la recomposition se joue sur les protéines et la progression à l'entraînement, pas sur le déficit.",
+                    en: "Maintenance calories: recomposition is won on protein and training progress, not on a deficit.",
+                    es: "Calorías de mantenimiento: la recomposición se juega en la proteína y en la progresión del entrenamiento, no en el déficit."
+                )
+            )
         case .generalHealth:
             weeklyChangeKg = 0
-            rationale.append("Calories de maintien, l'objectif étant la régularité plutôt qu'une variation de poids.")
+            rationale.append(
+                LocalizedText(
+                    fr: "Calories de maintien, l'objectif étant la régularité plutôt qu'une variation de poids.",
+                    en: "Maintenance calories, since the goal is consistency rather than a change in weight.",
+                    es: "Calorías de mantenimiento, ya que el objetivo es la constancia y no un cambio de peso."
+                )
+            )
         }
 
         // 7 700 kcal ≈ 1 kg of body mass.
@@ -57,7 +87,13 @@ public enum NutritionEngine {
         let floor = max(1_200, metrics.leanBodyMassKg * 22)
         if calories < floor {
             calories = floor
-            rationale.append("Le déficit a été plafonné : descendre plus bas compromettrait la récupération et les apports en micronutriments.")
+            rationale.append(
+                LocalizedText(
+                    fr: "Le déficit a été plafonné : descendre plus bas compromettrait la récupération et les apports en micronutriments.",
+                    en: "The deficit was capped: going lower would compromise recovery and micronutrient intake.",
+                    es: "El déficit se ha limitado: bajar más comprometería la recuperación y el aporte de micronutrientes."
+                )
+            )
         }
 
         // Protein: on lean mass, pushed up in a deficit where it protects muscle.
@@ -81,14 +117,32 @@ public enum NutritionEngine {
             let deficit = (50 - carbsG) * 4
             fatG = max(profile.weightKg * 0.5, fatG - deficit / 9)
             carbsG = (calories - proteinG * 4 - fatG * 9) / 4
-            rationale.append("Les lipides ont été réduits au minimum physiologique pour garder assez de glucides autour des séances.")
+            rationale.append(
+                LocalizedText(
+                    fr: "Les lipides ont été réduits au minimum physiologique pour garder assez de glucides autour des séances.",
+                    en: "Fat was cut to the physiological minimum to keep enough carbohydrate around training.",
+                    es: "Las grasas se han reducido al mínimo fisiológico para mantener hidratos suficientes alrededor del entrenamiento."
+                )
+            )
         }
         carbsG = max(carbsG, 30)
 
-        rationale.append("\(Int(proteinG.rounded())) g de protéines, soit \(String(format: "%.1f", proteinPerKgLean)) g par kg de masse maigre : c'est le levier numéro un, avant même le total calorique.")
+        rationale.append(
+                LocalizedText(
+                    fr: "\(Int(proteinG.rounded())) g de protéines, soit \(String(format: "%.1f", proteinPerKgLean)) g par kg de masse maigre : c'est le levier numéro un, avant même le total calorique.",
+                    en: "\(Int(proteinG.rounded())) g of protein, or \(String(format: "%.1f", proteinPerKgLean)) g per kg of lean mass: the number-one lever, ahead of the calorie total itself.",
+                    es: "\(Int(proteinG.rounded())) g de proteína, es decir \(String(format: "%.1f", proteinPerKgLean)) g por kg de masa magra: la palanca número uno, por delante del total calórico."
+                )
+            )
 
         if profile.dietPreference == .vegan || profile.dietPreference == .vegetarian {
-            rationale.append("Régime sans viande : répartis les protéines sur 4 prises et combine légumineuses et céréales pour couvrir tous les acides aminés.")
+            rationale.append(
+                LocalizedText(
+                    fr: "Régime sans viande : répartis les protéines sur 4 prises et combine légumineuses et céréales pour couvrir tous les acides aminés.",
+                    en: "Meat-free diet: spread protein over four servings and combine pulses with grains to cover every amino acid.",
+                    es: "Dieta sin carne: reparte la proteína en cuatro tomas y combina legumbres con cereales para cubrir todos los aminoácidos."
+                )
+            )
         }
 
         return NutritionTarget(
