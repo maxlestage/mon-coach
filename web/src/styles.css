@@ -1354,3 +1354,271 @@ input[type="range"]:focus-visible {
   font-size: 16.5px !important;
   color: var(--text) !important;
 }
+
+/* ------------------------------------------------------------- langues */
+
+.site-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lang {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+}
+
+.lang__option {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 5px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.lang__option:hover {
+  color: var(--text);
+}
+
+.lang__option--active {
+  background: var(--accent);
+  color: #0d0f14;
+}
+
+.site-footer .lang {
+  margin-top: 14px;
+}
+
+/* -------------------------------------------------------------- course */
+
+.running {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: stretch;
+}
+
+.running > * {
+  min-width: 0;
+}
+
+.running__panel {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+}
+
+.running__splits-title {
+  margin: 18px 0 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.section__subtitle {
+  margin: 34px 0 14px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* La carte n'est chargée qu'au clic : l'état d'attente doit donc être une
+   vraie proposition, pas un rectangle vide. */
+.runmap {
+  position: relative;
+  min-height: 340px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  overflow: hidden;
+  background: var(--surface-raised);
+}
+
+.runmap__canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.runmap--idle {
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.runmap__shape {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.35;
+}
+
+.runmap__shape polyline {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.runmap__ask {
+  position: relative;
+  max-width: 380px;
+  padding: 18px;
+  border-radius: 14px;
+  background: rgb(13 15 20 / 0.86);
+  text-align: center;
+}
+
+.runmap__ask h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  color: var(--text);
+}
+
+.runmap__ask p {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.runmap__ask--overlay {
+  position: absolute;
+  inset: auto 16px 16px;
+  margin: 0 auto;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* MapLibre injecte sa propre attribution ; on lui donne le strict minimum
+   plutôt que d'embarquer sa feuille de style entière dans le paquet. */
+.maplibregl-canvas-container canvas {
+  outline: none;
+}
+
+.maplibregl-ctrl-attrib {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  padding: 2px 6px;
+  font-size: 11px;
+  background: rgb(13 15 20 / 0.7);
+  color: var(--muted);
+  border-top-left-radius: 6px;
+}
+
+.maplibregl-ctrl-attrib a {
+  color: var(--muted);
+}
+
+/* --------------------------------------------------------- alimentation */
+
+.card--tier .card__list {
+  margin-bottom: 12px;
+}
+
+.card--tier-base {
+  border-color: rgb(90 217 141 / 0.35);
+}
+
+.card--tier-moderate {
+  border-color: rgb(250 184 77 / 0.3);
+}
+
+.card--tier-occasional {
+  border-color: rgb(242 107 102 / 0.28);
+}
+
+.swaps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 14px;
+}
+
+.swap {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+}
+
+.swap__head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.swap__from {
+  color: var(--muted);
+  text-decoration: line-through;
+  font-size: 14px;
+}
+
+.swap__arrow {
+  color: var(--muted);
+}
+
+.swap__to {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Le gain a sa propre ligne : selon la langue, les noms d'aliments sont
+   plus ou moins longs, et une pastille qui saute d'une ligne à l'autre d'une
+   carte à la suivante donne une grille bancale. */
+.swap__gain {
+  display: inline-block;
+  margin-bottom: 8px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgb(90 217 141 / 0.14);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.swap__why {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+/* ---------------------------------------------------------------- légal */
+
+.legal__notice {
+  margin: 0 0 20px;
+  padding: 12px 14px;
+  border-left: 2px solid var(--accent);
+  background: rgb(90 217 141 / 0.07);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+@media (max-width: 900px) {
+  .running {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .site-header__actions .button {
+    display: none;
+  }
+}

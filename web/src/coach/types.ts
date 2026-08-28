@@ -1,3 +1,8 @@
+import type { Language } from "../i18n/language.tsx";
+
+/** Un texte du moteur, dans les trois langues du produit. */
+export type Localized<T> = Record<Language, T>;
+
 /**
  * Les types du simulateur.
  *
@@ -77,14 +82,14 @@ export interface NutritionTarget {
   carbsG: number;
   maintenanceCalories: number;
   weeklyWeightChangeKg: number;
-  rationale: string[];
+  rationale: Localized<string>[];
 }
 
 export interface VolumePrescription {
   weeklySets: Record<MuscleGroup, number>;
   recoveryFactor: number;
   total: number;
-  rationale: string[];
+  rationale: Localized<string>[];
 }
 
 export interface SimulatorResult {

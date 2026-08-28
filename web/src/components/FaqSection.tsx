@@ -1,17 +1,26 @@
 import { useState } from "react";
 import { faq } from "../data/content.ts";
+import { useCopy } from "../i18n/language.tsx";
+
+const copy = {
+  fr: { eyebrow: "Questions", title: "Ce qu'on nous demande le plus" },
+  en: { eyebrow: "Questions", title: "What people ask most" },
+  es: { eyebrow: "Preguntas", title: "Lo que más nos preguntan" },
+} as const;
 
 export function FaqSection() {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
+  const t = useCopy(copy);
+  const entries = useCopy(faq);
 
   return (
     <section className="section" id="faq">
       <div className="shell">
-        <span className="section__eyebrow">Questions</span>
-        <h2 className="section__title">Ce qu'on nous demande le plus</h2>
+        <span className="section__eyebrow">{t.eyebrow}</span>
+        <h2 className="section__title">{t.title}</h2>
 
         <div className="faq">
-          {faq.map((entry, index) => {
+          {entries.map((entry, index) => {
             const isOpen = openIndex === index;
             const panelId = `faq-panel-${index}`;
             const buttonId = `faq-button-${index}`;

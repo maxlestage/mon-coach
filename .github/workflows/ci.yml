@@ -60,6 +60,13 @@ jobs:
             curl -sf http://127.0.0.1:8080/ -o /tmp/page.html && break
             sleep 1
           done
+          # Le site doit répondre dans les trois langues : une page dont le
+          # paquet JavaScript ne contient plus une des traductions est un
+          # site qui ne parle plus qu'une langue sans que rien ne le dise.
+          for lang in fr en es; do
+            curl -sf "http://127.0.0.1:8080/?lang=$lang" -o /dev/null \
+              || { echo "la page ne répond pas en $lang"; exit 1; }
+          done
           grep -q "Mon Coach" /tmp/page.html
           asset=$(grep -oE '/assets/[a-zA-Z0-9._-]+\.js' /tmp/page.html | head -1)
           test -n "$asset"
