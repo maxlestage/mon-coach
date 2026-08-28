@@ -1,16 +1,22 @@
 # -*- coding: utf-8 -*-
 """Fabrique la marque de Mon Coach, une seule fois, pour tous les supports.
 
-La marque n'est pas une initiale : c'est ce que l'application produit. Une
-courbe de progression qui monte, redescend d'un cran, puis repart plus haut
-qu'elle n'était — un bloc de cinq semaines, sa semaine de décharge, et le
-bloc suivant qui reprend au-dessus. Le trait naît fin et finit épais : on
-lit le sens de la lecture sans avoir besoin d'une flèche.
+La marque n'est pas une initiale : c'est ce que l'application produit.
+
+Au centre, une courbe de progression qui monte, redescend d'un cran, puis
+repart — un bloc et sa semaine de décharge. Le trait naît fin et finit
+épais, ce qui donne le sens de la lecture sans qu'il faille une flèche, et
+se termine par un point plein : la séance du jour, celle qui reste à faire.
+
+Autour, l'anneau est le bloc lui-même. Il part mince et sourd en bas à
+gauche, s'épaissit et s'éclaire en tournant, et s'arrête net en bas à
+droite. Le trou du bas est ce qui sépare deux blocs.
 
 Tout est dérivé d'une seule géométrie, décrite ici et nulle part ailleurs :
 le site la dessine en SVG à partir des mêmes coordonnées, et ce script en
 tire les PNG dont la PWA et iOS ont besoin. Deux dessins entretenus
-séparément finissent toujours par diverger.
+séparément finissent toujours par diverger — et l'écart ne se voit pas dans
+le code, il se voit en posant les deux rendus côte à côte.
 
     python3 tools/brand/generate.py
 """
@@ -27,25 +33,41 @@ from PIL import Image, ImageDraw
 
 # Repère de 100 × 100, celui du viewBox du SVG. Quatre points de contrôle,
 # reliés par une courbe lisse : monter, marquer la décharge, repartir.
-CURVE = [(16, 74), (38, 46), (54, 56), (84, 21)]
-CURVE_WIDTH_START = 4.2
-CURVE_WIDTH_END = 13.0
+CURVE = [(28, 68), (45, 51), (56, 58), (70, 42)]
+CURVE_WIDTH_START = 3.4
+CURVE_WIDTH_END = 8.5
 # L'épaisseur ne croît pas tout à fait linéairement : légèrement en retrait
 # au départ, le trait reste fin plus longtemps et la fin paraît plus franche.
 CURVE_WIDTH_EASE = 0.9
 # Nombre d'échantillons par segment de courbe. Au-delà, la facette d'un
 # polygone mesure moins d'un dixième de pixel : on paierait des octets pour
 # une différence que personne ne voit.
-CURVE_STEPS = 24
+CURVE_STEPS = 40
+
+# Le point du bout, posé sur le dernier point de contrôle : il en est déduit
+# plutôt que saisi, sinon déplacer la courbe le laisserait derrière.
+DOT_RADIUS = 7.0
+
+# L'anneau : centre, rayon, puis les segments qui le composent, du plus sourd
+# au plus franc. Angles en degrés, 0° = est, sens horaire (l'axe des y
+# descend). Le trou du bas laisse passer le départ de la courbe.
+RING_CENTER = (50, 50)
+RING_RADIUS = 43.0
+# (début, fin, épaisseur, opacité)
+RING_SEGMENTS = [
+    (126, 250, 2.4, 0.18),
+    (250, 340, 3.2, 0.42),
+    (340, 410, 4.4, 0.90),
+]
 
 # La part du cadre occupée par le dessin. Partagée par le PNG et le SVG :
-# sans elle, le SVG du site dessinait la courbe bord à bord pendant que
-# l'icône gardait sa marge, et les deux marques ne se ressemblaient plus.
-CONTENT_RATIO = 0.74
+# sans elle, le SVG du site dessinait la marque bord à bord pendant que
+# l'icône gardait sa marge, et les deux ne se ressemblaient plus.
+CONTENT_RATIO = 0.70
 
-# La lueur derrière le trait : ce qui détache le dessin du fond au lieu de le
+# La lueur derrière le dessin : ce qui le détache du fond au lieu de le
 # poser dessus. Centre, rayon et opacité au centre.
-GLOW_CENTER = (50, 46)
+GLOW_CENTER = (50, 44)
 GLOW_RADIUS = 52.0
 GLOW_ALPHA = 0.13
 
@@ -64,7 +86,7 @@ def hex_color(color: tuple[int, int, int]) -> str:
     return "#%02x%02x%02x" % color
 
 
-# ------------------------------------------------------------- la courbe
+# ----------------------------------------------------------------- la courbe
 
 def smoothed() -> list[tuple[float, float]]:
     """La courbe échantillonnée, en passant par tous les points de contrôle.
@@ -132,14 +154,47 @@ def outline() -> list[tuple[float, float]]:
     return left + right[::-1]
 
 
-def caps() -> list[tuple[tuple[float, float], float]]:
-    """Les deux extrémités arrondies, à poser sur le contour."""
+def discs() -> list[tuple[tuple[float, float], float]]:
+    """Les disques à poser : les deux bouts arrondis, puis le point du bout.
+
+    Le point est plus large que le trait ; il est listé en dernier pour être
+    dessiné par-dessus, comme dans le SVG.
+    """
     points = smoothed()
     thickness = widths(len(points))
-    return [(points[0], thickness[0] / 2), (points[-1], thickness[-1] / 2)]
+    return [
+        (points[0], thickness[0] / 2),
+        (points[-1], thickness[-1] / 2),
+        (CURVE[-1], DOT_RADIUS),
+    ]
 
 
-# --------------------------------------------------------------- rendu PNG
+# ----------------------------------------------------------------- l'anneau
+
+def ring_point(degrees: float) -> tuple[float, float]:
+    angle = math.radians(degrees)
+    return (
+        RING_CENTER[0] + RING_RADIUS * math.cos(angle),
+        RING_CENTER[1] + RING_RADIUS * math.sin(angle),
+    )
+
+
+def ring_free_ends() -> list[tuple[float, float, float, float]]:
+    """Les deux extrémités libres de l'anneau : x, y, épaisseur, opacité.
+
+    Seules celles-là sont arrondies. Entre deux segments, la coupure franche
+    est précisément ce qui donne l'impression d'un trait qui s'épaissit — et
+    deux bouts ronds superposés y feraient une bosse.
+    """
+    first, last = RING_SEGMENTS[0], RING_SEGMENTS[-1]
+    start, end = ring_point(first[0]), ring_point(last[1])
+    return [
+        (start[0], start[1], first[2], first[3]),
+        (end[0], end[1], last[2], last[3]),
+    ]
+
+
+# ---------------------------------------------------------------- rendu PNG
 
 def vertical_gradient(size: int, top: tuple[int, int, int], bottom: tuple[int, int, int]) -> Image.Image:
     """Un dégradé vertical plein cadre."""
@@ -154,7 +209,7 @@ def vertical_gradient(size: int, top: tuple[int, int, int], bottom: tuple[int, i
 
 
 def radial_glow(size: int, scale: float, offset: float) -> Image.Image:
-    """La lueur derrière le trait, en niveaux de gris.
+    """La lueur derrière le dessin, en niveaux de gris.
 
     Calculée petite puis agrandie : un dégradé radial pixel par pixel sur
     4096 × 4096 coûterait des minutes pour un résultat identique.
@@ -183,7 +238,8 @@ def stroke_mask(size: int, scale: float, offset: float) -> Image.Image:
 
     Le tracé est dessiné dans un masque puis rempli d'un dégradé : Pillow ne
     sait pas peindre un trait dégradé, mais il sait très bien composer deux
-    images à travers un masque.
+    images à travers un masque. Le niveau de gris porte l'opacité, ce qui
+    permet à l'anneau d'être plus sourd que la courbe sans changer de teinte.
     """
     mask = Image.new("L", (size, size), 0)
     draw = ImageDraw.Draw(mask)
@@ -191,11 +247,31 @@ def stroke_mask(size: int, scale: float, offset: float) -> Image.Image:
     def place(point: tuple[float, float]) -> tuple[float, float]:
         return (offset + point[0] * scale, offset + point[1] * scale)
 
-    draw.polygon([place(point) for point in outline()], fill=255)
-    for point, radius in caps():
-        x, y = place(point)
+    def disc(center: tuple[float, float], radius: float, fill: int) -> None:
+        x, y = place(center)
         r = radius * scale
-        draw.ellipse([x - r, y - r, x + r, y + r], fill=255)
+        draw.ellipse([x - r, y - r, x + r, y + r], fill=fill)
+
+    center = place(RING_CENTER)
+    for begin, finish, thickness, opacity in RING_SEGMENTS:
+        width = max(1, round(thickness * scale))
+        # Pillow épaissit un arc vers l'intérieur de la boîte : on élargit la
+        # boîte d'une demi-épaisseur pour que la ligne médiane reste sur le
+        # rayon, quelle que soit l'épaisseur du segment.
+        outer = RING_RADIUS * scale + width / 2
+        draw.arc(
+            [center[0] - outer, center[1] - outer, center[0] + outer, center[1] + outer],
+            begin,
+            finish,
+            fill=round(255 * opacity),
+            width=width,
+        )
+    for x, y, thickness, opacity in ring_free_ends():
+        disc((x, y), thickness / 2, round(255 * opacity))
+
+    draw.polygon([place(point) for point in outline()], fill=255)
+    for point, radius in discs():
+        disc(point, radius, 255)
     return mask
 
 
@@ -253,7 +329,7 @@ def render(target: int, *, content_ratio: float, rounded: bool) -> Image.Image:
     return canvas.resize((target, target), Image.LANCZOS)
 
 
-# --------------------------------------------------------------- rendu SVG
+# ---------------------------------------------------------------- rendu SVG
 
 def outline_path() -> str:
     """Le contour du trait, en commandes de chemin SVG."""
@@ -277,17 +353,50 @@ def centerline_path() -> str:
         p0, p1, p2, p3 = padded[index], padded[index + 1], padded[index + 2], padded[index + 3]
         c1 = (p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6)
         c2 = (p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6)
-        path += (
-            f"C{c1[0]:.1f},{c1[1]:.1f} {c2[0]:.1f},{c2[1]:.1f} {p2[0]:g},{p2[1]:g}"
-        )
+        path += f"C{c1[0]:.1f},{c1[1]:.1f} {c2[0]:.1f},{c2[1]:.1f} {p2[0]:g},{p2[1]:g}"
     return path
 
 
-def caps_svg(prefix: str = "") -> str:
+def ring_path(begin: float, finish: float) -> str:
+    """Un segment d'anneau, en commandes de chemin SVG."""
+    x1, y1 = ring_point(begin)
+    x2, y2 = ring_point(finish)
+    large = 1 if (finish - begin) % 360 > 180 else 0
+    return f"M{x1:.2f},{y1:.2f} A{RING_RADIUS:g},{RING_RADIUS:g} 0 {large} 1 {x2:.2f},{y2:.2f}"
+
+
+def ring_svg(stroke: str) -> str:
+    """L'anneau complet : les segments, puis les deux bouts arrondis.
+
+    Les segments sont tracés à bouts francs et les extrémités libres posées
+    en disques, exactement comme les dessine Pillow. Des bouts ronds partout
+    empièteraient sur le segment voisin et la marche d'épaisseur, qui est le
+    sujet du dessin, deviendrait une bosse.
+    """
+    parts = [
+        f'<path d="{ring_path(begin, finish)}" fill="none" stroke="{stroke}" '
+        f'stroke-opacity="{opacity:g}" stroke-width="{thickness:g}" stroke-linecap="butt"/>'
+        for begin, finish, thickness, opacity in RING_SEGMENTS
+    ]
+    parts += [
+        f'<circle cx="{x:.2f}" cy="{y:.2f}" r="{thickness / 2:g}" fill="{stroke}" '
+        f'fill-opacity="{opacity:g}"/>'
+        for x, y, thickness, opacity in ring_free_ends()
+    ]
+    return "".join(parts)
+
+
+def discs_svg(fill: str) -> str:
     return "".join(
-        f'<circle cx="{point[0]:.1f}" cy="{point[1]:.1f}" r="{radius:.2f}" {prefix}/>'
-        for point, radius in caps()
+        f'<circle cx="{point[0]:.1f}" cy="{point[1]:.1f}" r="{radius:.2f}" fill="{fill}"/>'
+        for point, radius in discs()
     )
+
+
+def content_transform() -> str:
+    """La transformation qui donne au SVG la marge des PNG."""
+    inset = (100 - 100 * CONTENT_RATIO) / 2
+    return f'transform="translate({inset:g},{inset:g}) scale({CONTENT_RATIO:g})"'
 
 
 def glow_stops(indent: str = "", jsx: bool = False) -> str:
@@ -302,20 +411,12 @@ def glow_stops(indent: str = "", jsx: bool = False) -> str:
     opacity = "stopOpacity" if jsx else "stop-opacity"
     color = "stopColor" if jsx else "stop-color"
     tint = "rgb(" + ", ".join(str(c) for c in ACCENT_TOP) + ")" if jsx else f"rgb{ACCENT_TOP}"
-    lines = []
-    for step in range(5):
-        t = step / 4
-        lines.append(
-            f'{indent}<stop offset="{t:g}" {color}="{tint}" '
-            f'{opacity}="{GLOW_ALPHA * (1 - t) ** 2:.4f}"{close}'
-        )
+    lines = [
+        f'{indent}<stop offset="{step / 4:g}" {color}="{tint}" '
+        f'{opacity}="{GLOW_ALPHA * (1 - step / 4) ** 2:.4f}"{close}'
+        for step in range(5)
+    ]
     return "\n".join(lines) if indent else "".join(lines)
-
-
-def content_transform() -> str:
-    """La transformation qui donne au SVG la marge des PNG."""
-    inset = (100 - 100 * CONTENT_RATIO) / 2
-    return f'transform="translate({inset:g},{inset:g}) scale({CONTENT_RATIO:g})"'
 
 
 def svg() -> str:
@@ -325,8 +426,8 @@ def svg() -> str:
             '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img">',
             "<defs>",
             # En coordonnées absolues : sinon chaque forme reçoit le dégradé
-            # ramené à sa propre boîte, et les petits disques des extrémités
-            # ressortent comme des pastilles plus claires que le trait.
+            # ramené à sa propre boîte, et les petits disques ressortent
+            # comme des pastilles plus claires que le trait.
             '<linearGradient id="mc-stroke" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="100">',
             f'<stop offset="0" stop-color="rgb{ACCENT_TOP}"/>',
             f'<stop offset="1" stop-color="rgb{ACCENT_BOTTOM}"/>',
@@ -343,8 +444,9 @@ def svg() -> str:
             '<rect width="100" height="100" rx="22.5" fill="url(#mc-plate)"/>',
             '<rect width="100" height="100" rx="22.5" fill="url(#mc-glow)"/>',
             f"<g {content_transform()}>",
+            ring_svg("url(#mc-stroke)"),
             f'<path d="{outline_path()}" fill="url(#mc-stroke)"/>',
-            caps_svg('fill="url(#mc-stroke)"'),
+            discs_svg("url(#mc-stroke)"),
             "</g>",
             "</svg>",
         ]
@@ -356,18 +458,20 @@ def favicon_svg() -> str:
 
     À seize pixels, ni le dégradé ni la variation d'épaisseur ne se voient,
     mais ils pèsent — le contour échantillonné à lui seul fait deux kilos
-    d'octets, répétés dans les quatre pages. Cette version tient dans une
-    URL de données trente fois plus courte, pour un dessin que l'œil ne
-    distingue pas de l'autre.
+    d'octets, répétés dans les quatre pages. L'anneau, lui, ne coûte rien :
+    il est identique à celui de la marque complète.
     """
     thickness = (CURVE_WIDTH_START + CURVE_WIDTH_END) / 2
+    accent = hex_color(ACCENT_TOP)
     return "".join(
         [
             '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">',
             f'<rect width="100" height="100" rx="22.5" fill="{hex_color(BG_BOTTOM)}"/>',
             f"<g {content_transform()}>",
-            f'<path d="{centerline_path()}" fill="none" stroke="{hex_color(ACCENT_TOP)}" '
+            ring_svg(accent),
+            f'<path d="{centerline_path()}" fill="none" stroke="{accent}" '
             f'stroke-width="{thickness:g}" stroke-linecap="round"/>',
+            f'<circle cx="{CURVE[-1][0]:g}" cy="{CURVE[-1][1]:g}" r="{DOT_RADIUS:g}" fill="{accent}"/>',
             "</g>",
             "</svg>",
         ]
@@ -402,11 +506,14 @@ def tsx() -> str:
     def rgb(color: tuple[int, int, int]) -> str:
         return "rgb(" + ", ".join(str(channel) for channel in color) + ")"
 
-    circles = "\n".join(
-        f'        <circle cx="{point[0]:.1f}" cy="{point[1]:.1f}" r="{radius:.2f}" '
-        f"fill={{`url(#${{id}}-stroke)`}} />"
-        for point, radius in caps()
-    )
+    def indented(markup: str) -> str:
+        """Les fragments SVG partagés, remis à l'indentation du composant."""
+        pieces = markup.replace("/><", "/>\n<").split("\n")
+        return "\n".join("        " + piece.replace("/>", " />") for piece in pieces)
+
+    stroke = "{`url(#${id}-stroke)`}"
+    body = indented(ring_svg("STROKE") + f'<path d="{outline_path()}" fill="STROKE"/>' + discs_svg("STROKE"))
+    body = body.replace('"STROKE"', stroke)
 
     return f'''import {{ useId }} from "react";
 
@@ -417,10 +524,10 @@ def tsx() -> str:
  * la prochaine exécution du script écraserait la retouche, et le SVG du site
  * ne correspondrait plus aux icônes de l'application.
  *
- * Ce n'est pas une initiale, c'est ce que l'application produit : une courbe
- * qui monte, redescend d'un cran — la semaine de décharge — puis repart plus
- * haut qu'elle n'était. Le trait naît fin et finit épais, ce qui donne le
- * sens de lecture sans qu'il faille une flèche.
+ * Ce n'est pas une initiale, c'est ce que l'application produit. La courbe
+ * monte, redescend d'un cran — la semaine de décharge — puis repart, et
+ * finit sur un point plein : la séance du jour. L'anneau autour est le bloc,
+ * mince et sourd à son début, franc à sa fin.
  */
 export function BrandMark({{
   size = 30,
@@ -466,8 +573,7 @@ export function BrandMark({{
         </>
       )}}
       <g {content_transform()}>
-        <path d="{outline_path()}" fill={{`url(#${{id}}-stroke)`}} />
-{circles}
+{body}
       </g>
     </svg>
   );
@@ -490,7 +596,7 @@ def main() -> None:
         ("icon-512.png", 512, CONTENT_RATIO, True),
         # Masquable : le système rogne jusqu'au cercle inscrit, donc le
         # dessin est plus petit et le fond va jusqu'aux bords.
-        ("icon-512-maskable.png", 512, 0.55, False),
+        ("icon-512-maskable.png", 512, 0.52, False),
     ]:
         path = os.path.join(web_icons, name)
         render(target, content_ratio=ratio, rounded=rounded).save(path)
@@ -498,8 +604,9 @@ def main() -> None:
 
     app_icon = os.path.join(ios_icons, "icon-1024.png")
     # iOS applique lui-même le masque arrondi : l'icône livrée est carrée et
-    # pleine, sans couche alpha, sinon l'App Store la refuse.
-    render(1024, content_ratio=0.70, rounded=False).convert("RGB").save(app_icon)
+    # pleine, sans couche alpha, sinon l'App Store la refuse. Le dessin est
+    # un peu plus serré que sur le web, pour ne pas frôler ce masque.
+    render(1024, content_ratio=0.66, rounded=False).convert("RGB").save(app_icon)
     written.append(app_icon)
 
     component = os.path.join(root, "web", "src", "components", "BrandMark.tsx")
