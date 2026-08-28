@@ -97,6 +97,11 @@ fusion sur `master` qui touche à `web/`. La configuration se fait entièrement
 depuis un navigateur — un téléphone suffit, il n'y a ni ligne de commande
 Heroku ni installation : **[docs/DEPLOIEMENT.md](docs/DEPLOIEMENT.md)**.
 
+Une seule chose à ne pas faire : connecter le dépôt à Heroku depuis l'onglet
+*Deploy* du tableau de bord. Heroku construirait alors la racine du dépôt avec
+ses buildpacks, où il n'y a pas de `package.json` — le site vit dans `web/`.
+C'est GitHub Actions qui déploie, et lui sait où chercher.
+
 Le `Dockerfile` est construit et testé par la CI à chaque pull request : le
 conteneur est démarré, la page est demandée, et les en-têtes de cache sont
 vérifiés. Ce qui part en production est ce qui a été testé.

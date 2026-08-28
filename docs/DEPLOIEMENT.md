@@ -8,6 +8,21 @@ Une fois la configuration faite, tu n'y reviens plus : chaque fusion sur
 
 ---
 
+## Étape 0 — fusionner la pull request
+
+**Rien ne peut être déployé tant que `master` ne contient pas le site.**
+
+Tant que la PR est ouverte, `master` ne contient que le `README.md` du dépôt
+vide. Toute tentative de déploiement construira ce dépôt vide et échouera.
+
+Le workflow de déploiement lui-même n'existe pour GitHub Actions qu'une fois
+présent sur la branche par défaut : avant la fusion, l'onglet **Actions**
+n'affiche pas **Déploiement**, et le bouton *Run workflow* n'existe pas.
+
+Donc : fusionne d'abord, configure ensuite.
+
+---
+
 ## Avant de commencer
 
 Heroku n'a plus d'offre gratuite. Un dyno **Eco** coûte environ **5 $ par
@@ -26,9 +41,27 @@ statiques : n'importe quelle taille de dyno suffit largement.
 4. **Region** : *Europe*.
 5. **Create app**.
 
-Tu n'as rien d'autre à faire ici. En particulier : **ne connecte pas** le
-dépôt GitHub depuis l'onglet *Deploy*. C'est GitHub Actions qui déploie, et
-brancher les deux ferait deux déploiements concurrents.
+### ⚠️ Ne connecte pas GitHub depuis Heroku
+
+Sur la page de l'application, l'onglet **Deploy** propose *Connect to GitHub*.
+**Ne l'utilise pas.** C'est le piège le plus facile à tomber dedans, parce que
+c'est le bouton le plus visible.
+
+Si tu le fais, Heroku construit le dépôt lui-même, avec ses buildpacks, depuis
+la racine — où il n'y a pas de `package.json`, puisque le site vit dans
+`web/`. La construction échoue avec ce message :
+
+```
+ERROR: Application not supported by 'heroku/nodejs' buildpack
+The 'heroku/nodejs' buildpack is set on this application, but was
+unable to detect a Node.js codebase.
+```
+
+C'est GitHub Actions qui déploie, et lui sait où chercher.
+
+**Si tu l'as déjà connecté** : onglet **Deploy** → section *App connected to
+GitHub* → **Disconnect**. Sinon les deux systèmes déploieront en parallèle, et
+celui de Heroku échouera à chaque fois.
 
 ## 2. Récupérer la clé d'API Heroku
 
@@ -60,11 +93,16 @@ toute façon, il apparaît dans l'adresse du site.
 
 ## 4. Déclencher le déploiement
 
-Deux façons, au choix :
+Si la PR a été fusionnée après avoir renseigné le secret et la variable, le
+déploiement est déjà parti tout seul. Sinon, deux façons :
 
-- **Fusionner une pull request sur `master`** qui touche à `web/` ;
+- **fusionner une pull request sur `master`** qui touche à `web/` ;
 - ou, à la demande : onglet **Actions** → workflow **Déploiement** →
   **Run workflow** → branche `master` → **Run workflow**.
+
+Le workflow **Déploiement** n'apparaît dans l'onglet Actions qu'une fois
+présent sur `master` : avant la première fusion, il est normal de ne pas le
+voir.
 
 ## 5. Vérifier
 
@@ -98,6 +136,23 @@ Le `Dockerfile` n'est pas seulement relu : le job **Image de déploiement** de
 la CI le construit à chaque pull request, lance le conteneur et vérifie qu'il
 sert bien la page, que les fichiers versionnés sont mis en cache un an, et
 qu'une route inconnue retombe sur la page d'accueil.
+
+## Quand ça se passe mal
+
+**« Application not supported by 'heroku/nodejs' buildpack »**
+Heroku construit le dépôt lui-même au lieu de laisser GitHub Actions le faire.
+Va dans l'onglet **Deploy** de l'application et fais **Disconnect** sur la
+connexion GitHub. Si le log mentionne aussi `This directory has the following
+files: README.md`, c'est que `master` est encore vide : la pull request n'a
+pas été fusionnée.
+
+**Le workflow « Déploiement » n'apparaît pas dans l'onglet Actions**
+Il n'est pas encore sur `master`. Fusionne la pull request.
+
+**Le job s'affiche en vert mais rien n'est déployé**
+Regarde la première étape : si elle affiche « Déploiement non configuré », le
+secret `HEROKU_API_KEY` ou la variable `HEROKU_APP_NAME` manque. Le workflow
+s'arrête volontairement là plutôt que de faire échouer `master`.
 
 ## Questions courantes
 
