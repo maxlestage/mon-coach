@@ -11,11 +11,30 @@ public struct PersistedState: Codable, Sendable {
     public var profile: UserProfile?
     public var plan: Mesocycle?
     public var history: TrainingHistory
+    /// Les segments découpés par l'athlète.
+    public var segments: [Segment]
 
-    public init(profile: UserProfile?, plan: Mesocycle?, history: TrainingHistory) {
+    public init(
+        profile: UserProfile?,
+        plan: Mesocycle?,
+        history: TrainingHistory,
+        segments: [Segment] = []
+    ) {
         self.profile = profile
         self.plan = plan
         self.history = history
+        self.segments = segments
+    }
+
+    /// Les segments sont arrivés après coup : un fichier écrit avant eux
+    /// n'a pas la clé, et exiger sa présence rendrait tout l'historique
+    /// illisible d'un coup.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        profile = try container.decodeIfPresent(UserProfile.self, forKey: .profile)
+        plan = try container.decodeIfPresent(Mesocycle.self, forKey: .plan)
+        history = try container.decode(TrainingHistory.self, forKey: .history)
+        segments = try container.decodeIfPresent([Segment].self, forKey: .segments) ?? []
     }
 
     public static let empty = PersistedState(profile: nil, plan: nil, history: .empty)
@@ -33,6 +52,8 @@ public final class CoachStore {
     public private(set) var profile: UserProfile?
     public private(set) var plan: Mesocycle?
     public private(set) var history: TrainingHistory = .empty
+    /// Les segments que l'athlète a découpés, du plus récent au plus ancien.
+    public private(set) var segments: [Segment] = []
 
     /// The session the athlete is currently performing, if any.
     public var activeSession: ActiveSession?
@@ -49,6 +70,7 @@ public final class CoachStore {
         profile = state.profile
         plan = state.plan
         history = state.history
+        segments = state.segments
     }
 
     // MARK: - Derived state
@@ -175,6 +197,49 @@ public final class CoachStore {
         save()
     }
 
+    // MARK: - Segments
+
+    /// Découpe un segment dans une activité et le garde.
+    ///
+    /// Rend nil quand le morceau demandé est trop court pour vouloir dire
+    /// quelque chose — l'écran doit le dire, pas faire semblant d'avoir créé
+    /// un segment introuvable ensuite.
+    @discardableResult
+    public func createSegment(
+        from activity: ActivityLog,
+        name: String,
+        startMeters: Double,
+        endMeters: Double
+    ) -> Segment? {
+        guard let segment = SegmentMatching.carve(
+            from: activity, name: name, startMeters: startMeters, endMeters: endMeters
+        ) else { return nil }
+        segments.insert(segment, at: 0)
+        save()
+        return segment
+    }
+
+    public func deleteSegment(_ id: UUID) {
+        segments.removeAll { $0.id == id }
+        save()
+    }
+
+    /// Le classement personnel d'un segment, du plus rapide au plus lent.
+    public func leaderboard(for segment: Segment) -> [SegmentEffort] {
+        SegmentMatching.leaderboard(of: segment, in: history.activities)
+    }
+
+    /// Les passages réalisés pendant une activité donnée.
+    public func segmentEfforts(in activity: ActivityLog) -> [SegmentEffort] {
+        SegmentMatching.efforts(of: segments, in: activity)
+    }
+
+    /// Les distinctions à annoncer après une sortie : records de distance
+    /// d'abord, puis les segments où l'athlète vient de faire mieux.
+    public func highlights(for activity: ActivityLog) -> [EffortRank] {
+        BestEfforts.highlights(for: activity, against: history.activities)
+    }
+
     public func startSession(_ session: PlannedSession) {
         activeSession = ActiveSession(session: session)
     }
@@ -234,7 +299,7 @@ public final class CoachStore {
     // MARK: - Persistence
 
     private func save() {
-        let state = PersistedState(profile: profile, plan: plan, history: history)
+        let state = PersistedState(profile: profile, plan: plan, history: history, segments: segments)
         do {
             try storage.save(state)
             saveError = nil
@@ -249,6 +314,8 @@ public final class CoachStore {
 
     /// Everything the athlete has entered, as JSON, for export.
     public func exportJSON() throws -> Data {
-        try StateStorage.encoder.encode(PersistedState(profile: profile, plan: plan, history: history))
+        try StateStorage.encoder.encode(
+            PersistedState(profile: profile, plan: plan, history: history, segments: segments)
+        )
     }
 }
