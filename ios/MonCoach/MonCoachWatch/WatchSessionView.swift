@@ -17,6 +17,7 @@ struct WatchSessionView: View {
     @State private var restRemaining: Int = 0
     @State private var adjusting: Adjusting = .weight
     @State private var confirmingFinish = false
+    @State private var showsSubstitution = false
 
     private let ticker = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
@@ -125,6 +126,23 @@ struct WatchSessionView: View {
                     .frame(height: 32)
 
                     Button {
+                        showsSubstitution = true
+                    } label: {
+                        Label(
+                            LocalizedText(
+                                fr: "Appareil pris",
+                                en: "Kit taken",
+                                es: "Máquina ocupada"
+                            )[language],
+                            systemImage: "person.2.slash"
+                        )
+                        .font(.system(size: 12))
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(.orange)
+
+                    Button {
                         log(set: set, of: prescription)
                     } label: {
                         Label(
@@ -155,6 +173,11 @@ struct WatchSessionView: View {
             }
         }
         .navigationTitle(active.session.title[language])
+        .navigationDestination(isPresented: $showsSubstitution) {
+            WatchGymView(prescription: prescription) { replacement in
+                store.substituteInActiveSession(prescription: prescription.id, with: replacement)
+            }
+        }
         .onAppear { prime(set: set) }
         .onChange(of: prescription.id) { _, _ in prime(set: active.nextSet(of: prescription)) }
     }

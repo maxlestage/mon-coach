@@ -99,6 +99,17 @@ final class WatchStore {
         activeSession = nil
     }
 
+    /// Remplace un exercice de la séance en cours au poignet.
+    ///
+    /// Le remplacement ne remonte pas au téléphone comme un changement de
+    /// programme : c'est un incident de salle, pas une décision de bloc. Le
+    /// journal, lui, portera le mouvement réellement exécuté.
+    func substituteInActiveSession(prescription id: UUID, with exercise: Exercise) {
+        guard var active = activeSession else { return }
+        active.substitute(prescription: id, with: exercise)
+        activeSession = active
+    }
+
     // MARK: - Course
 
     /// Enregistre une sortie menée au poignet et la fait remonter.

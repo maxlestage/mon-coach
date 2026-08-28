@@ -276,3 +276,97 @@ struct GymGuideTests {
         }
     }
 }
+
+@Suite("Remplacer un exercice en pleine séance")
+struct SubstituteInSessionTests {
+
+    static func active() -> ActiveSession? {
+        let program = CoachEngine.buildProgram(
+            for: Fixtures.intermediate(daysPerWeek: 4),
+            startingOn: Fixtures.start,
+            calendar: Fixtures.calendar
+        )
+        guard let session = program.plan.week(at: 1)?.sessions.first else { return nil }
+        let (loaded, _) = CoachEngine.prescribeLoads(
+            for: session,
+            profile: Fixtures.intermediate(),
+            history: .empty,
+            isDeloadWeek: false
+        )
+        return ActiveSession(session: loaded)
+    }
+
+    @Test("Le remplacement change l'exercice et efface les charges de l'ancien")
+    func substituteReplaces() {
+        guard var active = Self.active(),
+              let first = active.session.exercises.first,
+              let original = ExerciseCatalog.exercise(id: first.exerciseID)
+        else {
+            Issue.record("pas de séance à inspecter")
+            return
+        }
+        let options = GymCoach.substitutions(
+            for: original,
+            profile: Fixtures.intermediate(),
+            excludingEquipment: original.equipment
+        )
+        guard let replacement = options.first?.exercise else {
+            Issue.record("aucun remplacement pour \(original.id)")
+            return
+        }
+
+        let didSubstitute = active.substitute(prescription: first.id, with: replacement)
+        #expect(didSubstitute)
+        let updated = active.session.exercises[0]
+        #expect(updated.exerciseID == replacement.id)
+        #expect(updated.id == first.id)
+        // Une charge calculée pour l'autre mouvement n'a plus aucun sens.
+        #expect(updated.sets.allSatisfy { $0.suggestedLoadKg == nil })
+        #expect(updated.note == replacement.cue)
+        // Le nombre de séries prévues ne change pas : c'est le volume du bloc.
+        #expect(updated.sets.count == first.sets.count)
+    }
+
+    @Test("Les séries déjà faites gardent l'exercice sur lequel elles ont été faites")
+    func loggedSetsKeepTheirExercise() {
+        guard var active = Self.active(),
+              let first = active.session.exercises.first,
+              let original = ExerciseCatalog.exercise(id: first.exerciseID),
+              let set = first.sets.first
+        else {
+            Issue.record("pas de séance à inspecter")
+            return
+        }
+        active.completed[first.id] = [
+            SetLog(
+                date: Fixtures.start,
+                exerciseID: original.id,
+                setIndex: set.index,
+                weightKg: 60,
+                reps: 8,
+                rpe: 8
+            )
+        ]
+        let replacement = GymCoach
+            .substitutions(for: original, profile: Fixtures.intermediate(), excludingEquipment: original.equipment)
+            .first?
+            .exercise
+        guard let replacement else { return }
+
+        active.substitute(prescription: first.id, with: replacement)
+        let log = active.log(finishedAt: Fixtures.start.addingTimeInterval(3_600))
+        // La série faite avant le remplacement raconte le mouvement réellement
+        // exécuté, pas celui qui l'a remplacé.
+        #expect(log.sets.contains { $0.exerciseID == original.id })
+        #expect(!log.sets.contains { $0.exerciseID == replacement.id })
+    }
+
+    @Test("Un identifiant inconnu ne change rien")
+    func unknownPrescriptionIsIgnored() {
+        guard var active = Self.active() else { return }
+        let before = active.session
+        let didSubstitute = active.substitute(prescription: UUID(), with: ExerciseCatalog.all[0])
+        #expect(!didSubstitute)
+        #expect(active.session == before)
+    }
+}

@@ -9,6 +9,7 @@ import MonCoachKit
 struct SessionPlayerView: View {
     @Environment(\.language) private var language
     @State private var guidedExercise: Exercise?
+    @State private var gymObstacleFor: Exercise?
     @Environment(CoachStore.self) private var store
     @Environment(\.dismiss) private var dismiss
 
@@ -41,6 +42,14 @@ struct SessionPlayerView: View {
             .navigationTitle(active?.session.title[language] ?? "Séance")
             .sheet(item: $guidedExercise) { exercise in
                 GuidedTechniqueView(exercise: exercise)
+            }
+            .sheet(item: $gymObstacleFor) { exercise in
+                GymCoachView(
+                    exercise: exercise,
+                    session: store.activeSession?.session
+                ) { replacement in
+                    substitute(exercise, with: replacement)
+                }
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -141,6 +150,19 @@ struct SessionPlayerView: View {
         return active.currentExercise
     }
 
+    /// Applique un remplacement à la séance en cours.
+    ///
+    /// La prescription garde son identifiant : les séries déjà enregistrées
+    /// y restent attachées, et elles portent le nom du mouvement sur lequel
+    /// elles ont réellement été faites.
+    private func substitute(_ original: Exercise, with replacement: Exercise) {
+        guard var active = store.activeSession,
+              let prescription = active.session.exercises.first(where: { $0.exerciseID == original.id })
+        else { return }
+        active.substitute(prescription: prescription.id, with: replacement)
+        store.activeSession = active
+    }
+
     private func currentCard(_ active: ActiveSession, prescription: ExercisePrescription) -> some View {
         let exercise = ExerciseCatalog.exercise(id: prescription.exerciseID)
         let set = active.nextSet(of: prescription)
@@ -166,17 +188,40 @@ struct SessionPlayerView: View {
             // qu'on se demande si on fait le mouvement correctement, pas dans
             // un menu deux écrans plus loin.
             if let exercise {
-                Button {
-                    guidedExercise = exercise
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "figure.strengthtraining.traditional")
-                        Text(LocalizedText(fr: "Mode guidé", en: "Guided mode", es: "Modo guiado")[language])
+                HStack(spacing: 18) {
+                    Button {
+                        guidedExercise = exercise
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "figure.strengthtraining.traditional")
+                            Text(LocalizedText(fr: "Mode guidé", en: "Guided mode", es: "Modo guiado")[language])
+                        }
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(Theme.accent)
                     }
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(Theme.accent)
+                    .buttonStyle(.plain)
+
+                    // Le bouton est ici, à côté de la série en cours, parce
+                    // que c'est là qu'on se tient quand on découvre que le
+                    // rack est occupé.
+                    Button {
+                        gymObstacleFor = exercise
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "person.2.slash")
+                            Text(
+                                LocalizedText(
+                                    fr: "L'appareil est pris",
+                                    en: "Equipment is taken",
+                                    es: "La máquina está ocupada"
+                                )[language]
+                            )
+                        }
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(Theme.warning)
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
 
             if let set {

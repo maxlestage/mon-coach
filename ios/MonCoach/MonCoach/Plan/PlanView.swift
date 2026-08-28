@@ -12,6 +12,7 @@ struct VolumeEntry: Identifiable, Equatable {
 /// The whole block, week by week, so the athlete can see where this is going.
 struct PlanView: View {
     @Environment(\.language) private var language
+    @State private var showsGymCoach = false
     @Environment(CoachStore.self) private var store
 
     @State private var expandedWeek: Int?
@@ -39,6 +40,22 @@ struct PlanView: View {
                 .padding(20)
             }
             .screenBackground()
+            .sheet(isPresented: $showsGymCoach) {
+                // Ouvert hors séance, le coach de salle sert de guide : pas
+                // d'exercice en cours, donc pas de remplacement à proposer,
+                // mais tout ce qu'on aurait aimé savoir avant d'y entrer.
+                GymCoachView()
+            }
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showsGymCoach = true
+                    } label: {
+                        Image(systemName: "building.2")
+                    }
+                    .tint(Theme.accent)
+                }
+            }
             .navigationTitle("Mon plan")
         }
         .tint(Theme.accent)

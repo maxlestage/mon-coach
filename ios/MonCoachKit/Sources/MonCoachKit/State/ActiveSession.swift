@@ -7,7 +7,7 @@ import Foundation
 /// without recomputing anything.
 public struct ActiveSession: Identifiable, Equatable, Sendable {
     public let id: UUID
-    public let session: PlannedSession
+    public private(set) var session: PlannedSession
     public let startedAt: Date
     /// Logged sets, keyed by exercise prescription id.
     public var completed: [UUID: [SetLog]]
@@ -17,6 +17,34 @@ public struct ActiveSession: Identifiable, Equatable, Sendable {
         self.session = session
         self.startedAt = startedAt
         completed = [:]
+    }
+
+    /// Remplace un exercice en cours de séance par un autre.
+    ///
+    /// Les séries déjà enregistrées ne bougent pas : elles portent leur
+    /// propre identifiant d'exercice et racontent ce qui a réellement été
+    /// fait. Les charges suggérées, elles, sont effacées — elles avaient été
+    /// calculées pour l'autre mouvement, et proposer 80 kg au développé
+    /// machine parce que c'était la charge de la barre serait un mensonge
+    /// que l'athlète paierait à la première série.
+    ///
+    /// - Returns: vrai si le remplacement a eu lieu.
+    @discardableResult
+    public mutating func substitute(
+        prescription id: UUID,
+        with exercise: Exercise
+    ) -> Bool {
+        guard let index = session.exercises.firstIndex(where: { $0.id == id }) else { return false }
+        var replaced = session.exercises[index]
+        replaced.exerciseID = exercise.id
+        replaced.sets = replaced.sets.map { set in
+            var copy = set
+            copy.suggestedLoadKg = nil
+            return copy
+        }
+        replaced.note = exercise.cue
+        session.exercises[index] = replaced
+        return true
     }
 
     public func logs(for prescription: ExercisePrescription) -> [SetLog] {
