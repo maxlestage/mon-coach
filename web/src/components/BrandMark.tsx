@@ -7,9 +7,10 @@ import { useId } from "react";
  * la prochaine exécution du script écraserait la retouche, et le SVG du site
  * ne correspondrait plus aux icônes de l'application.
  *
- * Le « M » monte, son second jambage plus haut que le premier. L'arc autour
- * part mince en bas à gauche, s'épaissit en tournant et s'arrête net en bas à
- * droite : c'est le bloc en cours, cinq semaines qui montent puis une coupure.
+ * Ce n'est pas une initiale, c'est ce que l'application produit : une courbe
+ * qui monte, redescend d'un cran — la semaine de décharge — puis repart plus
+ * haut qu'elle n'était. Le trait naît fin et finit épais, ce qui donne le
+ * sens de lecture sans qu'il faille une flèche.
  */
 export function BrandMark({
   size = 30,
@@ -36,7 +37,7 @@ export function BrandMark({
       focusable="false"
     >
       <defs>
-        <linearGradient id={`${id}-stroke`} x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={`${id}-stroke`} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="100">
           <stop offset="0" stopColor="rgb(124, 240, 168)" />
           <stop offset="1" stopColor="rgb(53, 196, 123)" />
         </linearGradient>
@@ -44,9 +45,12 @@ export function BrandMark({
           <stop offset="0" stopColor="rgb(21, 26, 35)" />
           <stop offset="1" stopColor="rgb(11, 13, 18)" />
         </linearGradient>
-        <radialGradient id={`${id}-glow`} cx="0.5" cy="0.42" r="0.52">
-          <stop offset="0" stopColor="rgb(124, 240, 168)" stopOpacity="0.13" />
-          <stop offset="1" stopColor="rgb(124, 240, 168)" stopOpacity="0" />
+        <radialGradient id={`${id}-glow`} cx="0.5" cy="0.46" r="0.52">
+          <stop offset="0" stopColor="rgb(124, 240, 168)" stopOpacity="0.1300" />
+          <stop offset="0.25" stopColor="rgb(124, 240, 168)" stopOpacity="0.0731" />
+          <stop offset="0.5" stopColor="rgb(124, 240, 168)" stopOpacity="0.0325" />
+          <stop offset="0.75" stopColor="rgb(124, 240, 168)" stopOpacity="0.0081" />
+          <stop offset="1" stopColor="rgb(124, 240, 168)" stopOpacity="0.0000" />
         </radialGradient>
       </defs>
       {withPlate && (
@@ -55,38 +59,11 @@ export function BrandMark({
           <rect width="100" height="100" rx="22.5" fill={`url(#${id}-glow)`} />
         </>
       )}
-      <path
-        d="M23.53,83.88 A43.0,43.0 0 0 1 35.29,9.59"
-        fill="none"
-        stroke={`url(#${id}-stroke)`}
-        strokeOpacity={0.22}
-        strokeWidth={2.6}
-        strokeLinecap="round"
-      />
-      <path
-        d="M35.29,9.59 A43.0,43.0 0 0 1 90.41,35.29"
-        fill="none"
-        stroke={`url(#${id}-stroke)`}
-        strokeOpacity={0.5}
-        strokeWidth={3.6}
-        strokeLinecap="round"
-      />
-      <path
-        d="M90.41,35.29 A43.0,43.0 0 0 1 76.47,83.88"
-        fill="none"
-        stroke={`url(#${id}-stroke)`}
-        strokeOpacity={1}
-        strokeWidth={4.8}
-        strokeLinecap="round"
-      />
-      <path
-        d="M28,73 L28,43 L50,60 L72,32 L72,73"
-        fill="none"
-        stroke={`url(#${id}-stroke)`}
-        strokeWidth={10}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <g transform="translate(13,13) scale(0.74)">
+        <path d="M17.7,75.3L18.3,74.6L18.9,73.8L19.7,72.9L20.5,71.9L21.3,70.7L22.2,69.5L23.2,68.2L24.2,66.8L25.2,65.4L26.3,64.0L27.3,62.5L28.4,61.1L29.5,59.6L30.6,58.2L31.7,56.9L32.8,55.6L33.9,54.3L35.0,53.2L36.0,52.2L36.9,51.3L37.8,50.5L38.5,49.9L39.2,49.6L39.6,49.4L39.6,49.4L39.5,49.5L39.2,49.5L39.1,49.6L39.1,49.7L39.3,49.9L39.6,50.3L39.9,50.8L40.3,51.4L40.8,52.2L41.3,53.0L41.8,53.9L42.3,54.8L43.0,55.8L43.6,56.8L44.4,57.8L45.3,58.8L46.4,59.7L47.7,60.5L49.2,61.2L51.0,61.6L52.9,61.6L54.7,61.2L56.4,60.5L58.0,59.7L59.4,58.7L60.8,57.5L62.3,56.2L63.8,54.8L65.3,53.3L66.8,51.7L68.3,50.0L69.9,48.3L71.5,46.5L73.0,44.6L74.6,42.7L76.1,40.9L77.6,39.0L79.1,37.2L80.5,35.4L81.9,33.7L83.2,32.1L84.4,30.5L85.6,29.1L86.6,27.9L87.5,26.8L88.3,25.9L89.0,25.2L79.0,16.8L78.3,17.8L77.5,18.9L76.6,20.1L75.6,21.5L74.5,23.0L73.4,24.6L72.2,26.3L70.9,28.1L69.6,29.9L68.2,31.7L66.8,33.6L65.4,35.5L64.0,37.4L62.6,39.2L61.2,41.0L59.8,42.7L58.5,44.3L57.2,45.9L55.9,47.3L54.8,48.5L53.7,49.6L52.8,50.4L52.0,51.1L51.6,51.5L51.4,51.6L51.5,51.6L51.8,51.7L52.0,51.8L52.0,51.9L51.9,51.9L51.7,51.7L51.3,51.4L50.8,51.0L50.3,50.4L49.8,49.7L49.2,49.0L48.6,48.2L48.0,47.3L47.3,46.4L46.6,45.6L45.8,44.7L44.9,43.9L43.8,43.1L42.6,42.4L41.2,41.9L39.5,41.8L37.9,42.0L36.4,42.6L35.2,43.4L34.1,44.3L33.0,45.2L32.0,46.3L30.9,47.5L29.9,48.8L28.8,50.1L27.8,51.6L26.7,53.0L25.6,54.5L24.6,56.1L23.6,57.7L22.6,59.2L21.6,60.8L20.6,62.3L19.7,63.8L18.8,65.3L18.0,66.7L17.2,68.0L16.5,69.2L15.8,70.2L15.2,71.2L14.7,72.0L14.3,72.7Z" fill={`url(#${id}-stroke)`} />
+        <circle cx="16.0" cy="74.0" r="2.10" fill={`url(#${id}-stroke)`} />
+        <circle cx="84.0" cy="21.0" r="6.50" fill={`url(#${id}-stroke)`} />
+      </g>
     </svg>
   );
 }

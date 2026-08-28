@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 """Fabrique la marque de Mon Coach, une seule fois, pour tous les supports.
 
-La marque est un « M » ascendant : les deux jambages montent, le second plus
-haut que le premier, si bien que la lettre se lit aussi comme une courbe de
-progression. Autour d'elle, l'arc n'est pas un cercle décoratif : il part
-mince et sourd en bas à gauche, s'épaissit et s'éclaire en tournant, et
-s'arrête net en bas à droite. C'est le bloc en cours — cinq semaines qui
-montent, une coupure, puis on recommence un cran plus haut.
+La marque n'est pas une initiale : c'est ce que l'application produit. Une
+courbe de progression qui monte, redescend d'un cran, puis repart plus haut
+qu'elle n'était — un bloc de cinq semaines, sa semaine de décharge, et le
+bloc suivant qui reprend au-dessus. Le trait naît fin et finit épais : on
+lit le sens de la lecture sans avoir besoin d'une flèche.
 
 Tout est dérivé d'une seule géométrie, décrite ici et nulle part ailleurs :
 le site la dessine en SVG à partir des mêmes coordonnées, et ce script en
@@ -26,26 +25,27 @@ from PIL import Image, ImageDraw
 
 # --------------------------------------------------------------- géométrie
 
-# Repère de 100 × 100, celui du viewBox du SVG.
-M_POINTS = [(28, 73), (28, 43), (50, 60), (72, 32), (72, 73)]
-M_STROKE = 10.0
+# Repère de 100 × 100, celui du viewBox du SVG. Quatre points de contrôle,
+# reliés par une courbe lisse : monter, marquer la décharge, repartir.
+CURVE = [(16, 74), (38, 46), (54, 56), (84, 21)]
+CURVE_WIDTH_START = 4.2
+CURVE_WIDTH_END = 13.0
+# L'épaisseur ne croît pas tout à fait linéairement : légèrement en retrait
+# au départ, le trait reste fin plus longtemps et la fin paraît plus franche.
+CURVE_WIDTH_EASE = 0.9
+# Nombre d'échantillons par segment de courbe. Au-delà, la facette d'un
+# polygone mesure moins d'un dixième de pixel : on paierait des octets pour
+# une différence que personne ne voit.
+CURVE_STEPS = 24
 
-# L'arc : centre, rayon, puis les segments qui le composent, du plus sourd au
-# plus franc. Angles en degrés, 0° = est, sens horaire (l'axe des y descend).
-# Le trou du bas laisse passer les jambages : la lettre et l'arc ne se
-# touchent jamais, à aucune taille.
-ARC_CENTER = (50, 50)
-ARC_RADIUS = 43.0
-# (début, fin, épaisseur, opacité)
-ARC_SEGMENTS = [
-    (128, 250, 2.6, 0.22),
-    (250, 340, 3.6, 0.50),
-    (340, 412, 4.8, 1.00),
-]
+# La part du cadre occupée par le dessin. Partagée par le PNG et le SVG :
+# sans elle, le SVG du site dessinait la courbe bord à bord pendant que
+# l'icône gardait sa marge, et les deux marques ne se ressemblaient plus.
+CONTENT_RATIO = 0.74
 
-# La lueur derrière la lettre : ce qui détache le dessin du fond au lieu de le
+# La lueur derrière le trait : ce qui détache le dessin du fond au lieu de le
 # poser dessus. Centre, rayon et opacité au centre.
-GLOW_CENTER = (50, 42)
+GLOW_CENTER = (50, 46)
 GLOW_RADIUS = 52.0
 GLOW_ALPHA = 0.13
 
@@ -60,6 +60,87 @@ HAIRLINE = (255, 255, 255, 26)
 SUPERSAMPLE = 4
 
 
+def hex_color(color: tuple[int, int, int]) -> str:
+    return "#%02x%02x%02x" % color
+
+
+# ------------------------------------------------------------- la courbe
+
+def smoothed() -> list[tuple[float, float]]:
+    """La courbe échantillonnée, en passant par tous les points de contrôle.
+
+    Catmull-Rom plutôt que Bézier : les points de contrôle sont sur la courbe,
+    donc les déplacer dit exactement ce qu'on veut voir. Les extrémités sont
+    doublées pour que la courbe démarre et finisse dans la bonne direction.
+    """
+    padded = [CURVE[0]] + list(CURVE) + [CURVE[-1]]
+    points: list[tuple[float, float]] = []
+    for index in range(len(padded) - 3):
+        p0, p1, p2, p3 = padded[index], padded[index + 1], padded[index + 2], padded[index + 3]
+        for step in range(CURVE_STEPS):
+            t = step / CURVE_STEPS
+            t2, t3 = t * t, t * t * t
+            points.append(
+                (
+                    0.5 * (2 * p1[0] + (-p0[0] + p2[0]) * t
+                           + (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * t2
+                           + (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * t3),
+                    0.5 * (2 * p1[1] + (-p0[1] + p2[1]) * t
+                           + (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * t2
+                           + (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * t3),
+                )
+            )
+    points.append(CURVE[-1])
+    return points
+
+
+def widths(count: int) -> list[float]:
+    """L'épaisseur en chaque point, du départ fin à l'arrivée épaisse."""
+    span = CURVE_WIDTH_END - CURVE_WIDTH_START
+    return [
+        CURVE_WIDTH_START + span * (index / (count - 1)) ** CURVE_WIDTH_EASE
+        for index in range(count)
+    ]
+
+
+def outline() -> list[tuple[float, float]]:
+    """Le contour du trait, un bord aller et l'autre retour.
+
+    Ni Pillow ni SVG ne savent tracer une ligne dont l'épaisseur varie : on
+    calcule les deux bords à la main et on remplit la forme obtenue. C'est
+    aussi ce qui garantit que le PNG et le SVG sont le même dessin, aux
+    mêmes coordonnées, et pas deux approximations voisines.
+    """
+    points = smoothed()
+    thickness = widths(len(points))
+    left: list[tuple[float, float]] = []
+    right: list[tuple[float, float]] = []
+    for index, (x, y) in enumerate(points):
+        if index == 0:
+            dx, dy = points[1][0] - x, points[1][1] - y
+        elif index == len(points) - 1:
+            dx, dy = x - points[-2][0], y - points[-2][1]
+        else:
+            dx = points[index + 1][0] - points[index - 1][0]
+            dy = points[index + 1][1] - points[index - 1][1]
+        length = math.hypot(dx, dy) or 1.0
+        # La normale au chemin : c'est d'elle que dépendent les deux bords.
+        nx, ny = -dy / length, dx / length
+        half = thickness[index] / 2
+        left.append((x + nx * half, y + ny * half))
+        right.append((x - nx * half, y - ny * half))
+    return left + right[::-1]
+
+
+def caps() -> list[tuple[tuple[float, float], float]]:
+    """Les deux extrémités arrondies, à poser sur le contour."""
+    points = smoothed()
+    thickness = widths(len(points))
+    return [(points[0], thickness[0] / 2), (points[-1], thickness[-1] / 2)]
+
+
+# --------------------------------------------------------------- rendu PNG
+
 def vertical_gradient(size: int, top: tuple[int, int, int], bottom: tuple[int, int, int]) -> Image.Image:
     """Un dégradé vertical plein cadre."""
     gradient = Image.new("RGB", (1, size))
@@ -73,7 +154,7 @@ def vertical_gradient(size: int, top: tuple[int, int, int], bottom: tuple[int, i
 
 
 def radial_glow(size: int, scale: float, offset: float) -> Image.Image:
-    """La lueur derrière la lettre, en niveaux de gris.
+    """La lueur derrière le trait, en niveaux de gris.
 
     Calculée petite puis agrandie : un dégradé radial pixel par pixel sur
     4096 × 4096 coûterait des minutes pour un résultat identique.
@@ -81,7 +162,6 @@ def radial_glow(size: int, scale: float, offset: float) -> Image.Image:
     resolution = 192
     glow = Image.new("L", (resolution, resolution), 0)
     pixels = glow.load()
-    # Centre et rayon exprimés dans le repère de l'image basse résolution.
     center_x = (offset + GLOW_CENTER[0] * scale) * resolution / size
     center_y = (offset + GLOW_CENTER[1] * scale) * resolution / size
     radius = GLOW_RADIUS * scale * resolution / size
@@ -98,12 +178,7 @@ def radial_glow(size: int, scale: float, offset: float) -> Image.Image:
     return glow.resize((size, size), Image.BICUBIC)
 
 
-def arc_geometry(index: int) -> tuple[float, float, float, float]:
-    """Un segment d'arc : début, fin, épaisseur, opacité."""
-    return ARC_SEGMENTS[index]
-
-
-def stroke_mask(size: int, scale: float, offset: float, *, with_arc: bool) -> Image.Image:
+def stroke_mask(size: int, scale: float, offset: float) -> Image.Image:
     """Le tracé de la marque, en niveaux de gris.
 
     Le tracé est dessiné dans un masque puis rempli d'un dégradé : Pillow ne
@@ -116,60 +191,15 @@ def stroke_mask(size: int, scale: float, offset: float, *, with_arc: bool) -> Im
     def place(point: tuple[float, float]) -> tuple[float, float]:
         return (offset + point[0] * scale, offset + point[1] * scale)
 
-    if with_arc:
-        center = place(ARC_CENTER)
-
-        def on_arc(degrees: float) -> tuple[float, float]:
-            angle = math.radians(degrees)
-            return (
-                center[0] + ARC_RADIUS * scale * math.cos(angle),
-                center[1] + ARC_RADIUS * scale * math.sin(angle),
-            )
-
-        for position, (begin, finish, thickness, opacity) in enumerate(ARC_SEGMENTS):
-            width = max(1, round(thickness * scale))
-            # Pillow épaissit un arc vers l'intérieur de la boîte : on élargit
-            # la boîte d'une demi-épaisseur pour que la ligne médiane reste
-            # sur le rayon, quelle que soit l'épaisseur du segment.
-            outer = (ARC_RADIUS * scale) + width / 2
-            box = [
-                center[0] - outer,
-                center[1] - outer,
-                center[0] + outer,
-                center[1] + outer,
-            ]
-            draw.arc(box, begin, finish, fill=round(255 * opacity), width=width)
-            # Seules les deux extrémités libres sont arrondies : entre deux
-            # segments, la coupure franche est précisément ce qui donne
-            # l'impression d'un trait qui s'épaissit.
-            for degrees in (
-                [begin] if position == 0 else []
-            ) + ([finish] if position == len(ARC_SEGMENTS) - 1 else []):
-                cap = on_arc(degrees)
-                draw.ellipse(
-                    [
-                        cap[0] - width / 2,
-                        cap[1] - width / 2,
-                        cap[0] + width / 2,
-                        cap[1] + width / 2,
-                    ],
-                    fill=round(255 * opacity),
-                )
-
-    width = round(M_STROKE * scale)
-    points = [place(point) for point in M_POINTS]
-    draw.line(points, fill=255, width=width, joint="curve")
-    # Pillow ne fait pas de terminaisons rondes : on les pose à la main, aux
-    # extrémités comme aux sommets, sinon la lettre a des coins coupés.
-    for point in points:
-        draw.ellipse(
-            [point[0] - width / 2, point[1] - width / 2, point[0] + width / 2, point[1] + width / 2],
-            fill=255,
-        )
+    draw.polygon([place(point) for point in outline()], fill=255)
+    for point, radius in caps():
+        x, y = place(point)
+        r = radius * scale
+        draw.ellipse([x - r, y - r, x + r, y + r], fill=255)
     return mask
 
 
-def render(target: int, *, content_ratio: float, rounded: bool, with_arc: bool = True) -> Image.Image:
+def render(target: int, *, content_ratio: float, rounded: bool) -> Image.Image:
     """Dessine la marque à la taille demandée.
 
     `content_ratio` est la part du cadre occupée par le dessin : les icônes
@@ -193,12 +223,14 @@ def render(target: int, *, content_ratio: float, rounded: bool, with_arc: bool =
     offset = (size - 100 * scale) / 2
 
     # La lueur passe avant le dessin : elle éclaire le fond, elle ne voile pas
-    # la lettre. Elle est rognée par le même masque que le fond, sinon elle
+    # le trait. Elle est rognée par le même masque que le fond, sinon elle
     # déborderait des coins arrondis.
     glow = Image.new("RGBA", (size, size), ACCENT_TOP + (0,))
     glow_mask = radial_glow(size, scale, offset)
     if rounded:
-        glow_mask = Image.composite(glow_mask, Image.new("L", (size, size), 0), background.getchannel("A"))
+        glow_mask = Image.composite(
+            glow_mask, Image.new("L", (size, size), 0), background.getchannel("A")
+        )
     glow.putalpha(glow_mask)
     canvas.alpha_composite(glow)
 
@@ -214,100 +246,132 @@ def render(target: int, *, content_ratio: float, rounded: bool, with_arc: bool =
         )
         canvas.alpha_composite(hairline)
 
-    mask = stroke_mask(size, scale, offset, with_arc=with_arc)
     accent = vertical_gradient(size, ACCENT_TOP, ACCENT_BOTTOM).convert("RGBA")
-    accent.putalpha(mask)
+    accent.putalpha(stroke_mask(size, scale, offset))
     canvas.alpha_composite(accent)
 
     return canvas.resize((target, target), Image.LANCZOS)
 
 
-def m_svg_path() -> str:
-    """La lettre, en commandes de chemin SVG."""
-    return " ".join(
-        ("M" if index == 0 else "L") + f"{x},{y}"
-        for index, (x, y) in enumerate(M_POINTS)
-    )
+# --------------------------------------------------------------- rendu SVG
+
+def outline_path() -> str:
+    """Le contour du trait, en commandes de chemin SVG."""
+    points = outline()
+    head = f"M{points[0][0]:.1f},{points[0][1]:.1f}"
+    body = "".join(f"L{x:.1f},{y:.1f}" for x, y in points[1:])
+    return head + body + "Z"
 
 
-def arc_svg_path(begin: float, finish: float) -> str:
-    """Un segment d'arc, en commandes de chemin SVG."""
-    def point(degrees: float) -> tuple[float, float]:
-        angle = math.radians(degrees)
-        return (
-            ARC_CENTER[0] + ARC_RADIUS * math.cos(angle),
-            ARC_CENTER[1] + ARC_RADIUS * math.sin(angle),
+def centerline_path() -> str:
+    """La ligne médiane, en trois cubiques exactes.
+
+    Une courbe de Catmull-Rom se convertit sans perte en Bézier cubique : le
+    favicon obtient le même tracé que le contour échantillonné, en trente
+    fois moins d'octets. C'est ce qui permet de le glisser dans une URL de
+    données sans alourdir chaque page.
+    """
+    padded = [CURVE[0]] + list(CURVE) + [CURVE[-1]]
+    path = f"M{CURVE[0][0]:g},{CURVE[0][1]:g}"
+    for index in range(len(padded) - 3):
+        p0, p1, p2, p3 = padded[index], padded[index + 1], padded[index + 2], padded[index + 3]
+        c1 = (p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6)
+        c2 = (p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6)
+        path += (
+            f"C{c1[0]:.1f},{c1[1]:.1f} {c2[0]:.1f},{c2[1]:.1f} {p2[0]:g},{p2[1]:g}"
         )
-
-    x1, y1 = point(begin)
-    x2, y2 = point(finish)
-    large = 1 if (finish - begin) % 360 > 180 else 0
-    return f"M{x1:.2f},{y1:.2f} A{ARC_RADIUS},{ARC_RADIUS} 0 {large} 1 {x2:.2f},{y2:.2f}"
+    return path
 
 
-def svg(*, with_arc: bool = True, background: bool = True) -> str:
-    """La même marque, en SVG, pour le site et les favicons."""
-    path = m_svg_path()
-    arc_path = arc_svg_path
-
-    parts = [
-        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img">',
-        "<defs>",
-        '<linearGradient id="mc-mark" x1="0" y1="0" x2="0" y2="1">',
-        f'<stop offset="0" stop-color="rgb{ACCENT_TOP}"/>',
-        f'<stop offset="1" stop-color="rgb{ACCENT_BOTTOM}"/>',
-        "</linearGradient>",
-        '<linearGradient id="mc-bg" x1="0" y1="0" x2="0" y2="1">',
-        f'<stop offset="0" stop-color="rgb{BG_TOP}"/>',
-        f'<stop offset="1" stop-color="rgb{BG_BOTTOM}"/>',
-        "</linearGradient>",
-        f'<radialGradient id="mc-glow" cx="{GLOW_CENTER[0] / 100}" cy="{GLOW_CENTER[1] / 100}" '
-        f'r="{GLOW_RADIUS / 100}">',
-        f'<stop offset="0" stop-color="rgb{ACCENT_TOP}" stop-opacity="{GLOW_ALPHA}"/>',
-        f'<stop offset="1" stop-color="rgb{ACCENT_TOP}" stop-opacity="0"/>',
-        "</radialGradient>",
-        "</defs>",
-    ]
-    if background:
-        parts.append('<rect width="100" height="100" rx="22.5" fill="url(#mc-bg)"/>')
-        parts.append('<rect width="100" height="100" rx="22.5" fill="url(#mc-glow)"/>')
-    if with_arc:
-        for begin, finish, thickness, opacity in ARC_SEGMENTS:
-            parts.append(
-                f'<path d="{arc_path(begin, finish)}" fill="none" stroke="url(#mc-mark)" '
-                f'stroke-opacity="{opacity}" stroke-width="{thickness}" stroke-linecap="round"/>'
-            )
-    parts.append(
-        f'<path d="{path}" fill="none" stroke="url(#mc-mark)" stroke-width="{M_STROKE}" '
-        'stroke-linecap="round" stroke-linejoin="round"/>'
+def caps_svg(prefix: str = "") -> str:
+    return "".join(
+        f'<circle cx="{point[0]:.1f}" cy="{point[1]:.1f}" r="{radius:.2f}" {prefix}/>'
+        for point, radius in caps()
     )
-    parts.append("</svg>")
-    return "".join(parts)
+
+
+def glow_stops(indent: str = "", jsx: bool = False) -> str:
+    """Les paliers du dégradé de la lueur.
+
+    Un `radialGradient` interpole linéairement, alors que le PNG décroît en
+    carré : sans paliers intermédiaires, la lueur du site est plus large et
+    plus verte que celle de l'icône. Cinq arrêts suffisent à rendre l'écart
+    invisible.
+    """
+    close = " />" if jsx else "/>"
+    opacity = "stopOpacity" if jsx else "stop-opacity"
+    color = "stopColor" if jsx else "stop-color"
+    tint = "rgb(" + ", ".join(str(c) for c in ACCENT_TOP) + ")" if jsx else f"rgb{ACCENT_TOP}"
+    lines = []
+    for step in range(5):
+        t = step / 4
+        lines.append(
+            f'{indent}<stop offset="{t:g}" {color}="{tint}" '
+            f'{opacity}="{GLOW_ALPHA * (1 - t) ** 2:.4f}"{close}'
+        )
+    return "\n".join(lines) if indent else "".join(lines)
+
+
+def content_transform() -> str:
+    """La transformation qui donne au SVG la marge des PNG."""
+    inset = (100 - 100 * CONTENT_RATIO) / 2
+    return f'transform="translate({inset:g},{inset:g}) scale({CONTENT_RATIO:g})"'
+
+
+def svg() -> str:
+    """La marque complète, en SVG."""
+    return "".join(
+        [
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img">',
+            "<defs>",
+            # En coordonnées absolues : sinon chaque forme reçoit le dégradé
+            # ramené à sa propre boîte, et les petits disques des extrémités
+            # ressortent comme des pastilles plus claires que le trait.
+            '<linearGradient id="mc-stroke" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="100">',
+            f'<stop offset="0" stop-color="rgb{ACCENT_TOP}"/>',
+            f'<stop offset="1" stop-color="rgb{ACCENT_BOTTOM}"/>',
+            "</linearGradient>",
+            '<linearGradient id="mc-plate" x1="0" y1="0" x2="0" y2="1">',
+            f'<stop offset="0" stop-color="rgb{BG_TOP}"/>',
+            f'<stop offset="1" stop-color="rgb{BG_BOTTOM}"/>',
+            "</linearGradient>",
+            f'<radialGradient id="mc-glow" cx="{GLOW_CENTER[0] / 100:g}" '
+            f'cy="{GLOW_CENTER[1] / 100:g}" r="{GLOW_RADIUS / 100:g}">',
+            glow_stops(),
+            "</radialGradient>",
+            "</defs>",
+            '<rect width="100" height="100" rx="22.5" fill="url(#mc-plate)"/>',
+            '<rect width="100" height="100" rx="22.5" fill="url(#mc-glow)"/>',
+            f"<g {content_transform()}>",
+            f'<path d="{outline_path()}" fill="url(#mc-stroke)"/>',
+            caps_svg('fill="url(#mc-stroke)"'),
+            "</g>",
+            "</svg>",
+        ]
+    )
 
 
 def favicon_svg() -> str:
-    """La marque en version favicon : plate, sans dégradé ni lueur.
+    """La marque en version favicon : plate, sans dégradé, sans épaississement.
 
-    À seize pixels un dégradé ne se voit pas, mais il pèse : cette version
-    tient dans une URL de données trois fois plus courte, pour un dessin que
-    l'œil ne distingue pas de l'autre.
+    À seize pixels, ni le dégradé ni la variation d'épaisseur ne se voient,
+    mais ils pèsent — le contour échantillonné à lui seul fait deux kilos
+    d'octets, répétés dans les quatre pages. Cette version tient dans une
+    URL de données trente fois plus courte, pour un dessin que l'œil ne
+    distingue pas de l'autre.
     """
-    parts = [
-        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">',
-        f'<rect width="100" height="100" rx="22.5" fill="{hex_color(BG_BOTTOM)}"/>',
-    ]
-    for begin, finish, thickness, opacity in ARC_SEGMENTS:
-        parts.append(
-            f'<path d="{arc_svg_path(begin, finish)}" fill="none" '
-            f'stroke="{hex_color(ACCENT_BOTTOM)}" stroke-opacity="{opacity:g}" '
-            f'stroke-width="{thickness:g}" stroke-linecap="round"/>'
-        )
-    parts.append(
-        f'<path d="{m_svg_path()}" fill="none" stroke="{hex_color(ACCENT_TOP)}" '
-        f'stroke-width="{M_STROKE:g}" stroke-linecap="round" stroke-linejoin="round"/>'
+    thickness = (CURVE_WIDTH_START + CURVE_WIDTH_END) / 2
+    return "".join(
+        [
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">',
+            f'<rect width="100" height="100" rx="22.5" fill="{hex_color(BG_BOTTOM)}"/>',
+            f"<g {content_transform()}>",
+            f'<path d="{centerline_path()}" fill="none" stroke="{hex_color(ACCENT_TOP)}" '
+            f'stroke-width="{thickness:g}" stroke-linecap="round"/>',
+            "</g>",
+            "</svg>",
+        ]
     )
-    parts.append("</svg>")
-    return "".join(parts)
 
 
 def favicon_data_uri() -> str:
@@ -328,10 +392,6 @@ def favicon_data_uri() -> str:
     return "data:image/svg+xml," + encoded
 
 
-def hex_color(color: tuple[int, int, int]) -> str:
-    return "#%02x%02x%02x" % color
-
-
 def tsx() -> str:
     """Le composant React du site, dérivé de la même géométrie.
 
@@ -339,21 +399,14 @@ def tsx() -> str:
     des icônes doivent rester le même dessin, et la seule façon de s'en
     assurer est qu'un seul fichier les décrive tous les deux.
     """
-    def numbers(values: tuple[float, ...]) -> str:
-        return ", ".join(f"{value:g}" for value in values)
+    def rgb(color: tuple[int, int, int]) -> str:
+        return "rgb(" + ", ".join(str(channel) for channel in color) + ")"
 
-    arcs = []
-    for begin, finish, thickness, opacity in ARC_SEGMENTS:
-        arcs.append(
-            "      <path\n"
-            f'        d="{arc_svg_path(begin, finish)}"\n'
-            '        fill="none"\n'
-            "        stroke={`url(#${id}-stroke)`}\n"
-            f'        strokeOpacity={{{opacity:g}}}\n'
-            f'        strokeWidth={{{thickness:g}}}\n'
-            '        strokeLinecap="round"\n'
-            "      />"
-        )
+    circles = "\n".join(
+        f'        <circle cx="{point[0]:.1f}" cy="{point[1]:.1f}" r="{radius:.2f}" '
+        f"fill={{`url(#${{id}}-stroke)`}} />"
+        for point, radius in caps()
+    )
 
     return f'''import {{ useId }} from "react";
 
@@ -364,9 +417,10 @@ def tsx() -> str:
  * la prochaine exécution du script écraserait la retouche, et le SVG du site
  * ne correspondrait plus aux icônes de l'application.
  *
- * Le « M » monte, son second jambage plus haut que le premier. L'arc autour
- * part mince en bas à gauche, s'épaissit en tournant et s'arrête net en bas à
- * droite : c'est le bloc en cours, cinq semaines qui montent puis une coupure.
+ * Ce n'est pas une initiale, c'est ce que l'application produit : une courbe
+ * qui monte, redescend d'un cran — la semaine de décharge — puis repart plus
+ * haut qu'elle n'était. Le trait naît fin et finit épais, ce qui donne le
+ * sens de lecture sans qu'il faille une flèche.
  */
 export function BrandMark({{
   size = 30,
@@ -393,17 +447,16 @@ export function BrandMark({{
       focusable="false"
     >
       <defs>
-        <linearGradient id={{`${{id}}-stroke`}} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="rgb({numbers(ACCENT_TOP)})" />
-          <stop offset="1" stopColor="rgb({numbers(ACCENT_BOTTOM)})" />
+        <linearGradient id={{`${{id}}-stroke`}} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="100">
+          <stop offset="0" stopColor="{rgb(ACCENT_TOP)}" />
+          <stop offset="1" stopColor="{rgb(ACCENT_BOTTOM)}" />
         </linearGradient>
         <linearGradient id={{`${{id}}-plate`}} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="rgb({numbers(BG_TOP)})" />
-          <stop offset="1" stopColor="rgb({numbers(BG_BOTTOM)})" />
+          <stop offset="0" stopColor="{rgb(BG_TOP)}" />
+          <stop offset="1" stopColor="{rgb(BG_BOTTOM)}" />
         </linearGradient>
         <radialGradient id={{`${{id}}-glow`}} cx="{GLOW_CENTER[0] / 100:g}" cy="{GLOW_CENTER[1] / 100:g}" r="{GLOW_RADIUS / 100:g}">
-          <stop offset="0" stopColor="rgb({numbers(ACCENT_TOP)})" stopOpacity="{GLOW_ALPHA:g}" />
-          <stop offset="1" stopColor="rgb({numbers(ACCENT_TOP)})" stopOpacity="0" />
+{glow_stops(indent="          ", jsx=True)}
         </radialGradient>
       </defs>
       {{withPlate && (
@@ -412,15 +465,10 @@ export function BrandMark({{
           <rect width="100" height="100" rx="22.5" fill={{`url(#${{id}}-glow)`}} />
         </>
       )}}
-{chr(10).join(arcs)}
-      <path
-        d="{m_svg_path()}"
-        fill="none"
-        stroke={{`url(#${{id}}-stroke)`}}
-        strokeWidth={{{M_STROKE:g}}}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <g {content_transform()}>
+        <path d="{outline_path()}" fill={{`url(#${{id}}-stroke)`}} />
+{circles}
+      </g>
     </svg>
   );
 }}
@@ -436,22 +484,22 @@ def main() -> None:
     os.makedirs(web_icons, exist_ok=True)
 
     written = []
-    for name, target, ratio, rounded, arc in [
-        ("icon-180.png", 180, 0.70, True, True),
-        ("icon-192.png", 192, 0.70, True, True),
-        ("icon-512.png", 512, 0.70, True, True),
+    for name, target, ratio, rounded in [
+        ("icon-180.png", 180, CONTENT_RATIO, True),
+        ("icon-192.png", 192, CONTENT_RATIO, True),
+        ("icon-512.png", 512, CONTENT_RATIO, True),
         # Masquable : le système rogne jusqu'au cercle inscrit, donc le
         # dessin est plus petit et le fond va jusqu'aux bords.
-        ("icon-512-maskable.png", 512, 0.52, False, True),
+        ("icon-512-maskable.png", 512, 0.55, False),
     ]:
         path = os.path.join(web_icons, name)
-        render(target, content_ratio=ratio, rounded=rounded, with_arc=arc).save(path)
+        render(target, content_ratio=ratio, rounded=rounded).save(path)
         written.append(path)
 
     app_icon = os.path.join(ios_icons, "icon-1024.png")
     # iOS applique lui-même le masque arrondi : l'icône livrée est carrée et
-    # pleine, sinon les coins apparaissent deux fois.
-    render(1024, content_ratio=0.66, rounded=False, with_arc=True).convert("RGB").save(app_icon)
+    # pleine, sans couche alpha, sinon l'App Store la refuse.
+    render(1024, content_ratio=0.70, rounded=False).convert("RGB").save(app_icon)
     written.append(app_icon)
 
     component = os.path.join(root, "web", "src", "components", "BrandMark.tsx")
@@ -463,9 +511,7 @@ def main() -> None:
     # href statique vers un fichier copié tel quel, et un favicon injecté en
     # JavaScript arriverait après que l'onglet a déjà affiché son icône par
     # défaut. Une URL de données ne demande rien à personne.
-    pattern = re.compile(
-        r'(<link\s+\n?\s*rel="icon"[^>]*?href=")[^"]*(")', re.MULTILINE
-    )
+    pattern = re.compile(r'(<link rel="icon" type="image/svg\+xml" href=")[^"]*(")')
     for page in ["index.html", "mentions-legales.html", "confidentialite.html", "conditions.html"]:
         path = os.path.join(root, "web", "src", page)
         with io.open(path, encoding="utf-8") as handle:
@@ -474,16 +520,16 @@ def main() -> None:
             lambda match: match.group(1) + favicon_data_uri() + match.group(2), source
         )
         if count != 1:
-            raise SystemExit(f"{page}: {count} balise(s) favicon trouvée(s), une attendue")
+            raise SystemExit(f"{page} : {count} balise(s) favicon trouvée(s), une attendue")
         if patched != source:
             with io.open(path, "w", encoding="utf-8") as handle:
                 handle.write(patched)
         written.append(path)
 
-    marks = os.path.join(root, "web", "src", "icons", "mark.svg")
-    with io.open(marks, "w", encoding="utf-8") as handle:
+    mark = os.path.join(web_icons, "mark.svg")
+    with io.open(mark, "w", encoding="utf-8") as handle:
         handle.write(svg())
-    written.append(marks)
+    written.append(mark)
 
     for path in written:
         print(os.path.relpath(path, root))
