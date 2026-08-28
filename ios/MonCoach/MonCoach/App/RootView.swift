@@ -16,16 +16,27 @@ struct RootView: View {
         Group {
             if store.isOnboarded {
                 TabView {
-                    Tab("Aujourd'hui", systemImage: "bolt.fill") {
+                    Tab(UI.today[store.language], systemImage: "bolt.fill") {
                         TodayView()
                     }
-                    Tab("Plan", systemImage: "list.bullet.rectangle") {
+                    Tab(UI.plan[store.language], systemImage: "list.bullet.rectangle") {
                         PlanView()
                     }
-                    Tab("Progression", systemImage: "chart.line.uptrend.xyaxis") {
+                    // L'onglet course n'apparaît que si l'athlète court : un
+                    // onglet vide en permanence apprend surtout à ne plus
+                    // regarder la barre d'onglets.
+                    if store.profile?.runs == true {
+                        Tab(UI.running[store.language], systemImage: "figure.run") {
+                            RunPlanView()
+                        }
+                    }
+                    Tab(UI.food[store.language], systemImage: "fork.knife") {
+                        FoodView()
+                    }
+                    Tab(UI.progress[store.language], systemImage: "chart.line.uptrend.xyaxis") {
                         ProgressDashboardView()
                     }
-                    Tab("Profil", systemImage: "person.fill") {
+                    Tab(UI.profile[store.language], systemImage: "person.fill") {
                         ProfileView()
                     }
                 }
@@ -35,6 +46,9 @@ struct RootView: View {
                 }
             }
         }
+        // Toute l'interface est rendue dans la langue du magasin : changer
+        // de langue dans le profil rafraîchit l'écran sur-le-champ.
+        .language(store.language)
         .fullScreenCover(item: $store.activeSession) { _ in
             SessionPlayerView()
         }

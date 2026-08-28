@@ -124,6 +124,7 @@ struct GhostButton: View {
 
 /// One message from the coach.
 struct InsightRow: View {
+    @Environment(\.language) private var language
     var insight: CoachInsight
 
     var body: some View {
@@ -134,10 +135,10 @@ struct InsightRow: View {
                 .frame(width: 24, height: 24)
                 .background(tint.opacity(0.14), in: Circle())
             VStack(alignment: .leading, spacing: 3) {
-                Text(insight.title)
+                Text(insight.title[language])
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(Theme.primaryText)
-                Text(insight.message)
+                Text(insight.message[language])
                     .font(Theme.bodyFont)
                     .foregroundStyle(Theme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)

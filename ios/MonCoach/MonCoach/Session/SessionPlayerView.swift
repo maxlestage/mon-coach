@@ -7,6 +7,8 @@ import MonCoachKit
 /// It shows one movement at a time, the exact set that is owed, and a big
 /// enough control to log it without aiming.
 struct SessionPlayerView: View {
+    @Environment(\.language) private var language
+    @State private var guidedExercise: Exercise?
     @Environment(CoachStore.self) private var store
     @Environment(\.dismiss) private var dismiss
 
@@ -36,7 +38,10 @@ struct SessionPlayerView: View {
                         .screenBackground()
                 }
             }
-            .navigationTitle(active?.session.title ?? "Séance")
+            .navigationTitle(active?.session.title[language] ?? "Séance")
+            .sheet(item: $guidedExercise) { exercise in
+                GuidedTechniqueView(exercise: exercise)
+            }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -142,19 +147,36 @@ struct SessionPlayerView: View {
         let done = active.logs(for: prescription)
 
         return Card(
-            title: exercise?.name ?? prescription.exerciseID,
-            subtitle: exercise.map { "\($0.primaryMuscle.label) · \($0.pattern.label)" }
+            title: exercise?.name[language] ?? prescription.exerciseID,
+            subtitle: exercise.map { "\($0.primaryMuscle.label[language]) · \($0.pattern.label[language])" }
         ) {
             if let note = prescription.note {
                 HStack(alignment: .top, spacing: 8) {
                     Image(systemName: "lightbulb.fill")
                         .foregroundStyle(Theme.warning)
                         .font(.system(size: 13))
-                    Text(note)
+                    Text(note[language])
                         .font(Theme.captionFont)
                         .foregroundStyle(Theme.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)
                 }
+            }
+
+            // Le mode guidé est à un geste de la série en cours : c'est là
+            // qu'on se demande si on fait le mouvement correctement, pas dans
+            // un menu deux écrans plus loin.
+            if let exercise {
+                Button {
+                    guidedExercise = exercise
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "figure.strengthtraining.traditional")
+                        Text(LocalizedText(fr: "Mode guidé", en: "Guided mode", es: "Modo guiado")[language])
+                    }
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(Theme.accent)
+                }
+                .buttonStyle(.plain)
             }
 
             if let set {
@@ -249,7 +271,7 @@ struct SessionPlayerView: View {
                             Image(systemName: active.isComplete(prescription) ? "checkmark.circle.fill" : "circle")
                                 .foregroundStyle(active.isComplete(prescription) ? Theme.accent : Theme.secondaryText)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(ExerciseCatalog.exercise(id: prescription.exerciseID)?.name ?? prescription.exerciseID)
+                                Text(ExerciseCatalog.exercise(id: prescription.exerciseID)?.name[language] ?? prescription.exerciseID)
                                     .font(.system(size: 14, weight: .medium))
                                     .foregroundStyle(Theme.primaryText)
                                 Text("\(active.logs(for: prescription).count) / \(prescription.sets.count) séries")

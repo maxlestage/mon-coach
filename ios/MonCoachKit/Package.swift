@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "MonCoachKit",
-    platforms: [.iOS(.v18), .macOS(.v15)],
+    platforms: [.iOS(.v18), .watchOS(.v11), .macOS(.v15)],
     products: [
         .library(name: "MonCoachKit", targets: ["MonCoachKit"])
     ],

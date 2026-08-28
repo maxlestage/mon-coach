@@ -71,6 +71,15 @@ public struct UserProfile: Codable, Sendable, Equatable, Identifiable {
     /// The runner side of the athlete. Nil when they only lift — the whole
     /// running feature stays out of the way until they say they run.
     public var running: RunningProfile?
+    /// Whether the run map may fetch OpenStreetMap tiles. Nil means yes.
+    ///
+    /// Tiles are the one thing in this app that reaches a server. An athlete
+    /// who would rather nothing left the phone can turn them off and keep the
+    /// route trace, drawn locally from their own points.
+    public var mapTiles: Bool?
+
+    /// Whether the run map is allowed to contact a tile server.
+    public var loadsMapTiles: Bool { mapTiles ?? true }
 
     // MARK: Preferences
     public var unit: UnitSystem
@@ -106,6 +115,7 @@ public struct UserProfile: Codable, Sendable, Equatable, Identifiable {
         mealsPerDay: Int? = nil,
         dislikedFoodIDs: Set<String>? = nil,
         running: RunningProfile? = nil,
+        mapTiles: Bool? = nil,
         unit: UnitSystem = .metric,
         language: Language? = nil
     ) {
@@ -136,6 +146,7 @@ public struct UserProfile: Codable, Sendable, Equatable, Identifiable {
         self.mealsPerDay = mealsPerDay
         self.dislikedFoodIDs = dislikedFoodIDs
         self.running = running
+        self.mapTiles = mapTiles
         self.unit = unit
         self.language = language
     }
