@@ -68,6 +68,14 @@ jobs:
           # robots.txt présent.
           curl -sI -H "x-forwarded-proto: http" http://127.0.0.1:8080/ | grep -qi "^location: https://"
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/robots.txt)" = "200"
+          # La PWA et les pages légales font partie du contrat de production.
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/mentions-legales)" = "200"
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/confidentialite)" = "200"
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/conditions)" = "200"
+          curl -sI http://127.0.0.1:8080/manifest.webmanifest | grep -qi "application/manifest+json"
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/sw.js)" = "200"
+          curl -s http://127.0.0.1:8080/sw.js | grep -q "PRECACHE"
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/icons/icon-512.png)" = "200"
           docker rm -f mon-coach-web
           echo "L'image sert le site, redirige vers HTTPS derrière un routeur, expose robots.txt, met en cache les assets versionnés et renvoie 404 sur les routes inconnues."
 

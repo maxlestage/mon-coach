@@ -17,9 +17,15 @@ bun run preview    # sert dist/ tel qu'il partira en production
 
 ```
 src/
-├── index.html          point d'entrée : Bun suit les <script> et <link>
-├── main.tsx            montage React
+├── index.html          l'accueil ; Bun suit les <script> et <link>
+├── mentions-legales.html, confidentialite.html, conditions.html
+│                       les pages légales — chacune est un point d'entrée
+├── main.tsx            montage React de l'accueil
 ├── App.tsx             assemblage des sections
+├── pages/              contenu des pages légales
+├── pwa.ts              manifeste + enregistrement du service worker
+├── manifest.webmanifest, icons/
+│                       l'identité de la PWA, copiée telle quelle au build
 ├── styles.css          système de tokens, aucune dépendance CSS
 ├── coach/              portage TypeScript du moteur Swift
 │   ├── engine.ts       les formules, portées à l'identique
@@ -61,6 +67,18 @@ docker run --rm -e PORT=8080 -p 8080:8080 mon-coach-web
 
 Le déploiement lui-même est décrit dans
 [`docs/DEPLOIEMENT.md`](../docs/DEPLOIEMENT.md).
+
+## PWA
+
+Le site s'installe comme une application et fonctionne hors ligne. Le
+service worker est généré par `build.ts` — sa liste de précache contient les
+noms hachés que seul le build connaît, et sa version est le condensat de
+cette liste : un déploiement sans changement ne réinstalle rien.
+
+Stratégies : réseau d'abord pour les pages (les mises à jour se voient),
+cache d'abord pour les assets condensés (ils ne changent jamais sous le même
+nom). Vérifié par Playwright : hors ligne, l'accueil, les pages légales et le
+simulateur — interactif — se chargent depuis le cache.
 
 ## Choix techniques
 

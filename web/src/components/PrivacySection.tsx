@@ -1,6 +1,6 @@
 export function PrivacySection() {
   return (
-    <section className="section" id="confidentialite">
+    <section className="section" id="confidentialite-produit">
       <div className="shell">
         <span className="section__eyebrow">Confidentialité</span>
         <h2 className="section__title">Rien ne quitte ton téléphone</h2>

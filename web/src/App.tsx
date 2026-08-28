@@ -6,6 +6,7 @@ import { Header } from "./components/Header.tsx";
 import { Hero } from "./components/Hero.tsx";
 import { InputsSection } from "./components/InputsSection.tsx";
 import { PipelineSection } from "./components/PipelineSection.tsx";
+import { PricingSection } from "./components/PricingSection.tsx";
 import { PrivacySection } from "./components/PrivacySection.tsx";
 import { Simulator, defaultInput } from "./components/Simulator.tsx";
 import { WatchSection } from "./components/WatchSection.tsx";
@@ -26,6 +27,7 @@ export function App() {
         <Simulator />
         <WatchSection />
         <AdaptationSection />
+        <PricingSection />
         <PrivacySection />
         <FaqSection />
       </main>

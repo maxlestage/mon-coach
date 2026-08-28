@@ -27,19 +27,36 @@ const server = Bun.serve({
       return Response.redirect(url.href, 301);
     }
 
-    const path = url.pathname === "/" ? "/index.html" : url.pathname;
-    const file = Bun.file(new URL(`.${path}`, DIST));
+    let path = url.pathname === "/" ? "/index.html" : url.pathname;
+    let file = Bun.file(new URL(`.${path}`, DIST));
+
+    // Les pages ont des adresses propres : /mentions-legales sert
+    // mentions-legales.html, sans extension visible dans la barre d'adresse.
+    if (!(await file.exists()) && !path.includes(".")) {
+      const withExtension = `${path}.html`;
+      const candidate = Bun.file(new URL(`.${withExtension}`, DIST));
+      if (await candidate.exists()) {
+        path = withExtension;
+        file = candidate;
+      }
+    }
 
     if (await file.exists()) {
-      // Les fichiers versionnés par condensat sont immuables ; le HTML, non.
-      const immutable = path.startsWith("/assets/");
-      return new Response(file, {
-        headers: {
-          "cache-control": immutable
-            ? "public, max-age=31536000, immutable"
-            : "no-cache",
-        },
-      });
+      const headers: Record<string, string> = {};
+      if (path.startsWith("/assets/")) {
+        // Nom haché : le contenu ne changera jamais sous cette adresse.
+        headers["cache-control"] = "public, max-age=31536000, immutable";
+      } else if (path === "/sw.js") {
+        // Le service worker décide des mises à jour de tout le reste : lui
+        // ne doit jamais être servi depuis un cache HTTP périmé.
+        headers["cache-control"] = "no-cache";
+      } else {
+        headers["cache-control"] = "no-cache";
+      }
+      if (path.endsWith(".webmanifest")) {
+        headers["content-type"] = "application/manifest+json; charset=utf-8";
+      }
+      return new Response(file, { headers });
     }
 
     // Site d'une seule page : tout le reste retombe sur le document racine.
