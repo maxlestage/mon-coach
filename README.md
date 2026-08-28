@@ -4,7 +4,8 @@
 source et ne le sera pas : aucune licence n'est accordée, aucune
 contribution n'est acceptée. Voir [LICENSE](LICENSE).
 
-Coach de musculation natif iOS, et le site produit qui l'accompagne.
+Coach de musculation et de course à pied natif iOS, et le site produit
+qui l'accompagne. En français, en anglais et en espagnol.
 
 L'idée tient en une phrase : **un programme d'entraînement n'a de valeur que
 s'il est construit pour un corps, un matériel et un emploi du temps précis, et
@@ -39,6 +40,14 @@ Six étapes s'enchaînent :
 | `ExerciseSelector` | Choix des mouvements dans un catalogue de 60 exercices |
 | `ProgressionEngine` | Charge de chaque série, en double progression autorégulée |
 
+Trois modules complètent le programme de salle :
+
+| Module | Ce qu'il produit |
+| --- | --- |
+| `Running` | Filtrage d'une trace GPS, découpage en kilomètres, dénivelé par hystérésis, et un bloc de course qui cohabite avec la musculation |
+| `Nutrition` | Un catalogue de 87 aliments classés et justifiés, et une journée de repas construite pour atteindre les macros |
+| `Guided` | Une fiche technique par schéma moteur, avec des repères vérifiables sans miroir : l'alternative aux vidéos, pour les débutants |
+
 Deux moteurs travaillent ensuite en continu : `ReadinessEngine` ajuste la
 séance du jour d'après un check-in de vingt secondes, et `AdaptationEngine`
 compare chaque semaine le prévu au réalisé pour corriger volume, calories et
@@ -52,7 +61,7 @@ C'est là que vivent la persistance, la reprise de séance et la logique
 d'entraînement.
 
 ```bash
-swift test --package-path ios/MonCoachKit   # 111 tests
+swift test --package-path ios/MonCoachKit   # 215 tests, 30 suites
 ```
 
 ## L'application
@@ -65,10 +74,12 @@ SwiftUI, iOS 18, Swift 6. Trois cibles dans le même projet Xcode :
 - **MonCoachWatch** — l'application Apple Watch. Elle reçoit la séance du
   jour déjà prescrite, fait tout enregistrer au poignet (couronne comprise)
   et continue hors de portée du téléphone ; le journal se synchronise au
-  retour, avec une fusion idempotente testée côté paquet.
-- **MonCoachWidgets** — la Live Activity : série en cours, charge et chrono
-  de repos sur l'écran verrouillé et dans la Dynamic Island. Le compte à
-  rebours est piloté par une date, sans réveiller l'application.
+  retour, avec une fusion idempotente testée côté paquet. Elle mesure aussi
+  une sortie avec son propre GPS, téléphone resté à la maison.
+- **MonCoachWidgets** — les Live Activity : série en cours et chrono de repos
+  pendant une séance, distance et allure pendant une sortie, sur l'écran
+  verrouillé et dans la Dynamic Island. Le compte à rebours est piloté par
+  une date, sans réveiller l'application.
 
 Le contrat d'échange téléphone ↔ montre (`WatchSnapshot`, codec JSON,
 fusion des journaux) et l'état affiché par la Live Activity
@@ -76,7 +87,28 @@ fusion des journaux) et l'état affiché par la Live Activity
 cibles Apple ne font que les transporter et les afficher.
 
 Ouvre `ios/MonCoach/MonCoach.xcodeproj` dans Xcode 16 ou supérieur. Le projet
-référence `MonCoachKit` comme paquet local — il n'y a rien à installer.
+référence `MonCoachKit` comme paquet local et MapLibre Native comme paquet
+distant, que Xcode résout tout seul au premier build.
+
+La carte des sorties est encadrée par `#if canImport(MapLibre)` : si le
+paquet ne se résout pas, l'application compile quand même et affiche le tracé
+seul, projeté à l'échelle. Un athlète qui ne peut pas construire
+l'application est un athlète perdu ; un athlète qui voit sa trace sans les
+rues, non.
+
+### Les trois langues
+
+Tout le texte destiné à l'utilisateur est un `LocalizedText` à trois champs —
+français, anglais, espagnol — plutôt qu'une clé dans un dictionnaire. Le
+compilateur refuse une traduction manquante, là où un dictionnaire l'aurait
+laissée passer jusqu'à l'écran, et un texte de coaching approximatif donne
+des consignes techniques que l'athlète va suivre.
+
+Les tests parcourent de vrais programmes plutôt que les catalogues : ce sont
+les textes composés à l'exécution — une justification qui cite un chiffre, un
+bilan de semaine — qu'on oublie de traduire. Un test vérifie aussi que les
+trois versions diffèrent réellement, ce qu'une copie du français ne ferait
+pas.
 
 L'état complet est stocké dans un unique fichier JSON écrit de façon atomique,
 dans le conteneur de l'application. Aucun compte, aucun serveur, aucun
@@ -97,8 +129,17 @@ bun run build      # site statique dans web/dist
 ```
 
 Le site est une PWA : il s'installe comme une application et fonctionne
-hors ligne, simulateur compris. Pages légales, tarifs (modèle freemium
-documenté dans `docs/MODELE-ECONOMIQUE.md`) et pied de page complet.
+hors ligne, simulateur et changement de langue compris. Pages légales
+traduites (la version française fait foi), tarifs (modèle freemium documenté
+dans `docs/MODELE-ECONOMIQUE.md`) et pied de page complet.
+
+La carte de la section course utilise MapLibre GL JS et des tuiles
+OpenStreetMap, chargés uniquement au clic du visiteur : c'est la seule
+requête externe de tout le site, elle est annoncée avant d'être faite, et le
+tracé reste dessiné en SVG à partir des coordonnées tant que personne n'a
+rien demandé. MapLibre est importé dynamiquement et exclu du préchargement du
+service worker — l'imposer à tout le monde reviendrait exactement à ce que le
+chargement au clic cherche à éviter.
 
 Le simulateur de la page d'accueil exécute un portage TypeScript du moteur
 Swift. Pour que ce ne soit pas une promesse en l'air, le moteur Swift produit
@@ -138,6 +179,8 @@ vérifiés. Ce qui part en production est ce qui a été testé.
 | Docker | image `oven/bun:1.4.0` |
 | TypeScript | 7.0 |
 | React | 19.2 |
+| MapLibre GL JS | 6.6 |
+| MapLibre Native (iOS) | 6.9 |
 
 ## Avertissement
 
