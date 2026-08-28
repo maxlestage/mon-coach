@@ -56,8 +56,13 @@ jobs:
           test -n "$asset"
           curl -sfI "http://127.0.0.1:8080$asset" | grep -qi "max-age=31536000"
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/route-inconnue)" = "404"
+          # Comportements de production : redirection vers HTTPS quand le
+          # routeur de l'hébergeur dit que le visiteur était en clair, et
+          # robots.txt présent.
+          curl -sI -H "x-forwarded-proto: http" http://127.0.0.1:8080/ | grep -qi "^location: https://"
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/robots.txt)" = "200"
           docker rm -f mon-coach-web
-          echo "L'image sert le site, les assets versionnés sont mis en cache, les routes inconnues retombent sur la page."
+          echo "L'image sert le site, redirige vers HTTPS derrière un routeur, expose robots.txt, met en cache les assets versionnés et renvoie 404 sur les routes inconnues."
 
   demarrage-heroku:
     name: Démarrage Heroku

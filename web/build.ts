@@ -39,6 +39,10 @@ if (!result.success) {
   process.exit(1);
 }
 
+// Les fichiers servis tels quels, hors du graphe de modules : Bun ne suit
+// que ce que le HTML référence, il faut donc les copier explicitement.
+await Bun.write(`${OUT_DIR}/robots.txt`, Bun.file("./src/robots.txt"));
+
 const elapsed = Math.round(performance.now() - started);
 let total = 0;
 

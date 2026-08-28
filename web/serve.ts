@@ -17,6 +17,16 @@ const server = Bun.serve({
   hostname,
   async fetch(request) {
     const url = new URL(request.url);
+
+    // Derrière le routeur d'un hébergeur, la connexion arrive toujours en
+    // clair jusqu'au conteneur : c'est l'en-tête posé par le routeur qui dit
+    // ce que le visiteur utilisait vraiment. En local l'en-tête est absent,
+    // et rien n'est redirigé.
+    if (request.headers.get("x-forwarded-proto") === "http") {
+      url.protocol = "https:";
+      return Response.redirect(url.href, 301);
+    }
+
     const path = url.pathname === "/" ? "/index.html" : url.pathname;
     const file = Bun.file(new URL(`.${path}`, DIST));
 
