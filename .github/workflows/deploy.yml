@@ -45,19 +45,29 @@ jobs:
             echo "ready=true" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Vérifier la clé d'API et le nom de l'application
+        if: steps.config.outputs.ready == 'true'
+        run: |
+          # Une simple lecture de l'application, qui vaut vérification des
+          # deux à la fois. C'est une étape à part pour que son nom, dans
+          # l'interface, désigne exactement ce qui a échoué.
+          code=$(curl -sS -o /dev/null -w '%{http_code}' \
+            "https://api.heroku.com/apps/$HEROKU_APP_NAME" \
+            -H "Accept: application/vnd.heroku+json; version=3" \
+            -H "Authorization: Bearer $HEROKU_API_KEY" || echo "000")
+
+          case "$code" in
+            200) echo "Application « $HEROKU_APP_NAME » trouvée." ;;
+            401) echo "::error::Clé d'API refusée par Heroku. Régénère-la (Account settings → API Key) et remplace le secret HEROKU_API_KEY."; exit 1 ;;
+            403) echo "::error::Cette clé d'API n'a pas accès à l'application « $HEROKU_APP_NAME »."; exit 1 ;;
+            404) echo "::error::Aucune application nommée « $HEROKU_APP_NAME » sur ce compte. Corrige la variable de dépôt HEROKU_APP_NAME."; exit 1 ;;
+            000) echo "::error::L'API Heroku est injoignable. Relance le workflow."; exit 1 ;;
+            *)   echo "::error::L'API Heroku a répondu $code sur la lecture de « $HEROKU_APP_NAME »."; exit 1 ;;
+          esac
+
       - name: Passer l'application sur la pile conteneur
         if: steps.config.outputs.ready == 'true'
         run: |
-          # Premier appel à l'API : il vaut vérification que la clé est
-          # valide et que l'application existe bien sous ce nom.
-          if ! curl -sS -o /dev/null -w '%{http_code}' \
-              "https://api.heroku.com/apps/$HEROKU_APP_NAME" \
-              -H "Accept: application/vnd.heroku+json; version=3" \
-              -H "Authorization: Bearer $HEROKU_API_KEY" | grep -q '^200$'; then
-            echo "::error::L'application « $HEROKU_APP_NAME » est introuvable, ou la clé d'API est invalide. Corrige la variable de dépôt HEROKU_APP_NAME ou le secret HEROKU_API_KEY."
-            exit 1
-          fi
-
           # Idempotent : Heroku n'accepte une image Docker que si la pile de
           # construction de l'application est « container ».
           curl -sS --fail-with-body -X PATCH \
