@@ -850,3 +850,277 @@ input[type="range"]:focus-visible {
     animation-duration: 0.01ms !important;
   }
 }
+
+/* ------------------------------------------------------------------ montre */
+
+.wearables {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 40px;
+  margin-top: 48px;
+}
+
+@media (max-width: 860px) {
+  .wearables {
+    grid-template-columns: 1fr;
+    gap: 56px;
+  }
+}
+
+.wearables__device {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.wearables__name {
+  margin-top: 26px;
+  font-size: 18px;
+}
+
+.wearables__points {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 44ch;
+}
+
+.wearables__points li {
+  position: relative;
+  padding-left: 18px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.wearables__points li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 8px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+/* La montre, dessinée : boîtier, couronne, écran. */
+
+.watch {
+  position: relative;
+  width: 210px;
+  padding: 14px;
+  border-radius: 56px;
+  border: 1px solid var(--border-strong);
+  background: linear-gradient(160deg, #2a2d36, #101218);
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
+}
+
+.watch__crown {
+  position: absolute;
+  right: -5px;
+  top: 62px;
+  width: 8px;
+  height: 34px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #3a3e49, #1a1c22);
+  border: 1px solid var(--border-strong);
+}
+
+.watch__button {
+  position: absolute;
+  right: -4px;
+  top: 112px;
+  width: 6px;
+  height: 44px;
+  border-radius: 3px;
+  background: #22242c;
+  border: 1px solid var(--border);
+}
+
+.watch__screen {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  border-radius: 42px;
+  padding: 20px 16px 18px;
+  background: var(--bg-deep);
+  min-height: 224px;
+}
+
+.watch__time {
+  align-self: flex-end;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.watch__title {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.watch__detail {
+  font-size: 10.5px;
+  color: var(--text-faint);
+}
+
+.watch__value {
+  margin: 2px 0;
+  text-align: center;
+  font-size: 26px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+
+.watch__segments {
+  display: flex;
+  gap: 4px;
+}
+
+.watch__segments span {
+  flex: 1;
+  text-align: center;
+  padding: 4px 0;
+  border-radius: 7px;
+  background: var(--surface-raised);
+  color: var(--text-faint);
+  font-size: 9.5px;
+  font-weight: 600;
+}
+
+.watch__segments span[data-active="true"] {
+  background: var(--accent);
+  color: var(--bg-deep);
+}
+
+.watch__cta {
+  margin-top: auto;
+  padding: 9px 0;
+  border-radius: 12px;
+  background: var(--accent);
+  color: var(--bg-deep);
+  text-align: center;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+/* L'écran verrouillé : Dynamic Island et carte de Live Activity. */
+
+.lockscreen {
+  width: 100%;
+  max-width: 300px;
+  padding: 14px 12px 16px;
+  border-radius: 34px;
+  border: 1px solid var(--border-strong);
+  background: linear-gradient(170deg, #191c24, var(--bg-deep));
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: center;
+}
+
+.island {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  padding: 7px 16px;
+  border-radius: 999px;
+  background: #000;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.island__icon {
+  font-size: 12px;
+}
+
+.island__timer {
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--warning);
+}
+
+.activity {
+  width: 100%;
+  padding: 13px 14px;
+  border-radius: 20px;
+  background: rgba(13, 15, 20, 0.92);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.activity__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.activity__session,
+.activity__count {
+  font-size: 10.5px;
+  color: var(--text-faint);
+}
+
+.activity__exercise {
+  font-size: 14.5px;
+  font-weight: 800;
+}
+
+.activity__set {
+  margin-top: 1px;
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+
+.activity__load {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.activity__rest {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding-top: 9px;
+  border-top: 1px solid var(--border);
+  font-size: 10.5px;
+  color: var(--text-faint);
+}
+
+.activity__countdown {
+  font-size: 14px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--warning);
+}
+
+.activity__bar {
+  flex: 1;
+  align-self: center;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--surface-raised);
+  overflow: hidden;
+}
+
+.activity__bar::after {
+  content: "";
+  display: block;
+  width: 62%;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--warning);
+}

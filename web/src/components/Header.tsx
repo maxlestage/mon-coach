@@ -12,6 +12,7 @@ export function Header() {
           <a href="#profil">Ce qu'il sait de toi</a>
           <a href="#moteur">Le moteur</a>
           <a href="#simulateur">Simulateur</a>
+          <a href="#montre">Montre</a>
           <a href="#adaptation">Adaptation</a>
           <a href="#faq">Questions</a>
         </nav>

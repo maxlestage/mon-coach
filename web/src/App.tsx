@@ -8,6 +8,7 @@ import { InputsSection } from "./components/InputsSection.tsx";
 import { PipelineSection } from "./components/PipelineSection.tsx";
 import { PrivacySection } from "./components/PrivacySection.tsx";
 import { Simulator, defaultInput } from "./components/Simulator.tsx";
+import { WatchSection } from "./components/WatchSection.tsx";
 import { simulate } from "./coach/engine.ts";
 
 export function App() {
@@ -23,6 +24,7 @@ export function App() {
         <InputsSection />
         <PipelineSection />
         <Simulator />
+        <WatchSection />
         <AdaptationSection />
         <PrivacySection />
         <FaqSection />

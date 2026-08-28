@@ -9,8 +9,8 @@ qu'il change quand ceux-ci changent.** Tout le dépôt découle de ça.
 ```
 mon-coach/
 ├── ios/
-│   ├── MonCoachKit/     paquet Swift : moteur + état de l'app, testé
-│   └── MonCoach/        application SwiftUI — uniquement des vues
+│   ├── MonCoachKit/     paquet Swift : moteur + état + synchronisation, testé
+│   └── MonCoach/        app iPhone, app Apple Watch, extension Live Activity
 ├── web/                 site produit — Bun + TypeScript + React
 └── tools/
     └── FixtureGenerator  génère les valeurs de référence partagées
@@ -48,14 +48,28 @@ C'est là que vivent la persistance, la reprise de séance et la logique
 d'entraînement.
 
 ```bash
-swift test --package-path ios/MonCoachKit   # 102 tests
+swift test --package-path ios/MonCoachKit   # 111 tests
 ```
 
 ## L'application
 
-SwiftUI, iOS 18, Swift 6. Quatorze fichiers, et rien que des vues : toute la
-logique — coaching, état, persistance — vit dans `MonCoachKit`. Les écrans
-lisent `CoachStore` et appellent ses intentions, rien de plus.
+SwiftUI, iOS 18, Swift 6. Trois cibles dans le même projet Xcode :
+
+- **MonCoach** — l'application iPhone. Des vues et la glue de plateforme
+  (WatchConnectivity, ActivityKit), rien d'autre : toute la logique vit dans
+  `MonCoachKit`.
+- **MonCoachWatch** — l'application Apple Watch. Elle reçoit la séance du
+  jour déjà prescrite, fait tout enregistrer au poignet (couronne comprise)
+  et continue hors de portée du téléphone ; le journal se synchronise au
+  retour, avec une fusion idempotente testée côté paquet.
+- **MonCoachWidgets** — la Live Activity : série en cours, charge et chrono
+  de repos sur l'écran verrouillé et dans la Dynamic Island. Le compte à
+  rebours est piloté par une date, sans réveiller l'application.
+
+Le contrat d'échange téléphone ↔ montre (`WatchSnapshot`, codec JSON,
+fusion des journaux) et l'état affiché par la Live Activity
+(`WorkoutActivitySnapshot`) sont définis et testés dans le paquet : les
+cibles Apple ne font que les transporter et les afficher.
 
 Ouvre `ios/MonCoach/MonCoach.xcodeproj` dans Xcode 16 ou supérieur. Le projet
 référence `MonCoachKit` comme paquet local — il n'y a rien à installer.

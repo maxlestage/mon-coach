@@ -17,6 +17,7 @@ struct SessionPlayerView: View {
     @State private var rpe: Double = 8
     @State private var painFlag = false
     @State private var selectedExerciseID: UUID?
+    @State private var liveActivity = WorkoutActivityController()
 
     private let ticker = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
@@ -64,6 +65,14 @@ struct SessionPlayerView: View {
         .tint(Theme.accent)
         .onReceive(ticker) { _ in
             if restRemaining > 0 { restRemaining -= 1 }
+        }
+        .onAppear {
+            if let active { liveActivity.start(for: active, unit: unit) }
+        }
+        .onDisappear {
+            // Séance terminée ou lecteur fermé : l'écran verrouillé ne doit
+            // pas continuer d'afficher une séance qui n'existe plus.
+            liveActivity.end()
         }
     }
 
@@ -279,6 +288,13 @@ struct SessionPlayerView: View {
         )
         restRemaining = restSeconds
         painFlag = false
+        if let active = store.activeSession {
+            liveActivity.update(
+                for: active,
+                unit: unit,
+                restEndsAt: Date().addingTimeInterval(TimeInterval(restSeconds))
+            )
+        }
         if let active = store.activeSession,
            let next = active.nextSet(of: prescription) {
             prime(set: next, prescription: prescription)
