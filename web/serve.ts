@@ -43,8 +43,13 @@ const server = Bun.serve({
 
     if (await file.exists()) {
       const headers: Record<string, string> = {};
-      if (path.startsWith("/assets/")) {
-        // Nom haché : le contenu ne changera jamais sous cette adresse.
+      // « Immuable » n'est vrai que d'un nom qui porte un condensat : le
+      // contenu ne changera jamais sous cette adresse-là. Les fichiers du
+      // worker MapLibre, eux, gardent leur nom d'une version à l'autre —
+      // les marquer immuables aurait fait attendre au chunk principal,
+      // toujours à jour, un worker d'une autre version que le navigateur
+      // aurait refusé de rafraîchir pendant un an.
+      if (path.startsWith("/assets/") && /-[a-z0-9]{8,}\.[a-z.]+$/.test(path)) {
         headers["cache-control"] = "public, max-age=31536000, immutable";
       } else if (path === "/sw.js") {
         // Le service worker décide des mises à jour de tout le reste : lui

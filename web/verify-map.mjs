@@ -94,6 +94,11 @@ try {
         response.status() === 200 && type.includes("javascript"),
         `${piece} est servi (${response.status()}, ${type || "sans type"})`
       );
+      // Ces fichiers changent de contenu sans changer de nom à chaque
+      // version de MapLibre : immuables, ils désynchroniseraient chunk et
+      // worker pendant un an de cache navigateur.
+      const cache = response.headers()["cache-control"] ?? "";
+      check(!cache.includes("immutable"), `${piece} n'est pas marqué immuable (${cache})`);
     }
 
     await page.getByRole("button", { name: "Afficher la carte OpenStreetMap" }).click();
