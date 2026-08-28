@@ -57,13 +57,24 @@ bloc — il perd la suite, pas le passé.
 
 | Formule | Prix | Raisonnement |
 | --- | --- | --- |
-| Mensuel | 4,99 € | sous la barre psychologique des 5 €, aligné sur le bas du marché fitness (les leaders sont à 10–15 €/mois avec des coûts serveur que nous n'avons pas) |
-| Annuel | 29,99 € | −50 % vs mensuel : c'est l'offre qu'on veut vendre, un bloc dure ~5 semaines donc l'engagement annuel correspond à 8–10 blocs |
-| À vie | 79,99 € | honnête vu l'absence de coûts récurrents par utilisateur ; ~2,2 années d'annuel, plafonne le risque perçu et convertit les allergiques à l'abonnement |
+| Mensuel | 14,99 € | positionnement premium assumé, aligné sur les leaders de la programmation adaptative (Fitbod, Juggernaut AI sont à 12–20 €/mois) — le produit se compare à un coach, pas à un carnet de séances |
+| Annuel | 89,99 € | −50 % vs mensuel (« deux mois sur douze ») : c'est l'offre qu'on veut vendre ; un bloc dure ~5 semaines, l'année correspond à 8–10 blocs |
 
-Le « à vie » est possible précisément parce que l'architecture est sans
-serveur : chaque utilisateur supplémentaire coûte zéro. Les produits qui ne
-peuvent pas l'offrir ont des coûts marginaux ; nous n'en avons pas.
+**Pas de formule « à vie », par choix.** À ce niveau de prix, un à-vie
+crédible coûterait ~200 € et convertirait surtout les meilleurs clients en
+revenu unique : on préfère maximiser le revenu récurrent. La contrepartie
+est réelle et il faut la regarder en face — l'argument anti-abonnement
+disparaît, et un prix premium exige de la preuve : c'est le rôle du premier
+bloc entièrement gratuit, qui fait la démonstration avant de demander quoi
+que ce soit. Si la conversion à la fin du bloc 1 déçoit durablement
+(< 3 % des finisseurs), les leviers dans l'ordre : offre de lancement App
+Store (premier mois réduit), puis réexamen de la grille — jamais de rognage
+du gratuit.
+
+Le prix élevé rend deux garde-fous encore plus importants : le gratuit doit
+rester un vrai coach (c'est lui qui justifie le prix), et l'export doit
+rester gratuit (personne ne doit se sentir enfermé dans un abonnement à
+180 €/an).
 
 ## Ce qu'on refuse d'emblée
 
@@ -80,8 +91,9 @@ peuvent pas l'offrir ont des coûts marginaux ; nous n'en avons pas.
 2. **Conversion à la fin du bloc 1** (l'écran « construire le bloc
    suivant » est le point de vente naturel) — cible raisonnable : 5–10 %
    des finisseurs.
-3. **Répartition mensuel / annuel / à vie** — si le à-vie domine trop, son
-   prix est trop bas ; s'il est marginal, il rassure sans coûter.
+3. **Répartition mensuel / annuel** — l'annuel doit dominer ; un parc trop
+   mensuel à 14,99 € signale des utilisateurs qui testent puis partent, donc
+   un problème de valeur perçue, pas de prix.
 4. **Rétention à J+7 du bloc 2** — vérifie que la valeur payée est perçue.
 
 ## Ce que ça implique dans le code, plus tard
