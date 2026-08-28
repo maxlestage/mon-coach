@@ -46,8 +46,17 @@ moteur Swift lui-même. Après toute modification du moteur, il faut le
 régénérer depuis la racine du dépôt :
 
 ```bash
-swift run --package-path tools/FixtureGenerator \
+swift run --package-path tools/FixtureGenerator FixtureGenerator moteur \
   > web/src/coach/__fixtures__/engine-reference.json
+```
+
+Le nom répété n'est pas une coquille : le premier est le produit à lancer, le
+second l'argument qu'il reçoit. Les exemples affichés sur le site sortent du
+même outil :
+
+```bash
+swift run --package-path tools/FixtureGenerator FixtureGenerator exemples \
+  > web/src/data/examples.json
 ```
 
 Le portage ne couvre pas le choix des exercices, la progression des charges,

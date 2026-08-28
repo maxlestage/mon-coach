@@ -118,16 +118,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Régénération des valeurs de référence
-        run: swift run --package-path tools/FixtureGenerator moteur > /tmp/engine-reference.json
+        run: swift run --package-path tools/FixtureGenerator FixtureGenerator moteur > /tmp/engine-reference.json
       - name: Comparaison avec le fichier versionné
         run: |
           if ! diff -u web/src/coach/__fixtures__/engine-reference.json /tmp/engine-reference.json; then
             echo "::error::Le moteur Swift a changé sans que les valeurs de référence du site soient régénérées."
-            echo "Lance : swift run --package-path tools/FixtureGenerator moteur > web/src/coach/__fixtures__/engine-reference.json"
+            echo "Lance : swift run --package-path tools/FixtureGenerator FixtureGenerator moteur > web/src/coach/__fixtures__/engine-reference.json"
             exit 1
           fi
       - name: Régénération des exemples affichés par le site
-        run: swift run --package-path tools/FixtureGenerator exemples > /tmp/examples.json
+        run: swift run --package-path tools/FixtureGenerator FixtureGenerator exemples > /tmp/examples.json
       - name: Le site montre bien ce que l'application produit
         run: |
           # La journée de repas, la fiche technique et le remplacement
@@ -136,7 +136,7 @@ jobs:
           # l'application ne produit plus.
           if ! diff -u web/src/data/examples.json /tmp/examples.json; then
             echo "::error::Le moteur a changé sans que les exemples du site soient régénérés."
-            echo "Lance : swift run --package-path tools/FixtureGenerator exemples > web/src/data/examples.json"
+            echo "Lance : swift run --package-path tools/FixtureGenerator FixtureGenerator exemples > web/src/data/examples.json"
             exit 1
           fi
 

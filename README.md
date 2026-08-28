@@ -146,12 +146,23 @@ Swift. Pour que ce ne soit pas une promesse en l'air, le moteur Swift produit
 un fichier de valeurs de référence que les tests du site rejouent :
 
 ```bash
-swift run --package-path tools/FixtureGenerator \
+swift run --package-path tools/FixtureGenerator FixtureGenerator moteur \
   > web/src/coach/__fixtures__/engine-reference.json
 ```
 
-La CI régénère ce fichier et échoue s'il diffère de la version commitée. Une
-divergence d'une seule calorie entre l'application et le site casse le build.
+Le même outil exporte les exemples que le site affiche — la journée de repas,
+la fiche technique, le remplacement d'exercice — pour que la page ne puisse pas
+annoncer un plan que l'application ne produit plus :
+
+```bash
+swift run --package-path tools/FixtureGenerator FixtureGenerator exemples \
+  > web/src/data/examples.json
+```
+
+Le nom répété n'est pas une coquille : le premier est le produit à lancer, le
+second l'argument qu'il reçoit. La CI régénère ces deux fichiers et échoue s'ils
+diffèrent des versions commitées. Une divergence d'une seule calorie entre
+l'application et le site casse le build.
 
 ## Mise en ligne
 
