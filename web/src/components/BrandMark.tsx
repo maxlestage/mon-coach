@@ -1,7 +1,7 @@
 import { useId } from "react";
 
 /**
- * La marque de Mon Coach.
+ * La marque de Stride.
  *
  * Fichier produit par `tools/brand/generate.py` — ne pas modifier à la main :
  * la prochaine exécution du script écraserait la retouche, et le SVG du site

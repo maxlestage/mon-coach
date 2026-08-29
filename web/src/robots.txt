@@ -1,3 +1,3 @@
-# Site produit de Mon Coach — tout est public, une seule page.
+# Site produit de Stride — tout est public, une seule page.
 User-agent: *
 Allow: /

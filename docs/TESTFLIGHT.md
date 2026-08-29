@@ -144,7 +144,7 @@ Allowed operations are: GET_COLLECTION, GET_INSTANCE, UPDATE
 Le nom est le vrai piège : il doit être libre sur l'App Store entier, ce que
 la plupart des noms génériques ne sont pas. Il se change plus tard, et il
 est **indépendant** du nom affiché sous l'icône — celui-là est dans le
-projet, et vaut « Kinetik ».
+projet, et vaut « Stride ».
 
 Tout le reste est automatique. Les identifiants des trois cibles et la
 capacité HealthKit de la montre sont créés par le workflow, à l'identique

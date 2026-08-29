@@ -1,4 +1,4 @@
-# Site produit de Mon Coach
+# Site produit de Stride
 
 Bun 1.4 + TypeScript 7 + React 19, sans framework de build supplémentaire.
 

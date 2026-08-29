@@ -19,6 +19,15 @@ on:
         required: false
         default: "Build interne."
         type: string
+      rename_app:
+        # Le nom de la fiche App Store n'est jamais écrasé au fil des builds :
+        # ce serait défaire à chaque exécution une décision prise à la main.
+        # Cette case le permet quand même, une fois, et l'inscrit dans
+        # l'historique des exécutions — renommer une application est rare.
+        description: "Renommer la fiche App Store, même si elle porte déjà un nom choisi"
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: testflight
@@ -171,6 +180,9 @@ jobs:
           # tenter, replis compris. Une valeur ici passe devant sans supprimer
           # les replis — mieux vaut une fiche nommée autrement que pas nommée.
           APP_NAME: ${{ vars.APP_STORE_NAME }}
+          # Décidée au lancement, pas dans le dépôt : un renommage est un
+          # geste unique, pas un réglage permanent.
+          RENAME_APP: ${{ inputs.rename_app }}
         run: |
           # Trois choses doivent exister chez Apple avant qu'un build parte,
           # et aucune ne se crée pendant la compilation : les identifiants des

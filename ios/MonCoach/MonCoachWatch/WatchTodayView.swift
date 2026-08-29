@@ -18,7 +18,7 @@ struct WatchTodayView: View {
                 }
             }
         }
-        .navigationTitle("Kinetik")
+        .navigationTitle("Stride")
         .navigationDestination(isPresented: $showsRun) {
             WatchRunView()
         }

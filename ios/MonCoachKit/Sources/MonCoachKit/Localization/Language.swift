@@ -1,6 +1,6 @@
 import Foundation
 
-/// Les langues dans lesquelles Kinetik parle.
+/// Les langues dans lesquelles Stride parle.
 ///
 /// Trois langues, pas une de plus tant qu'on ne peut pas les relire :
 /// un texte de coaching mal traduit fait plus de dégâts qu'un texte absent,

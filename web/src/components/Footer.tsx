@@ -29,7 +29,7 @@ const copy = {
     noCookies:
       "Ce site n'utilise aucun cookie et ne charge aucune ressource externe tant que tu n'ouvres pas la carte de la section course. Il s'installe comme une application et fonctionne hors ligne.",
     disclaimer:
-      "Mon Coach n'est pas un dispositif médical et ne remplace ni un médecin, ni un kinésithérapeute, ni un diététicien. En cas de douleur persistante, de pathologie connue, de grossesse ou de traitement en cours, demande un avis professionnel avant de suivre un programme.",
+      "Stride n'est pas un dispositif médical et ne remplace ni un médecin, ni un kinésithérapeute, ni un diététicien. En cas de douleur persistante, de pathologie connue, de grossesse ou de traitement en cours, demande un avis professionnel avant de suivre un programme.",
   },
   en: {
     tagline:
@@ -57,7 +57,7 @@ const copy = {
     noCookies:
       "This site uses no cookies and loads no external resource until you open the map in the running section. It installs like an app and works offline.",
     disclaimer:
-      "Mon Coach is not a medical device and replaces neither a doctor, nor a physiotherapist, nor a dietitian. In case of persistent pain, a known condition, pregnancy or ongoing treatment, seek professional advice before following a programme.",
+      "Stride is not a medical device and replaces neither a doctor, nor a physiotherapist, nor a dietitian. In case of persistent pain, a known condition, pregnancy or ongoing treatment, seek professional advice before following a programme.",
   },
   es: {
     tagline:
@@ -85,7 +85,7 @@ const copy = {
     noCookies:
       "Este sitio no usa cookies ni carga ningún recurso externo hasta que abres el mapa de la sección de carrera. Se instala como una aplicación y funciona sin conexión.",
     disclaimer:
-      "Mon Coach no es un dispositivo médico y no sustituye a un médico, un fisioterapeuta ni un dietista. En caso de dolor persistente, patología conocida, embarazo o tratamiento en curso, pide consejo profesional antes de seguir un programa.",
+      "Stride no es un dispositivo médico y no sustituye a un médico, un fisioterapeuta ni un dietista. En caso de dolor persistente, patología conocida, embarazo o tratamiento en curso, pide consejo profesional antes de seguir un programa.",
   },
 } as const;
 
@@ -104,7 +104,7 @@ export function Footer() {
           <div className="site-footer__brand">
             <a className="brand" href="/">
               <BrandMark className="brand__mark" size={34} />
-              Mon&nbsp;Coach
+              Stride
             </a>
             <p className="site-footer__tagline">{t.tagline}</p>
             <p className="credit">

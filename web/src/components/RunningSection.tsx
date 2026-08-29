@@ -11,7 +11,7 @@ const copy = {
   fr: {
     eyebrow: "Course à pied",
     title: "Le même coach, en dehors de la salle",
-    lede: "Si tu cours, Mon Coach construit un bloc de course en même temps que le bloc de musculation — et les fait tenir ensemble. Le volume monte de 10 % par semaine de charge, une semaine sur quatre redescend, et les sorties dures sont écartées de tes jours de jambes. Le GPS mesure la sortie ; toute la mesure est faite sur le téléphone.",
+    lede: "Si tu cours, Stride construit un bloc de course en même temps que le bloc de musculation — et les fait tenir ensemble. Le volume monte de 10 % par semaine de charge, une semaine sur quatre redescend, et les sorties dures sont écartées de tes jours de jambes. Le GPS mesure la sortie ; toute la mesure est faite sur le téléphone.",
     distance: "Distance",
     duration: "Durée",
     pace: "Allure moyenne",
@@ -40,7 +40,7 @@ const copy = {
   en: {
     eyebrow: "Running",
     title: "The same coach, outside the gym",
-    lede: "If you run, Mon Coach builds a running block alongside the lifting block — and makes the two fit together. Volume climbs 10 % per loading week, one week in four steps back, and hard runs are kept off your leg days. GPS measures the run; all of the measuring happens on the phone.",
+    lede: "If you run, Stride builds a running block alongside the lifting block — and makes the two fit together. Volume climbs 10 % per loading week, one week in four steps back, and hard runs are kept off your leg days. GPS measures the run; all of the measuring happens on the phone.",
     distance: "Distance",
     duration: "Duration",
     pace: "Average pace",
@@ -69,7 +69,7 @@ const copy = {
   es: {
     eyebrow: "Carrera a pie",
     title: "El mismo entrenador, fuera del gimnasio",
-    lede: "Si corres, Mon Coach construye un bloque de carrera junto al de fuerza, y hace que encajen. El volumen sube un 10 % por semana de carga, una semana de cada cuatro baja, y las sesiones duras se apartan de tus días de pierna. El GPS mide el rodaje; toda la medición ocurre en el teléfono.",
+    lede: "Si corres, Stride construye un bloque de carrera junto al de fuerza, y hace que encajen. El volumen sube un 10 % por semana de carga, una semana de cada cuatro baja, y las sesiones duras se apartan de tus días de pierna. El GPS mide el rodaje; toda la medición ocurre en el teléfono.",
     distance: "Distancia",
     duration: "Duración",
     pace: "Ritmo medio",

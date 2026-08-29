@@ -1,4 +1,4 @@
-# Mon Coach
+# Stride
 
 **Code propriétaire — tous droits réservés.** Ce projet n'est pas open
 source et ne le sera pas : aucune licence n'est accordée, aucune
@@ -202,5 +202,5 @@ vérifiés. Ce qui part en production est ce qui a été testé.
 
 ## Avertissement
 
-Mon Coach n'est pas un dispositif médical. Il ne remplace ni un médecin, ni un
+Stride n'est pas un dispositif médical. Il ne remplace ni un médecin, ni un
 kinésithérapeute, ni un diététicien.

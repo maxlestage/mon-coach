@@ -41,14 +41,14 @@ CAPABILITIES = {
 # de savoir à l'avance s'il l'est : il n'existe pas de requête « ce nom est-il
 # pris ». Essayer est le seul moyen — d'où cette liste plutôt qu'un pari.
 #
-# « Kinetik » d'abord, c'est le nom choisi. Les suivants ne servent que s'il est
+# « Stride » d'abord, c'est le nom choisi. Les suivants ne servent que s'il est
 # déjà pris : ils gagnent en singularité ce qu'ils perdent en tranchant, ce qui
 # est exactement ce qu'on attend d'un repli.
 DEFAULT_APP_NAMES = [
-    "Kinetik",
-    "Kinetik Entraînement",
-    "Kinetik — Fonte & Foulée",
-    "Kinetik Lestage",
+    "Stride",
+    "Stride Entraînement",
+    "Stride — Fonte & Foulée",
+    "Stride Lestage",
 ]
 
 
@@ -176,9 +176,15 @@ def rename_app(client: Client, app_id: str, candidates: list[str]) -> bool:
 
     Le renommage n'a lieu que si le nom actuel est l'identifiant de bundle —
     ce que laisse une fiche créée en tapant l'identifiant dans le champ Nom.
-    Un nom choisi n'est jamais écrasé : ce serait défaire, à chaque build, une
-    décision prise à la main.
+    Un nom choisi n'est jamais écrasé au fil des builds : ce serait défaire,
+    à chaque exécution, une décision prise à la main.
+
+    RENAME_APP le permet quand même, et c'est délibérément une décision prise
+    au lancement plutôt qu'un réglage du dépôt : renommer une application est
+    un geste rare, qu'on veut voir dans l'historique des exécutions.
     """
+    forced = os.environ.get("RENAME_APP", "").strip().lower() in ("1", "true", "oui")
+
     infos = client.call(f"apps/{app_id}/appInfos").get("data", [])
     for info in infos:
         localizations = client.call(
@@ -186,8 +192,11 @@ def rename_app(client: Client, app_id: str, candidates: list[str]) -> bool:
         ).get("data", [])
         for localization in localizations:
             current = localization["attributes"].get("name") or ""
-            if not current.startswith("com."):
+            if not forced and not current.startswith("com."):
                 continue
+            if current in candidates:
+                print(f"  fiche déjà nommée « {current} », rien à faire.")
+                return True
 
             refusals = []
             for name in candidates:
