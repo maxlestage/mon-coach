@@ -563,7 +563,7 @@ struct OnboardingView: View {
                                 .fill(Theme.accent)
                                 .frame(width: 5, height: 5)
                                 .padding(.top, 7)
-                            Text(line)
+                            Text(line[language])
                                 .font(Theme.bodyFont)
                                 .foregroundStyle(Theme.secondaryText)
                                 .fixedSize(horizontal: false, vertical: true)
