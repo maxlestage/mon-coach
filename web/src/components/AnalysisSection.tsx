@@ -9,8 +9,8 @@ interface Row {
 const copy = {
   fr: {
     eyebrow: "Analyse",
-    title: "L'analyse de Strava. Sans le compte, sans le serveur.",
-    lede: "Records personnels, segments, allure corrigée du dénivelé, zones cardiaques, carte de chaleur, journal, GPX : tout ce qu'un athlète seul demande à Strava se calcule très bien sur un téléphone. La partie sociale, elle, exige un serveur — alors elle n'existe pas ici, et c'est un choix, pas un manque de temps.",
+    title: "Toute l'analyse. Aucun serveur, jamais.",
+    lede: "Records personnels, segments, allure corrigée du dénivelé, zones cardiaques, carte de chaleur, journal, GPX : tout ce qu'un athlète attend d'une application de sport se calcule très bien sur un téléphone, sans que rien n'en sorte. Ce qui exigerait un serveur — un fil social, des classements mondiaux — n'existe pas ici, et c'est un choix, pas un manque de temps.",
     hasTitle: "Ce que l'application fait",
     has: [
       { feature: "Records personnels", detail: "Meilleurs 400 m, 1 km, mile, 5 km, 10 km, semi et marathon — cherchés à l'intérieur de chaque sortie : ton meilleur 5 km est presque toujours un morceau d'un 10 km.", included: true },
@@ -26,13 +26,12 @@ const copy = {
       { feature: "Flux, abonnés, kudos", detail: "Un fil social exige un serveur qui voit tes sorties. La promesse d'ici — rien ne quitte ton appareil — pèse plus lourd qu'un pouce levé.", included: false },
       { feature: "Classements mondiaux de segments", detail: "Se comparer au monde entier demande d'envoyer tes traces au monde entier. Tu te compares à la seule personne qui court sur ton terrain avec tes jambes : toi.", included: false },
     ],
-    verdict: "Si le fil social est ce que tu cherches, Strava le fait très bien. Si c'est l'analyse — et tes trajets qui restent chez toi — elle est ici, en entier.",
-    trademark: "Strava est une marque de Strava, Inc. Mon Coach est un produit indépendant, sans lien ni affiliation avec Strava, Inc.",
+    verdict: "Tes trajets ne partent nulle part. C'est la contrainte que ce produit s'est donnée au départ, et tout le reste en découle : l'analyse est complète, la comparaison se fait avec toi-même, et personne d'autre ne tient de dossier sur tes habitudes.",
   },
   en: {
     eyebrow: "Analysis",
-    title: "Strava's analysis. Without the account, without the server.",
-    lede: "Personal records, segments, grade-adjusted pace, heart-rate zones, heatmap, training log, GPX: everything a solo athlete asks of Strava computes perfectly well on a phone. The social half requires a server — so it does not exist here, and that is a choice, not a lack of time.",
+    title: "All the analysis. No server, ever.",
+    lede: "Personal records, segments, grade-adjusted pace, heart-rate zones, heatmap, training log, GPX: everything an athlete expects from a sports app computes perfectly well on a phone, with nothing leaving it. What would need a server — a social feed, global leaderboards — does not exist here, and that is a choice, not a lack of time.",
     hasTitle: "What the app does",
     has: [
       { feature: "Personal records", detail: "Best 400 m, 1 km, mile, 5K, 10K, half and marathon — found inside each activity: your best 5K is almost always a slice of a 10K.", included: true },
@@ -48,13 +47,12 @@ const copy = {
       { feature: "Feed, followers, kudos", detail: "A social feed requires a server that sees your activities. The promise here — nothing leaves your device — weighs more than a thumbs-up.", included: false },
       { feature: "Global segment leaderboards", detail: "Comparing yourself to the world means sending your traces to the world. You compare against the only person who runs your terrain with your legs: you.", included: false },
     ],
-    verdict: "If the social feed is what you want, Strava does it very well. If it's the analysis — and routes that stay home — it is all here.",
-    trademark: "Strava is a trademark of Strava, Inc. Mon Coach is an independent product with no link to or affiliation with Strava, Inc.",
+    verdict: "Your routes go nowhere. That is the constraint this product set itself from the start, and everything follows from it: the analysis is complete, the comparison is with your own past, and nobody else keeps a file on your habits.",
   },
   es: {
     eyebrow: "Análisis",
-    title: "El análisis de Strava. Sin la cuenta, sin el servidor.",
-    lede: "Récords personales, segmentos, ritmo ajustado al desnivel, zonas de pulso, mapa de calor, diario, GPX: todo lo que un atleta solo le pide a Strava se calcula perfectamente en un teléfono. La mitad social exige un servidor — así que aquí no existe, y es una elección, no falta de tiempo.",
+    title: "Todo el análisis. Sin servidor, nunca.",
+    lede: "Récords personales, segmentos, ritmo ajustado al desnivel, zonas de pulso, mapa de calor, diario, GPX: todo lo que un atleta espera de una aplicación deportiva se calcula perfectamente en un teléfono, sin que nada salga de él. Lo que exigiría un servidor —un muro social, clasificaciones mundiales— no existe aquí, y es una elección, no falta de tiempo.",
     hasTitle: "Lo que hace la aplicación",
     has: [
       { feature: "Récords personales", detail: "Mejores 400 m, 1 km, milla, 5 km, 10 km, media y maratón — buscados dentro de cada salida: tu mejor 5 km casi siempre es un trozo de un 10 km.", included: true },
@@ -70,12 +68,11 @@ const copy = {
       { feature: "Muro, seguidores, kudos", detail: "Un muro social exige un servidor que ve tus salidas. La promesa de aquí — nada sale de tu dispositivo — pesa más que un pulgar arriba.", included: false },
       { feature: "Clasificaciones mundiales de segmentos", detail: "Compararte con el mundo implica enviar tus trazas al mundo. Te comparas con la única persona que corre tu terreno con tus piernas: tú.", included: false },
     ],
-    verdict: "Si lo que buscas es el muro social, Strava lo hace muy bien. Si es el análisis — y rutas que se quedan en casa — está todo aquí.",
-    trademark: "Strava es una marca de Strava, Inc. Mon Coach es un producto independiente, sin vínculo ni afiliación con Strava, Inc.",
+    verdict: "Tus rutas no van a ninguna parte. Es la restricción que este producto se impuso desde el principio, y todo lo demás se deduce de ella: el análisis es completo, la comparación es contigo mismo, y nadie más guarda un expediente sobre tus costumbres.",
   },
 } as const;
 
-/** La comparaison à Strava, dite franchement dans les deux sens. */
+/** Ce que l'analyse fait, et ce qu'elle refuse de faire — dit dans les deux sens. */
 export function AnalysisSection() {
   const t = useCopy(copy);
 
@@ -107,9 +104,6 @@ export function AnalysisSection() {
         </div>
 
         <p className="analysis__verdict">{t.verdict}</p>
-        {/* La publicité comparative est licite quand elle est objective ;
-            la non-affiliation, elle, se dit noir sur blanc. */}
-        <p className="analysis__trademark">{t.trademark}</p>
       </div>
     </section>
   );

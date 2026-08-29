@@ -245,9 +245,9 @@ struct JournalView: View {
             VStack(alignment: .leading, spacing: 10) {
                 CoachText(
                     LocalizedText(
-                        fr: "Importe des fichiers GPX — d'une montre, de Strava, d'ailleurs. Ils entrent dans l'historique et comptent pour tes records. Et chaque sortie s'exporte en GPX depuis sa fiche.",
-                        en: "Import GPX files — from a watch, Strava, anywhere. They join your history and count towards your records. And every activity exports as GPX from its page.",
-                        es: "Importa archivos GPX: de un reloj, de Strava, de donde sea. Entran en tu historial y cuentan para tus récords. Y cada salida se exporta en GPX desde su ficha."
+                        fr: "Importe des fichiers GPX — d'une montre, d'une autre application, d'ailleurs. Ils entrent dans l'historique et comptent pour tes records. Et chaque sortie s'exporte en GPX depuis sa fiche.",
+                        en: "Import GPX files — from a watch, another app, anywhere. They join your history and count towards your records. And every activity exports as GPX from its page.",
+                        es: "Importa archivos GPX: de un reloj, de otra aplicación, de donde sea. Entran en tu historial y cuentan para tus récords. Y cada salida se exporta en GPX desde su ficha."
                     )
                 )
                 if importedCount > 0 {

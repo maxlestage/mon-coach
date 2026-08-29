@@ -64,9 +64,10 @@ struct GPXTests {
 
     @Test("Un GPX d'un autre outil se lit, dialecte compris")
     func foreignDialectsAreRead() throws {
-        // Le style Strava : tout sur une ligne, type « running », hr Garmin.
+        // Le style d'un exportateur courant : tout sur une ligne, type
+        // « running », cardio dans l'extension Garmin.
         let foreign = """
-        <?xml version="1.0" encoding="UTF-8"?><gpx version="1.1" creator="StravaGPX"><trk>\
+        <?xml version="1.0" encoding="UTF-8"?><gpx version="1.1" creator="AutreAppGPX"><trk>\
         <name>Morning Run</name><type>running</type><trkseg>\
         <trkpt lat="45.7772" lon="4.8520"><ele>172.0</ele><time>2024-03-10T08:01:02Z</time>\
         <extensions><gpxtpx:TrackPointExtension><gpxtpx:hr>151</gpxtpx:hr>\
@@ -76,7 +77,7 @@ struct GPXTests {
         """
         let imported = try GPX.read(foreign)
         #expect(imported.points.count == 2)
-        #expect(imported.sport == .run, "« running » est le dialecte Strava de « run »")
+        #expect(imported.sport == .run, "« running » est un dialecte courant de « run »")
         #expect(imported.name == "Morning Run")
         #expect(imported.heartRate.first?.bpm == 151)
     }

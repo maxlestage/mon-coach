@@ -1957,7 +1957,7 @@ input[type="range"]:focus-visible {
 
 /* ------------------------------------------------------------- analyse */
 
-/* La comparaison à Strava : ce qui est là et ce qui n'y sera pas, avec la
+/* Ce qui est là et ce qui n'y sera pas, présentés avec la
    même dignité visuelle — la colonne « non » n'est pas une colonne honteuse,
    c'est un choix assumé. Seule la couleur du filet les distingue. */
 .analysis__row {
@@ -1997,10 +1997,4 @@ input[type="range"]:focus-visible {
   color: var(--text);
   border-left: 3px solid var(--accent);
   padding-left: 14px;
-}
-
-.analysis__trademark {
-  margin-top: 14px;
-  font-size: 12px;
-  color: var(--text-muted);
 }
