@@ -119,12 +119,25 @@ struct MealCard: View {
     var meal: Meal
 
     @Environment(\.language) private var language
+    @State private var showingSteps = false
+
+    /// Le nom du plat quand il y en a un, le moment de la journée sinon.
+    ///
+    /// « Dîner » au-dessus d'une liste de grammes ne dit pas quoi cuisiner.
+    /// Quand un plat porte le repas, c'est lui le titre : le moment redescend
+    /// en sous-titre, où il n'a jamais rien appris à personne.
+    private var title: String {
+        meal.recipe?.name[language] ?? meal.slot.label[language]
+    }
+
+    private var subtitle: String {
+        let macros = "\(Int(meal.macros.kcal)) kcal · \(Int(meal.macros.proteinG)) g"
+        guard let recipe = meal.recipe else { return macros }
+        return "\(meal.slot.label[language]) · \(recipe.minutes) min · \(macros)"
+    }
 
     var body: some View {
-        Card(
-            title: meal.slot.label[language],
-            subtitle: "\(Int(meal.macros.kcal)) kcal · \(Int(meal.macros.proteinG)) g"
-        ) {
+        Card(title: title, subtitle: subtitle) {
             VStack(alignment: .leading, spacing: 8) {
                 ForEach(meal.items) { item in
                     if let food = item.food {
@@ -144,6 +157,52 @@ struct MealCard: View {
                                 }
                             }
                         }
+                    }
+                }
+                if let recipe = meal.recipe {
+                    Button {
+                        showingSteps.toggle()
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: showingSteps ? "chevron.down" : "chevron.right")
+                                .font(.system(size: 11, weight: .semibold))
+                            Text(
+                                LocalizedText(
+                                    fr: "Comment le faire",
+                                    en: "How to make it",
+                                    es: "Cómo prepararlo"
+                                )[language]
+                            )
+                            .font(.system(size: 13, weight: .medium))
+                        }
+                        .foregroundStyle(Theme.accent)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(
+                        LocalizedText(
+                            fr: "Voir la préparation de \(recipe.name.fr)",
+                            en: "Show how to make \(recipe.name.en)",
+                            es: "Ver la preparación de \(recipe.name.es)"
+                        )[language]
+                    )
+
+                    if showingSteps {
+                        VStack(alignment: .leading, spacing: 8) {
+                            ForEach(Array(recipe.steps.enumerated()), id: \.offset) { index, step in
+                                HStack(alignment: .top, spacing: 10) {
+                                    Text("\(index + 1)")
+                                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                                        .foregroundStyle(Theme.accent)
+                                        .frame(width: 16, alignment: .leading)
+                                    Text(step[language])
+                                        .font(.system(size: 13))
+                                        .foregroundStyle(Theme.secondaryText)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                            }
+                        }
+                        .padding(.top, 2)
                     }
                 }
                 if let note = meal.note {
@@ -244,7 +303,24 @@ struct ShoppingListView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.language) private var language
 
-    @State private var checked: Set<String> = []
+    /// Les cases cochées, gardées entre deux ouvertures.
+    ///
+    /// Elles vivaient dans la vue, et disparaissaient avec elle : on cochait
+    /// la moitié de ses courses, on répondait à un message, tout était à
+    /// refaire. Les réglages de l'appareil suffisent — c'est une commodité
+    /// locale, pas une donnée du profil, et elle n'a rien à faire dans le
+    /// fichier que l'athlète exporte.
+    @AppStorage("courses-cochees") private var checkedRaw: String = ""
+
+    private var checked: Set<String> {
+        Set(checkedRaw.split(separator: "\n").map(String.init))
+    }
+
+    private func toggle(_ foodID: String) {
+        var next = checked
+        if next.contains(foodID) { next.remove(foodID) } else { next.insert(foodID) }
+        checkedRaw = next.sorted().joined(separator: "\n")
+    }
 
     var body: some View {
         NavigationStack {
@@ -258,41 +334,63 @@ struct ShoppingListView: View {
                             excluding: store.profile?.excludedFoods ?? []
                         )
                         let list = MealPlanner.shoppingList(for: week)
+                        let done = list.filter { checked.contains($0.foodID) }.count
                         Card(
                             subtitle: LocalizedText(
-                                fr: "Pour sept jours. Les quantités sont celles du produit prêt à consommer : compte environ un tiers pour les féculents secs.",
-                                en: "For seven days. Quantities are for ready-to-eat product: count roughly a third for dry starches.",
-                                es: "Para siete días. Las cantidades son de producto listo para consumir: cuenta un tercio para los farináceos secos."
+                                fr: "Pour sept jours, \(done) sur \(list.count) pris. Les quantités sont celles du produit prêt à consommer : compte environ un tiers pour les féculents secs.",
+                                en: "For seven days, \(done) of \(list.count) picked up. Quantities are for ready-to-eat product: count roughly a third for dry starches.",
+                                es: "Para siete días, \(done) de \(list.count) cogidos. Las cantidades son de producto listo para consumir: cuenta un tercio para los farináceos secos."
                             )[language]
                         ) {
-                            VStack(spacing: 6) {
-                                ForEach(list) { line in
-                                    Button {
-                                        if checked.contains(line.foodID) {
-                                            checked.remove(line.foodID)
-                                        } else {
-                                            checked.insert(line.foodID)
+                            if done > 0 {
+                                Button {
+                                    checkedRaw = ""
+                                } label: {
+                                    Text(
+                                        LocalizedText(
+                                            fr: "Tout décocher",
+                                            en: "Clear all",
+                                            es: "Desmarcar todo"
+                                        )[language]
+                                    )
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundStyle(Theme.accent)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+
+                        // Un rayon par carte, dans l'ordre du magasin plutôt
+                        // qu'en une seule colonne de trente lignes : c'est
+                        // ainsi qu'on fait ses courses, et la liste sert à
+                        // faire ses courses.
+                        ForEach(aisles(of: list), id: \.role) { aisle in
+                            Card(title: aisle.role.label[language]) {
+                                VStack(spacing: 6) {
+                                    ForEach(aisle.lines) { line in
+                                        Button {
+                                            toggle(line.foodID)
+                                        } label: {
+                                            HStack(spacing: 10) {
+                                                Image(systemName: checked.contains(line.foodID)
+                                                    ? "checkmark.circle.fill"
+                                                    : "circle")
+                                                    .foregroundStyle(checked.contains(line.foodID)
+                                                        ? Theme.accent
+                                                        : Theme.secondaryText)
+                                                Text(line.food?.name[language] ?? line.foodID)
+                                                    .font(Theme.bodyFont)
+                                                    .foregroundStyle(Theme.primaryText)
+                                                    .strikethrough(checked.contains(line.foodID))
+                                                Spacer()
+                                                Text(quantity(line))
+                                                    .font(Theme.captionFont)
+                                                    .foregroundStyle(Theme.secondaryText)
+                                            }
+                                            .contentShape(Rectangle())
                                         }
-                                    } label: {
-                                        HStack(spacing: 10) {
-                                            Image(systemName: checked.contains(line.foodID)
-                                                ? "checkmark.circle.fill"
-                                                : "circle")
-                                                .foregroundStyle(checked.contains(line.foodID)
-                                                    ? Theme.accent
-                                                    : Theme.secondaryText)
-                                            Text(line.food?.name[language] ?? line.foodID)
-                                                .font(Theme.bodyFont)
-                                                .foregroundStyle(Theme.primaryText)
-                                                .strikethrough(checked.contains(line.foodID))
-                                            Spacer()
-                                            Text(quantity(line))
-                                                .font(Theme.captionFont)
-                                                .foregroundStyle(Theme.secondaryText)
-                                        }
-                                        .contentShape(Rectangle())
+                                        .buttonStyle(.plain)
                                     }
-                                    .buttonStyle(.plain)
                                 }
                             }
                         }
@@ -311,6 +409,21 @@ struct ShoppingListView: View {
                 }
             }
         }
+    }
+
+    /// Les lignes groupées par rayon, dans l'ordre où le moteur les a rendues.
+    ///
+    /// L'ordre vient de `shoppingList`, qui trie déjà par rôle : le
+    /// reproduire ici plutôt que de retrier évite deux classements qui
+    /// divergent le jour où l'un des deux change.
+    private func aisles(of list: [ShoppingLine]) -> [(role: FoodRole, lines: [ShoppingLine])] {
+        var order: [FoodRole] = []
+        var grouped: [FoodRole: [ShoppingLine]] = [:]
+        for line in list {
+            if grouped[line.role] == nil { order.append(line.role) }
+            grouped[line.role, default: []].append(line)
+        }
+        return order.map { ($0, grouped[$0] ?? []) }
     }
 
     /// Au-delà du kilo, on compte en kilos : personne n'achète 2 450 g de riz.

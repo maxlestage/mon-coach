@@ -22,49 +22,49 @@
       {
         "items" : [
           {
-            "grams" : 25,
+            "grams" : 225,
             "name" : {
-              "en" : "Casein powder",
-              "es" : "Caseína en polvo",
-              "fr" : "Caséine (poudre)"
+              "en" : "Cottage cheese",
+              "es" : "Requesón",
+              "fr" : "Cottage cheese"
             },
             "reason" : {
-              "en" : "Slow whey: three hours of release, the evening scoop when dinner ran short of protein.",
-              "es" : "La whey lenta: tres horas de liberación, el cazo nocturno cuando la cena se quedó corta de proteína.",
-              "fr" : "La whey lente : trois heures de diffusion, la dose du soir quand le dîner a manqué de protéines."
+              "en" : "Rich in casein: the protein that holds longest between meals.",
+              "es" : "Rico en caseína: la proteína que más aguanta entre comidas.",
+              "fr" : "Riche en caséine : c'est la protéine qui tient le plus longtemps entre deux repas."
+            },
+            "tier" : "base"
+          },
+          {
+            "grams" : 100,
+            "name" : {
+              "en" : "Brown rice cakes",
+              "es" : "Tortitas de arroz integral",
+              "fr" : "Galettes de riz complet"
+            },
+            "reason" : {
+              "en" : "Gluten-free and easy to carry, but barely filling: they are a base for something else, not a meal.",
+              "es" : "Sin gluten y fáciles de llevar, pero poco saciantes: son la base de otra cosa, no una comida.",
+              "fr" : "Sans gluten et faciles à transporter, mais très peu rassasiantes : elles servent de support à autre chose, pas de repas."
             },
             "tier" : "moderate"
           },
           {
-            "grams" : 220,
+            "grams" : 150,
             "name" : {
-              "en" : "Corn tortillas",
-              "es" : "Tortillas de maíz",
-              "fr" : "Tortillas de maïs"
+              "en" : "Kiwi",
+              "es" : "Kiwi",
+              "fr" : "Kiwi"
             },
             "reason" : {
-              "en" : "Gluten-free, high in fibre, and they turn any leftovers into a meal.",
-              "es" : "Sin gluten, ricas en fibra, y convierten cualquier sobra en una comida.",
-              "fr" : "Sans gluten, riches en fibres, et elles transforment n'importe quel reste en repas."
+              "en" : "Two kiwis cover the day's vitamin C, and they help things move.",
+              "es" : "Dos kiwis cubren la vitamina C del día y ayudan al tránsito.",
+              "fr" : "Deux kiwis couvrent la vitamine C de la journée, et ils aident au transit."
             },
             "tier" : "base"
           },
           {
-            "grams" : 125,
-            "name" : {
-              "en" : "Blackberries",
-              "es" : "Moras",
-              "fr" : "Mûres"
-            },
-            "reason" : {
-              "en" : "Nearly raspberry-level fibre, and free along the paths of August.",
-              "es" : "Casi tanta fibra como la frambuesa, y gratis en los caminos de agosto.",
-              "fr" : "Presque autant de fibres que la framboise, et gratuites au bord des chemins d'août."
-            },
-            "tier" : "base"
-          },
-          {
-            "grams" : 19,
+            "grams" : 6,
             "name" : {
               "en" : "Almond butter",
               "es" : "Crema de almendras",
@@ -78,13 +78,13 @@
             "tier" : "moderate"
           }
         ],
-        "kcal" : 743,
+        "kcal" : 736,
         "note" : {
           "en" : "Thirty grams of protein first thing blunts hunger for the whole day: this is the highest-return meal to fix.",
           "es" : "Treinta gramos de proteína a primera hora cortan el hambre de todo el día: es la comida más rentable de corregir.",
           "fr" : "Trente grammes de protéines dès le matin coupent la faim de la journée entière : c'est le repas le plus rentable à corriger."
         },
-        "proteinG" : 38,
+        "proteinG" : 36,
         "slot" : {
           "en" : "Breakfast",
           "es" : "Desayuno",
@@ -94,78 +94,78 @@
       {
         "items" : [
           {
-            "grams" : 50,
+            "grams" : 80,
             "name" : {
-              "en" : "Seitan",
-              "es" : "Seitán",
-              "fr" : "Seitan"
+              "en" : "Lean beef mince 5 %",
+              "es" : "Carne picada de ternera 5 %",
+              "fr" : "Bœuf haché 5 %"
             },
             "reason" : {
-              "en" : "The densest plant protein, but it is pure gluten: off the table for coeliacs.",
-              "es" : "La proteína vegetal más densa, pero es gluten puro: descartada en caso de celiaquía.",
-              "fr" : "La protéine végétale la plus dense, mais c'est du gluten pur : exclu en cas de maladie cœliaque."
+              "en" : "Haem iron and zinc that plant sources struggle to match. The 5 % matters: at 15 % it is 100 kcal more for the same portion.",
+              "es" : "Hierro hemo y zinc que las fuentes vegetales no igualan fácilmente. El 5 % importa: al 15 % son 100 kcal más por la misma ración.",
+              "fr" : "Fer héminique et zinc, que les sources végétales peinent à égaler. Le 5 % change tout : à 15 %, c'est 100 kcal de plus pour la même portion."
             },
             "tier" : "base"
           },
           {
-            "grams" : 500,
+            "grams" : 440,
             "name" : {
-              "en" : "Millet",
-              "es" : "Mijo",
-              "fr" : "Millet"
+              "en" : "Cooked white rice",
+              "es" : "Arroz blanco cocido",
+              "fr" : "Riz blanc cuit"
             },
             "reason" : {
-              "en" : "Gluten-free and mild: the couscous stand-in when wheat is off the table.",
-              "es" : "Sin gluten y suave: el sustituto del cuscús cuando el trigo queda fuera.",
-              "fr" : "Sans gluten et doux au goût : le remplaçant du couscous quand le blé est exclu."
-            },
-            "tier" : "base"
-          },
-          {
-            "grams" : 150,
-            "name" : {
-              "en" : "Swiss chard",
-              "es" : "Acelgas",
-              "fr" : "Blettes"
-            },
-            "reason" : {
-              "en" : "Spinach's magnesium with more bite — stalks and leaves make two vegetables in one.",
-              "es" : "El magnesio de las espinacas con más textura: pencas y hojas son dos verduras en una.",
-              "fr" : "Le magnésium des épinards, la mâche en plus — les côtes et les feuilles font deux légumes en un."
-            },
-            "tier" : "base"
-          },
-          {
-            "grams" : 150,
-            "name" : {
-              "en" : "Cucumber",
-              "es" : "Pepino",
-              "fr" : "Concombre"
-            },
-            "reason" : {
-              "en" : "Crunchy water: plate volume that costs the total nothing.",
-              "es" : "Agua que cruje: volumen en el plato que no cuesta nada al total.",
-              "fr" : "De l'eau qui croque : le volume dans l'assiette qui ne coûte rien au total."
-            },
-            "tier" : "base"
-          },
-          {
-            "grams" : 22,
-            "name" : {
-              "en" : "Sesame seeds",
-              "es" : "Semillas de sésamo",
-              "fr" : "Graines de sésame"
-            },
-            "reason" : {
-              "en" : "A pan-toasted spoonful transforms a whole dish — calcium and crunch for fifteen counted grams.",
-              "es" : "Una cucharada dorada en la sartén transforma el plato: calcio y crujido por quince gramos contados.",
-              "fr" : "Une cuillère dorée à la poêle transforme un plat entier — calcium et croquant pour quinze grammes comptés."
+              "en" : "Easy to digest and handy around training, but low in fibre: it fills you up little for the calories.",
+              "es" : "Digestivo y práctico alrededor del entrenamiento, pero pobre en fibra: sacia poco para las calorías que aporta.",
+              "fr" : "Digeste et pratique autour de la séance, mais pauvre en fibres : il rassasie peu pour ses calories."
             },
             "tier" : "moderate"
+          },
+          {
+            "grams" : 150,
+            "name" : {
+              "en" : "Peppers",
+              "es" : "Pimientos",
+              "fr" : "Poivrons"
+            },
+            "reason" : {
+              "en" : "More vitamin C than an orange, gram for gram.",
+              "es" : "Más vitamina C que una naranja, a igual peso.",
+              "fr" : "Plus de vitamine C qu'une orange, à poids égal."
+            },
+            "tier" : "base"
+          },
+          {
+            "grams" : 150,
+            "name" : {
+              "en" : "Plain tomato sauce",
+              "es" : "Tomate frito casero",
+              "fr" : "Sauce tomate nature"
+            },
+            "reason" : {
+              "en" : "Tomato concentrated by cooking, lycopene included: the sauce that counts as a vegetable.",
+              "es" : "El tomate concentrado por la cocción, licopeno incluido: la salsa que cuenta como verdura.",
+              "fr" : "La tomate concentrée par la cuisson, lycopène compris : la sauce qui compte comme un légume."
+            },
+            "tier" : "base"
+          },
+          {
+            "grams" : 11,
+            "name" : {
+              "en" : "Extra-virgin olive oil",
+              "es" : "Aceite de oliva virgen extra",
+              "fr" : "Huile d'olive vierge extra"
+            },
+            "reason" : {
+              "en" : "The best-documented fat for cardiovascular health. One tablespoon is 120 kcal — this is where deficits quietly die.",
+              "es" : "La grasa mejor documentada para la salud cardiovascular. Una cucharada son 120 kcal: ahí es donde se pierden los déficits.",
+              "fr" : "Le gras le mieux documenté sur la santé cardiovasculaire. Une cuillère à soupe pèse 120 kcal : c'est là que les déficits se perdent."
+            },
+            "tier" : "base"
           }
         ],
-        "kcal" : 843,
-        "proteinG" : 38,
+        "kcal" : 914,
+        "proteinG" : 36,
         "slot" : {
           "en" : "Lunch",
           "es" : "Comida",
@@ -228,83 +228,83 @@
       {
         "items" : [
           {
-            "grams" : 85,
+            "grams" : 60,
             "name" : {
-              "en" : "Chicken liver",
-              "es" : "Hígado de pollo",
-              "fr" : "Foie de volaille"
+              "en" : "Pork tenderloin",
+              "es" : "Solomillo de cerdo",
+              "fr" : "Filet mignon de porc"
             },
             "reason" : {
-              "en" : "The most iron- and vitamin-A-dense food in this catalogue. Once a week is enough — and already a lot.",
-              "es" : "El alimento más denso en hierro y vitamina A del catálogo. Una vez por semana basta, y ya es mucho.",
-              "fr" : "L'aliment le plus dense en fer et en vitamine A du catalogue. Une fois par semaine suffit, et c'est déjà beaucoup."
+              "en" : "The lean cut of pork, comparable to chicken and often cheaper.",
+              "es" : "El corte magro del cerdo, comparable al pollo y a menudo más barato.",
+              "fr" : "Le morceau maigre du porc, comparable au poulet et souvent moins cher."
             },
             "tier" : "base"
           },
           {
-            "grams" : 420,
+            "grams" : 600,
             "name" : {
-              "en" : "Cooked brown rice",
-              "es" : "Arroz integral cocido",
-              "fr" : "Riz complet cuit"
+              "en" : "Polenta",
+              "es" : "Polenta",
+              "fr" : "Polenta"
             },
             "reason" : {
-              "en" : "A little more fibre and magnesium than white rice, for the same job.",
-              "es" : "Algo más de fibra y magnesio que el arroz blanco, para el mismo uso.",
-              "fr" : "Un peu plus de fibres et de magnésium que le riz blanc, pour le même usage."
-            },
-            "tier" : "base"
-          },
-          {
-            "grams" : 150,
-            "name" : {
-              "en" : "Cucumber",
-              "es" : "Pepino",
-              "fr" : "Concombre"
-            },
-            "reason" : {
-              "en" : "Crunchy water: plate volume that costs the total nothing.",
-              "es" : "Agua que cruje: volumen en el plato que no cuesta nada al total.",
-              "fr" : "De l'eau qui croque : le volume dans l'assiette qui ne coûte rien au total."
+              "en" : "Golden corn porridge, gluten-free, and one of the least dense starches once cooked.",
+              "es" : "El maíz en crema dorada, sin gluten, y uno de los farináceos menos densos ya cocido.",
+              "fr" : "Le maïs en purée dorée, sans gluten, et l'un des féculents les moins denses une fois cuit."
             },
             "tier" : "base"
           },
           {
             "grams" : 150,
             "name" : {
-              "en" : "Lamb's lettuce",
-              "es" : "Canónigos",
-              "fr" : "Mâche"
+              "en" : "Mushrooms",
+              "es" : "Champiñones",
+              "fr" : "Champignons"
             },
             "reason" : {
-              "en" : "The salad leaf with real plant omega-3s — rare on a shelf where lettuce brings only crunch.",
-              "es" : "La ensalada con auténticos omega-3 vegetales: rara en un estante donde la lechuga solo aporta crujido.",
-              "fr" : "La salade qui contient de vrais oméga-3 végétaux — rare dans un rayon où la laitue n'apporte que du croquant."
+              "en" : "They bring umami, which is what makes a lean plate satisfying.",
+              "es" : "Aportan umami, que es lo que hace satisfactorio un plato magro.",
+              "fr" : "Ils apportent de l'umami, ce qui rend une assiette maigre satisfaisante."
             },
             "tier" : "base"
           },
           {
-            "grams" : 15,
+            "grams" : 150,
             "name" : {
-              "en" : "Pesto",
-              "es" : "Pesto",
-              "fr" : "Pesto"
+              "en" : "Spinach",
+              "es" : "Espinacas",
+              "fr" : "Épinards"
             },
             "reason" : {
-              "en" : "Basil, yes — carried by oil and cheese: two spoonfuls season, four double the dish.",
-              "es" : "Albahaca, sí, a hombros de aceite y queso: dos cucharadas aliñan, cuatro doblan el plato.",
-              "fr" : "Basilic, oui — porté par l'huile et le fromage : deux cuillères assaisonnent, quatre doublent le plat."
+              "en" : "Folate, non-haem iron and nitrates: pair with vitamin C to absorb the iron.",
+              "es" : "Folatos, hierro no hemo y nitratos: combínalas con vitamina C para absorber el hierro.",
+              "fr" : "Folates, fer non héminique et nitrates : à associer à une source de vitamine C pour absorber le fer."
             },
-            "tier" : "moderate"
+            "tier" : "base"
+          },
+          {
+            "grams" : 45,
+            "name" : {
+              "en" : "Light cream (15 %)",
+              "es" : "Nata ligera (15 %)",
+              "fr" : "Crème légère (15 %)"
+            },
+            "reason" : {
+              "en" : "Half the calories of full cream for the same kitchen move — the lightening you cannot taste.",
+              "es" : "La mitad de calorías que la entera para el mismo gesto en cocina: el aligerado que no se nota.",
+              "fr" : "La moitié des calories de l'entière pour le même geste en cuisine — l'allègement qui ne se goûte pas."
+            },
+            "tier" : "base"
           }
         ],
-        "kcal" : 782,
+        "kcal" : 764,
         "note" : {
           "en" : "Eating late does not make you fat: the day's total is what counts. A protein-rich dinner just helps you sleep.",
           "es" : "Cenar tarde no engorda: lo que cuenta es el total del día. Una cena proteica solo ayuda a dormir mejor.",
           "fr" : "Manger tard ne fait pas grossir : c'est le total de la journée qui compte. Un dîner protéiné aide simplement à mieux dormir."
         },
-        "proteinG" : 37,
+        "proteinG" : 38,
         "slot" : {
           "en" : "Dinner",
           "es" : "Cena",
@@ -324,14 +324,14 @@
         "fr" : "Les féculents sont donnés cuits. Sur le paquet, ils sont donnés crus : 100 g de riz sec deviennent environ 300 g de riz cuit."
       },
       {
-        "en" : "This day brings 50 g of fibre against 39 g recommended. That is the difference between a deficit you can hold and one that breaks on Thursday night.",
-        "es" : "Este día aporta 50 g de fibra frente a los 39 g recomendados. Es la diferencia entre un déficit sostenible y uno que se rompe el jueves por la noche.",
-        "fr" : "Cette journée apporte 50 g de fibres, pour 39 g recommandés. C'est ce qui fait la différence entre un déficit tenable et un déficit qui craque le jeudi soir."
+        "en" : "This day brings 33 g of fibre against 39 g recommended. That is the difference between a deficit you can hold and one that breaks on Thursday night.",
+        "es" : "Este día aporta 33 g de fibra frente a los 39 g recomendados. Es la diferencia entre un déficit sostenible y uno que se rompe el jueves por la noche.",
+        "fr" : "Cette journée apporte 33 g de fibres, pour 39 g recommandés. C'est ce qui fait la différence entre un déficit tenable et un déficit qui craque le jeudi soir."
       }
     ],
-    "totalFiberG" : 50,
-    "totalKcal" : 2715,
-    "totalProteinG" : 148
+    "totalFiberG" : 33,
+    "totalKcal" : 2763,
+    "totalProteinG" : 147
   },
   "nutrition" : {
     "calories" : 2768,
