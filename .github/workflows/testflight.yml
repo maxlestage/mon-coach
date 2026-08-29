@@ -163,6 +163,21 @@ jobs:
           chmod 600 "$DEST"
           echo "Clé d'API en place pour le Key ID fourni."
 
+      - name: Vérifier que la fiche existe dans App Store Connect
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID || secrets.APPSTORE_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID || secrets.APPSTORE_ISSUER_ID }}
+        run: |
+          # Une requête, et elle tombe avant les quinze minutes d'archivage.
+          # Sans fiche, l'envoi échoue tout à la fin sur « Error Downloading
+          # App Information » — une phrase qui ne nomme ni l'application, ni
+          # l'identifiant, ni ce qu'il faut faire.
+          export ASC_KEY_PATH="$RUNNER_TEMP/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+          BUNDLE_ID="$(sed -n 's/.*PRODUCT_BUNDLE_IDENTIFIER = \(com\.[^;]*\);.*/\1/p' \
+            "$PROJECT/project.pbxproj" | sort -u | head -1)"
+          echo "Identifiant principal : $BUNDLE_ID"
+          python3 tools/appstore/distribution_certificate.py --find-app "$BUNDLE_ID"
+
       - name: Poser un certificat de distribution
         # L'étape décisive, et celle qui a coûté le plus cher à comprendre.
         #
@@ -419,7 +434,23 @@ jobs:
             -authenticationKeyPath "$RUNNER_TEMP/private_keys/AuthKey_${KEY_ID}.p8" \
             -authenticationKeyID "$KEY_ID" \
             -authenticationKeyIssuerID "$ISSUER_ID" \
-            | $FORMATTER
+            2>&1 | tee "$GITHUB_WORKSPACE/build/xcodebuild-export.log" | $FORMATTER
+
+      - name: Récupérer le journal de distribution
+        if: failure()
+        run: |
+          # Xcode range le détail de l'échec d'envoi dans un dossier temporaire
+          # dont il imprime le chemin, puis l'exécuteur est détruit avec. Le
+          # journal visible, lui, se réduit à une phrase qui ne nomme rien.
+          LOG="$GITHUB_WORKSPACE/build/xcodebuild-export.log"
+          [ -f "$LOG" ] || exit 0
+          BUNDLE="$(sed -n 's/.*Created bundle at path "\([^"]*\)".*/\1/p' "$LOG" | head -1)"
+          [ -n "$BUNDLE" ] && [ -d "$BUNDLE" ] || exit 0
+          cp -R "$BUNDLE" "$GITHUB_WORKSPACE/build/distribution-logs" || true
+          echo "::group::Détail de l'échec d'envoi"
+          find "$GITHUB_WORKSPACE/build/distribution-logs" -type f -name "*.txt" \
+            -exec sh -c 'echo "--- $1"; tail -40 "$1"' _ {} \;
+          echo "::endgroup::"
 
       - name: Rendre la place du certificat
         if: always()
@@ -459,6 +490,7 @@ jobs:
           name: journaux-xcodebuild
           path: |
             ${{ github.workspace }}/build/**/*.log
+            ${{ github.workspace }}/build/distribution-logs
             ~/Library/Logs/gym
           if-no-files-found: ignore
           retention-days: 7

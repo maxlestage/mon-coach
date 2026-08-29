@@ -259,6 +259,60 @@ def revoke_stale(key_path: str, key_id: str, issuer_id: str, days: int) -> int:
     return len(stale)
 
 
+def find_app(key_path: str, key_id: str, issuer_id: str, bundle_id: str) -> int:
+    """La fiche de l'application existe-t-elle dans App Store Connect ?
+
+    L'envoi vers TestFlight suppose une fiche déjà créée : Xcode va y chercher
+    les informations de l'application avant de téléverser. Quand elle manque,
+    il échoue sur « Error Downloading App Information » — une phrase qui ne
+    nomme ni l'application, ni l'identifiant, ni ce qu'il faut faire, et qui
+    tombe après le quart d'heure qu'a duré l'archivage.
+
+    Cette vérification coûte une requête et tombe avant tout le reste.
+    """
+    token = jwt(key_path, key_id, issuer_id)
+    try:
+        response = call(token, f"apps?filter[bundleId]={bundle_id}&limit=10")
+    except AppleRefused as refusal:
+        print(f"::warning::Impossible de vérifier la fiche : {refusal.explain()}")
+        # Ne pas bloquer sur un doute : c'est une vérification de confort, et
+        # l'export dira la vérité de toute façon.
+        return 0
+
+    apps = response.get("data", [])
+    exact = [a for a in apps if a["attributes"].get("bundleId") == bundle_id]
+    if exact:
+        attributes = exact[0]["attributes"]
+        print(
+            f"Fiche trouvée : « {attributes.get('name', '?')} » "
+            f"({bundle_id})"
+        )
+        return 0
+
+    print(
+        f"::error::Aucune fiche d'application pour {bundle_id} dans App Store Connect."
+    )
+    print()
+    print("L'envoi vers TestFlight suppose une fiche déjà créée : Xcode y lit")
+    print("les informations de l'application avant de téléverser. Sans elle, il")
+    print("échoue sur « Error Downloading App Information », après l'archivage.")
+    print()
+    print("À faire une fois, depuis un téléphone :")
+    print("  App Store Connect → Apps → +  → New App")
+    print("    Plateformes : iOS")
+    print(f"    Bundle ID   : {bundle_id}")
+    print("    Nom         : unique sur tout l'App Store — un nom déjà pris est")
+    print("                  refusé, et c'est le cas de la plupart des noms")
+    print("                  génériques. Il pourra être changé plus tard.")
+    print("    SKU         : n'importe quel identifiant interne, par exemple")
+    print(f"                  {bundle_id}")
+    print()
+    print("Si le Bundle ID n'apparaît pas dans la liste, il faut d'abord le")
+    print("déclarer : developer.apple.com → Certificates, Identifiers &")
+    print("Profiles → Identifiers → +.")
+    return 1
+
+
 def main() -> int:
     key_path = os.environ["ASC_KEY_PATH"]
     key_id = os.environ["ASC_KEY_ID"]
@@ -273,6 +327,8 @@ def main() -> int:
     if len(sys.argv) > 1 and sys.argv[1] == "--revoke-stale":
         revoke_stale(key_path, key_id, issuer_id, days=3)
         return 0
+    if len(sys.argv) > 1 and sys.argv[1] == "--find-app":
+        return find_app(key_path, key_id, issuer_id, sys.argv[2])
 
     os.makedirs(out_dir, exist_ok=True)
     private_key = os.path.join(out_dir, "distribution.key")
