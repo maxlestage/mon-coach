@@ -155,6 +155,25 @@ public enum MealPlanner {
 
     // MARK: - Un repas
 
+/// Comment choisir le plat d'un repas, quand il y en a un.
+///
+/// Trois modes, et non deux, parce que la contrainte de fibres se juge sur
+/// la journée et non sur un repas. Un plancher de fibres appliqué repas par
+/// repas ne laissait survivre que deux ou trois plats, et la semaine servait
+/// trois dîners différents sur sept — le plan redevenait la boucle qu'on
+/// voulait justement casser.
+enum DishPreference {
+    /// Le plat du jour, choisi par la graine : c'est la variété.
+    case varied
+    /// Le plat acceptable le plus riche en fibres, quand la journée en
+    /// manque. On sacrifie la variété d'une journée, pas sa justesse.
+    case richestInFibre
+    /// Aucun plat : l'assiette composée aliment par aliment, qui a toujours
+    /// plus de liberté pour tomber sur la cible. Le dernier recours.
+    case none
+}
+
+
     /// Résout les quantités d'un repas pour atteindre ses macros.
     ///
     /// Les aliments s'apportent des macros les uns aux autres — l'avoine
@@ -352,7 +371,8 @@ public enum MealPlanner {
         diet: DietPreference,
         excluded: Set<String>,
         avoidingProteins avoided: Set<String> = [],
-        seed: Int
+        seed: Int,
+        dishes preference: DishPreference = .varied
     ) -> Meal {
         let proteinPool: [Food]
         let carbPool: [Food]
@@ -400,7 +420,7 @@ public enum MealPlanner {
         // Une même protéine ne revient pas trois fois dans la journée, et une
         // poudre encore moins : c'est un dépannage, pas la colonne vertébrale
         // de trois repas.
-        let items = solve(
+        let assembled = solve(
             protein: pick(viableProteins(proteinPool, target: target, avoiding: avoided), seed: seed),
             carb: pick(viableCarbs(carbPool, target: target), seed: seed + 1),
             fat: pick(fatPool, seed: seed + 3),
@@ -408,7 +428,137 @@ public enum MealPlanner {
             vegetableGrams: vegetableGrams,
             target: target
         )
-        return Meal(slot: slot, items: items, note: note(for: slot))
+
+        // Un plat nommé, si l'un d'eux tient la cible aussi bien que
+        // l'assiette. Le plat ne choisit que les aliments — le solveur garde
+        // le dernier mot sur les grammes — mais choisir les aliments lui
+        // retire de la liberté, et cette liberté était de la précision.
+        //
+        // D'où la comparaison plutôt qu'un pari : les deux sont résolus, et
+        // le plat n'est retenu que s'il ne coûte rien. Un nom de plat ne vaut
+        // pas un écart calorique. C'est le calcul qui est le produit ; la
+        // recette l'habille, elle ne le commande pas.
+        // Le plat ne choisit que les aliments — le solveur garde le dernier
+        // mot sur les grammes — mais choisir les aliments lui retire de la
+        // liberté, et cette liberté était de la précision. D'où la
+        // comparaison plutôt qu'un pari : les deux sont résolus, et le plat
+        // n'est retenu que s'il tient la cible calorique aussi bien que
+        // l'assiette, ou au moins dans le budget de la journée.
+        //
+        // Un nom de plat ne vaut pas un écart calorique. C'est le calcul qui
+        // est le produit ; la recette l'habille, elle ne le commande pas.
+        guard preference != .none else {
+            return Meal(slot: slot, items: assembled, note: note(for: slot))
+        }
+        let tolerance = max(kcalDrift(assembled, target: target), 0.08)
+
+        // Tous les plats sont résolus, puis on choisit parmi ceux qui
+        // tiennent. Prendre le premier acceptable rencontré coûterait la
+        // variété : les plats recalés le sont pour presque toutes les
+        // graines, et la semaine servirait deux dîners différents sur sept.
+        var acceptable: [(dish: Recipe, items: [MealItem], fibre: Double)] = []
+        for dish in dishes(
+            slot: slot, target: target, diet: diet,
+            excluded: excluded, avoiding: avoided
+        ) {
+            let items = solve(
+                protein: FoodCatalog.food(id: dish.proteinID),
+                carb: FoodCatalog.food(id: dish.carbID),
+                fat: FoodCatalog.food(id: dish.fatID),
+                fixed: dish.extraIDs.compactMap { FoodCatalog.food(id: $0) },
+                vegetableGrams: vegetableGrams,
+                target: target
+            )
+            guard kcalDrift(items, target: target) <= tolerance else { continue }
+            acceptable.append((dish, items, items.map(\.macros).total.fiberG))
+        }
+
+        let chosen: (dish: Recipe, items: [MealItem], fibre: Double)?
+        switch preference {
+        case .varied:
+            chosen = acceptable.isEmpty
+                ? nil
+                : acceptable[((seed % acceptable.count) + acceptable.count) % acceptable.count]
+        case .richestInFibre:
+            // À égalité de fibres, le premier du catalogue : le choix reste
+            // reproductible, ce qu'un tri instable ne garantirait pas.
+            chosen = acceptable.max { $0.fibre < $1.fibre }
+        case .none:
+            chosen = nil
+        }
+
+        if let chosen {
+            return Meal(
+                slot: slot,
+                items: chosen.items,
+                note: note(for: slot),
+                recipeID: chosen.dish.id
+            )
+        }
+
+        return Meal(slot: slot, items: assembled, note: note(for: slot))
+    }
+
+    /// L'écart calorique d'un repas résolu à ce qu'on lui demandait.
+    static func kcalDrift(_ items: [MealItem], target: Macros) -> Double {
+        guard target.kcal > 0 else { return 0 }
+        return abs(items.map(\.macros).total.kcal - target.kcal) / target.kcal
+    }
+
+    /// Les plats servables à ce moment, du plus voulu au dernier recours.
+    ///
+    /// Une liste plutôt qu'un choix unique : le plat retenu est celui qui
+    /// tient la cible, et cela ne se sait qu'après l'avoir résolu. Renvoyer
+    /// un seul candidat obligerait à le prendre ou à tout abandonner.
+    ///
+    /// L'ordre est celui du catalogue, protéines déjà servies rejetées en
+    /// fin de liste. C'est un ordre stable, et c'est ce qui rend le choix
+    /// reproductible : le même jour donne le même plat, d'une ouverture
+    /// d'écran à l'autre et d'une exécution des tests à l'autre.
+    static func dishes(
+        slot: MealSlot,
+        target: Macros,
+        diet: DietPreference,
+        excluded: Set<String>,
+        avoiding avoided: Set<String>
+    ) -> [Recipe] {
+        let candidates = RecipeCatalog.available(slot: slot, diet: diet, excluding: excluded)
+            .filter { canReach(target, with: $0) }
+        guard !candidates.isEmpty else { return [] }
+
+        // La protéine déjà servie aujourd'hui passe en fin de liste plutôt
+        // que d'en sortir : la répétition est un défaut, un repas sans source
+        // protéique en est un pire. L'ordre suffit — le choix se fait plus
+        // loin, une fois qu'on sait lesquels tiennent vraiment la cible.
+        let fresh = candidates.filter { !avoided.contains($0.proteinID) }
+        let tired = candidates.filter { avoided.contains($0.proteinID) }
+        return fresh + tired
+    }
+
+    /// Le solveur peut-il atteindre cette cible avec les aliments de ce plat ?
+    static func canReach(_ target: Macros, with recipe: Recipe) -> Bool {
+        guard let protein = FoodCatalog.food(id: recipe.proteinID),
+              let carb = FoodCatalog.food(id: recipe.carbID),
+              FoodCatalog.food(id: recipe.fatID) != nil,
+              recipe.extraIDs.allSatisfy({ FoodCatalog.food(id: $0) != nil })
+        else { return false }
+
+        // La protéine doit pouvoir livrer sa part sans dépasser le plafond de
+        // portion — le même critère que viableProteins applique à un pool.
+        if target.proteinG > 0 {
+            guard protein.proteinG > 0,
+                  target.proteinG / protein.proteinG * 100 <= maximumGrams(for: protein)
+            else { return false }
+        }
+
+        // Et le féculent ne doit pas couvrir à lui seul la moitié des
+        // protéines du repas, faute de quoi le solveur supprime la source
+        // protéique et le plat perd ce qui en faisait un plat.
+        if target.carbsG > 0, target.proteinG > 0, carb.carbsG > 0 {
+            let grams = min(maximumGrams(for: carb), target.carbsG / carb.carbsG * 100)
+            guard grams * carb.proteinG / 100 <= target.proteinG * 0.5 else { return false }
+        }
+        return true
     }
 
     static func note(for slot: MealSlot) -> LocalizedText? {
@@ -460,27 +610,48 @@ public enum MealPlanner {
         let proteinMeals = max(1, layout.filter { $0.slot != .preWorkout }.count)
         let proteinPerMeal = dayTarget.proteinG / Double(proteinMeals)
 
-        var meals: [Meal] = []
-        var usedProteins: Set<String> = []
-        for (index, entry) in layout.enumerated() {
-            let mealTarget = Macros(
-                kcal: dayTarget.kcal * entry.share,
-                proteinG: entry.slot == .preWorkout ? 0 : proteinPerMeal,
-                carbsG: dayTarget.carbsG * entry.share,
-                fatG: entry.slot == .preWorkout ? 0 : dayTarget.fatG * entry.share
-            )
-            let built = meal(
-                slot: entry.slot,
-                target: mealTarget,
-                diet: diet,
-                excluded: excluded,
-                avoidingProteins: usedProteins,
-                seed: dayIndex * 7 + index * 3
-            )
-            for item in built.items where item.food?.role == .protein {
-                usedProteins.insert(item.foodID)
+        func build(_ preference: DishPreference) -> [Meal] {
+            var meals: [Meal] = []
+            var usedProteins: Set<String> = []
+            for (index, entry) in layout.enumerated() {
+                let mealTarget = Macros(
+                    kcal: dayTarget.kcal * entry.share,
+                    proteinG: entry.slot == .preWorkout ? 0 : proteinPerMeal,
+                    carbsG: dayTarget.carbsG * entry.share,
+                    fatG: entry.slot == .preWorkout ? 0 : dayTarget.fatG * entry.share
+                )
+                let built = meal(
+                    slot: entry.slot,
+                    target: mealTarget,
+                    diet: diet,
+                    excluded: excluded,
+                    avoidingProteins: usedProteins,
+                    seed: dayIndex * 7 + index * 3,
+                    dishes: preference
+                )
+                for item in built.items where item.food?.role == .protein {
+                    usedProteins.insert(item.foodID)
+                }
+                meals.append(built)
             }
-            meals.append(built)
+            return meals
+        }
+
+        // Les fibres se jugent sur la journée, jamais sur un repas.
+        //
+        // Un plancher appliqué plat par plat ne laissait survivre que deux ou
+        // trois recettes, et la semaine servait trois dîners différents sur
+        // sept : la garantie était tenue et le produit perdu. Ici la journée
+        // est construite normalement, puis mesurée, et ce n'est que si elle
+        // manque de fibres qu'on renonce — d'abord à la variété, ensuite aux
+        // plats. Deux journées sur trois n'en arrivent jamais là.
+        let floor = Double(target.calories) / 1_000 * 14 * 0.8
+        var meals = build(.varied)
+        if balance(meals, toward: dayTarget).map(\.macros).total.fiberG < floor {
+            meals = build(.richestInFibre)
+            if balance(meals, toward: dayTarget).map(\.macros).total.fiberG < floor {
+                meals = build(.none)
+            }
         }
 
         let corrected = balance(meals, toward: dayTarget)
@@ -665,9 +836,15 @@ public enum MealPlanner {
         // Une seule note sur les fibres, et le même chiffre des deux côtés :
         // deux notes voisines qui se contredisent d'un gramme donnent
         // l'impression que le coach ne sait pas compter.
-        let fibreTarget = Int((Double(target.calories) / 1_000 * 14).rounded())
+        let fibreTargetG = Double(target.calories) / 1_000 * 14
+        let fibreTarget = Int(fibreTargetG.rounded())
         let achieved = Int(achievedFibreG.rounded())
-        if achievedFibreG > Double(fibreTarget) * 1.5 {
+        // Le seuil se juge sur la cible réelle, pas sur son arrondi
+        // d'affichage. Une recommandation de 30,8 g arrondie à 31 déplaçait
+        // le seuil de 46,2 à 46,5 : une journée à 46,3 g dépassait sans que
+        // rien ne le dise, et c'est précisément le silence qu'on voulait
+        // éviter en écrivant cette note.
+        if achievedFibreG > fibreTargetG * 1.5 {
             // Une journée d'aliments entiers, et surtout une journée
             // végétarienne où les légumineuses portent les protéines, dépasse
             // largement la recommandation. Ce n'est pas une erreur du plan,

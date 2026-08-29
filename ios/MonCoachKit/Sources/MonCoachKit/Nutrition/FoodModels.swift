@@ -248,14 +248,32 @@ public struct Meal: Codable, Sendable, Equatable, Identifiable {
     public var items: [MealItem]
     public var note: LocalizedText?
 
-    public init(id: UUID = UUID(), slot: MealSlot, items: [MealItem], note: LocalizedText? = nil) {
+    /// Le plat dont ce repas est la mise en quantité, s'il en porte un.
+    ///
+    /// Facultatif à dessein : un en-cas n'est pas une recette, et un repas
+    /// dont aucun plat ne convenait au régime reste servi en aliments plutôt
+    /// que supprimé. L'identifiant plutôt que la recette entière — elle est
+    /// dans le catalogue, la dupliquer ici la laisserait dériver.
+    public var recipeID: String?
+
+    public init(
+        id: UUID = UUID(),
+        slot: MealSlot,
+        items: [MealItem],
+        note: LocalizedText? = nil,
+        recipeID: String? = nil
+    ) {
         self.id = id
         self.slot = slot
         self.items = items
         self.note = note
+        self.recipeID = recipeID
     }
 
     public var macros: Macros { items.map(\.macros).total }
+
+    /// Le plat, résolu depuis le catalogue.
+    public var recipe: Recipe? { recipeID.flatMap(RecipeCatalog.recipe(id:)) }
 }
 
 /// Une journée alimentaire complète.
