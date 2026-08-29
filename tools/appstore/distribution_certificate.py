@@ -43,13 +43,20 @@ from asc import AppleRefused, Client  # noqa: E402
 # iOS, watchOS et le reste, là où l'ancien IOS_DISTRIBUTION ne couvrait qu'iOS.
 CERTIFICATE_TYPE = "DISTRIBUTION"
 
+# Les types dont cette automatisation laisse des traces. Xcode crée aussi des
+# certificats de *développement* pendant l'archivage, sans qu'on les demande :
+# ils comptent dans le quota du compte, et deux exécutions suffisent à le
+# saturer. Un « maximum number of certificates » tombe alors à l'archivage,
+# sur une cible au hasard, sans jamais dire que la place manque.
+CLEANABLE_TYPES = ("DISTRIBUTION", "DEVELOPMENT")
 
-def distribution_certificates(client: Client) -> list[dict]:
+
+def certificates(client: Client, types: tuple[str, ...]) -> list[dict]:
     response = client.call("certificates?limit=200")
     return [
         item
         for item in response.get("data", [])
-        if item["attributes"].get("certificateType") == CERTIFICATE_TYPE
+        if item["attributes"].get("certificateType") in types
     ]
 
 
@@ -78,20 +85,23 @@ def revoke(client: Client, identifier: str) -> None:
 def revoke_stale(client: Client, days: int) -> int:
     """Libère la place prise par les certificats de cette automatisation.
 
-    Un compte n'a droit qu'à deux certificats de distribution. Chaque
-    exécution en crée un dont la clé privée meurt avec l'exécuteur : deux
-    builds suffisent à saturer le compte avec des certificats que plus
-    personne ne peut utiliser, y compris celui qui les a créés.
+    Un compte a un quota par type de certificat. Chaque exécution en crée un
+    de distribution, et Xcode en crée un de développement pendant l'archivage
+    sans qu'on le demande — leur clé privée meurt avec l'exécuteur. Deux
+    builds suffisent donc à saturer le compte avec des certificats que plus
+    personne ne peut utiliser, y compris celui qui les a créés. La saturation
+    du côté développement ne se voit qu'à l'archivage, sur une cible au
+    hasard, par un message qui ne parle pas de quota.
 
-    La règle est volontairement étroite. Seuls partent les certificats de
-    distribution créés dans les tout derniers jours — ceux d'ici. Un
-    certificat plus ancien peut avoir sa clé privée sur le Mac de quelqu'un,
-    et le révoquer casserait sa signature : celui-là n'est jamais touché, et
-    le refus d'Apple est alors rapporté tel quel.
+    La règle est volontairement étroite. Seuls partent les certificats créés
+    dans les tout derniers jours — ceux d'ici. Un certificat plus ancien peut
+    avoir sa clé privée sur le Mac de quelqu'un, et le révoquer casserait sa
+    signature : celui-là n'est jamais touché, et le refus d'Apple est alors
+    rapporté tel quel.
     """
     stale = [
         item
-        for item in distribution_certificates(client)
+        for item in certificates(client, CLEANABLE_TYPES)
         if created_within_days(item["attributes"], days)
     ]
     if not stale:
@@ -105,6 +115,7 @@ def revoke_stale(client: Client, days: int) -> int:
         attributes = item["attributes"]
         print(
             f"Révocation de {attributes.get('displayName', '?')} "
+            f"[{attributes.get('certificateType', '?')}] "
             f"(série {attributes.get('serialNumber', '?')}, "
             f"expirait le {attributes.get('expirationDate', '?')[:10]})"
         )

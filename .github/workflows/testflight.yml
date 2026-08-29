@@ -217,21 +217,24 @@ jobs:
             export ASC_KEY_PATH="$RUNNER_TEMP/private_keys/AuthKey_${ASC_KEY_ID}.p8"
             export OUT_DIR="$WORK"
 
+            # Le ménage passe d'abord, systématiquement. Les certificats
+            # laissés par les exécutions précédentes — distribution comme
+            # développement — n'ont plus de clé privée nulle part, et ils
+            # occupent un quota qui se compte en unités. Attendre le refus
+            # pour nettoyer ne suffisait pas : la saturation côté
+            # développement ne se voit qu'à l'archivage, dix minutes plus
+            # tard, sur un message qui ne parle pas de quota.
+            python3 tools/appstore/distribution_certificate.py --revoke-stale
+
             set +e
             python3 tools/appstore/distribution_certificate.py
             created=$?
             set -e
 
-            # Le code 9 veut dire « plus de place » : le compte a ses deux
-            # certificats de distribution, et ce sont les nôtres — la clé
-            # privée de chacun est morte avec l'exécuteur qui l'a créée.
-            # Personne ne peut plus s'en servir, pas même nous. On libère,
-            # puis on redemande une fois.
-            if [ "$created" -eq 9 ]; then
-              echo "::notice::Plus de place : libération des certificats laissés par cette automatisation."
-              python3 tools/appstore/distribution_certificate.py --revoke-stale
-              python3 tools/appstore/distribution_certificate.py
-            elif [ "$created" -ne 0 ]; then
+            # Un refus persiste après le ménage : la place est prise par des
+            # certificats plus anciens, que cette automatisation s'interdit de
+            # toucher. C'est une décision humaine, pas une reprise.
+            if [ "$created" -ne 0 ]; then
               exit "$created"
             fi
 
