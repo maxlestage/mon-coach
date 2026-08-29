@@ -581,6 +581,27 @@ export function BrandMark({{
 '''
 
 
+# Le catalogue de la montre, écrit ici plutôt que posé à la main : la marque a
+# une source unique, et un fichier oublié se voit alors en régénérant.
+WATCH_APPICON_CONTENTS = '''{
+  "images" : [
+    {
+      "filename" : "icon-1024.png",
+      "idiom" : "universal",
+      "platform" : "watchos",
+      "size" : "1024x1024"
+    }
+  ],
+  "info" : { "author" : "xcode", "version" : 1 }
+}
+'''
+
+CATALOG_CONTENTS = '''{
+  "info" : { "author" : "xcode", "version" : 1 }
+}
+'''
+
+
 def main() -> None:
     root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
     web_icons = os.path.join(root, "web", "src", "icons")
@@ -608,6 +629,32 @@ def main() -> None:
     # un peu plus serré que sur le web, pour ne pas frôler ce masque.
     render(1024, content_ratio=0.66, rounded=False).convert("RGB").save(app_icon)
     written.append(app_icon)
+
+    # La montre a son propre catalogue, et son absence ne se voit pas à la
+    # compilation : c'est Apple qui refuse la livraison, tout à la fin, sur un
+    # « Missing Icons » qui ne dit pas quelle cible manque.
+    #
+    # watchOS masque en cercle, pas en carré arrondi. Le cercle inscrit dans un
+    # carré en rogne les angles bien plus qu'un squircle : le dessin est donc
+    # resserré d'autant, sans quoi la courbe frôlerait le bord.
+    watch_icons = os.path.join(
+        root, "ios", "MonCoach", "MonCoachWatch", "Assets.xcassets", "AppIcon.appiconset"
+    )
+    os.makedirs(watch_icons, exist_ok=True)
+    watch_icon = os.path.join(watch_icons, "icon-1024.png")
+    render(1024, content_ratio=0.56, rounded=False).convert("RGB").save(watch_icon)
+    written.append(watch_icon)
+
+    for path, payload in [
+        (os.path.join(watch_icons, "Contents.json"), WATCH_APPICON_CONTENTS),
+        (
+            os.path.join(os.path.dirname(watch_icons), "Contents.json"),
+            CATALOG_CONTENTS,
+        ),
+    ]:
+        with io.open(path, "w", encoding="utf-8") as handle:
+            handle.write(payload)
+        written.append(path)
 
     component = os.path.join(root, "web", "src", "components", "BrandMark.tsx")
     with io.open(component, "w", encoding="utf-8") as handle:
