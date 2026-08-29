@@ -116,9 +116,14 @@ Dépôt → **Settings** → **Secrets and variables** → onglet **Actions** �
 | Nom | Contenu |
 | --- | --- |
 | `APPLE_TEAM_ID` | Ton Team ID, dans [Membership](https://developer.apple.com/account) — dix caractères |
-| `APPSTORE_ISSUER_ID` | L'Issuer ID de l'étape 2 |
-| `APPSTORE_KEY_ID` | Le Key ID de l'étape 2 |
-| `APPSTORE_PRIVATE_KEY` | Le fichier `.p8`, **encodé en base64** |
+| `ASC_ISSUER_ID` | L'Issuer ID de l'étape 2 |
+| `ASC_KEY_ID` | Le Key ID de l'étape 2 |
+| `ASC_KEY_P8` | Le contenu du fichier `.p8` — collé tel quel, ou encodé en base64 |
+
+Les anciens noms `APPSTORE_ISSUER_ID`, `APPSTORE_KEY_ID` et
+`APPSTORE_PRIVATE_KEY` restent acceptés : le workflow prend les `ASC_*` en
+priorité et retombe sur les autres. Rien à renommer si les secrets sont
+déjà posés — un secret ne se renomme pas, il se supprime et se repose.
 
 **Les deux facultatifs** — le chemin B ci-dessus. Posés ensemble ou pas du
 tout ; n'en poser qu'un fait échouer le build dès la première étape, ce qui
@@ -129,7 +134,9 @@ vaut mieux que de le découvrir à la signature :
 | `APPLE_DISTRIBUTION_CERT_P12` | Le fichier `.p12`, **encodé en base64** |
 | `APPLE_DISTRIBUTION_CERT_PASSWORD` | Le mot de passe choisi à l'export |
 
-Pour encoder un fichier en base64 sur un Mac, dans le Terminal :
+Le `.p8` n'a pas besoin d'être encodé : le workflow reconnaît un PEM en
+clair comme une valeur base64. Le `.p12`, lui, est binaire et doit être
+encodé. Sur un Mac, dans le Terminal :
 
 ```bash
 base64 -i AuthKey_XXXXXXXXXX.p8 | pbcopy   # colle ensuite dans le secret
