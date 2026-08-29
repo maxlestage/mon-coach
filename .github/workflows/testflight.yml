@@ -423,6 +423,18 @@ jobs:
           security find-identity -v -p codesigning || true
           echo "::endgroup::"
 
+      - name: Vérifier les phrases qu'Apple exige
+        # Un droit oblige à une phrase d'autorisation même quand le code ne
+        # s'en sert pas : porter HealthKit impose les deux phrases, lecture et
+        # écriture, pour une montre qui ne fait que lire le cardio.
+        #
+        # Rien ne le signale avant : ni la compilation, ni la signature, ni
+        # l'archive, ni le téléversement. C'est la validation d'Apple qui
+        # refuse, par courriel, un quart d'heure après un build tout vert.
+        # Le refus est pourtant entièrement vérifiable ici — les droits sont
+        # dans le binaire signé, les phrases dans l'Info.plist d'à côté.
+        run: python3 tools/appstore/purpose_strings.py
+
       - name: Exporter et envoyer à TestFlight
         env:
           TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
