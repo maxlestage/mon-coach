@@ -325,7 +325,7 @@ struct ProfileView: View {
 
     private var creditFooter: some View {
         VStack(spacing: 10) {
-            Text("Mon Coach — conçu et développé par Maxime Nathan Lestage")
+            Text("Fitness Coach — conçu et développé par Maxime Nathan Lestage")
                 .font(Theme.captionFont)
                 .foregroundStyle(Theme.secondaryText)
                 .frame(maxWidth: .infinity)

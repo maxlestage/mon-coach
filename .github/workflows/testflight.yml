@@ -288,20 +288,61 @@ jobs:
           # un. Au troisième build, il faudra révoquer les précédents dans
           # developer.apple.com. C'est un dépannage pour partir sans Mac, pas
           # un régime de croisière.
-          xcodebuild archive \
-            -project "$PROJECT" \
-            -scheme "$SCHEME" \
-            -configuration Release \
-            -destination "generic/platform=iOS" \
-            -archivePath "$ARCHIVE" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$RUNNER_TEMP/private_keys/AuthKey_${KEY_ID}.p8" \
-            -authenticationKeyID "$KEY_ID" \
-            -authenticationKeyIssuerID "$ISSUER_ID" \
-            DEVELOPMENT_TEAM="$TEAM_ID" \
-            CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
-            $VERSION_ARGS \
-            2>&1 | tee "$RAW" | $FORMATTER
+          # Xcode ne télécharge qu'un profil par invocation.
+          #
+          # Ce projet en demande trois — application, widget, montre — et
+          # chaque exécution en crée un chez Apple, l'écrit sur le disque,
+          # puis meurt sur le suivant, qu'elle vient pourtant de réclamer.
+          # Deux exécutions l'ont montré : la première est morte sur le profil
+          # de l'application, la seconde sur celui de la montre, après avoir
+          # posé celui du widget.
+          #
+          # Les profils déjà posés survivent d'une tentative à l'autre, et
+          # Apple réutilise ceux qui existent au lieu d'en créer d'autres.
+          # Relancer converge donc, en autant de tentatives qu'il reste de
+          # profils manquants. Quatre laissent une tentative de marge.
+          PROFILES="$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"
+          for attempt in 1 2 3 4; do
+            echo "::group::Archivage — tentative $attempt sur 4"
+            echo "Profils déjà présents : $(ls -1 "$PROFILES" 2>/dev/null | wc -l | tr -d ' ')"
+
+            set +e
+            xcodebuild archive \
+              -project "$PROJECT" \
+              -scheme "$SCHEME" \
+              -configuration Release \
+              -destination "generic/platform=iOS" \
+              -archivePath "$ARCHIVE" \
+              -allowProvisioningUpdates \
+              -authenticationKeyPath "$RUNNER_TEMP/private_keys/AuthKey_${KEY_ID}.p8" \
+              -authenticationKeyID "$KEY_ID" \
+              -authenticationKeyIssuerID "$ISSUER_ID" \
+              DEVELOPMENT_TEAM="$TEAM_ID" \
+              CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+              $VERSION_ARGS \
+              2>&1 | tee "$RAW" | $FORMATTER
+            status=${PIPESTATUS[0]}
+            set -e
+            echo "::endgroup::"
+
+            [ "$status" -eq 0 ] && break
+
+            # Ne réessayer que pour cette cause précise. Une erreur de
+            # compilation ne se répare pas en insistant, et trois tentatives
+            # de plus ne feraient que retarder son diagnostic de vingt
+            # minutes.
+            if ! grep -q "Build input file cannot be found.*mobileprovision" "$RAW"; then
+              echo "::error::L'archivage a échoué pour une autre raison qu'un profil manquant."
+              exit "$status"
+            fi
+            if [ "$attempt" -eq 4 ]; then
+              echo "::error::Quatre tentatives, et il manque toujours un profil."
+              echo "Le téléchargement ne converge pas : il faudra poser les profils"
+              echo "nous-mêmes par l'API plutôt que de les demander à Xcode."
+              exit "$status"
+            fi
+            echo "::notice::Profil manquant — nouvelle tentative, un profil de plus en main."
+          done
 
       - name: Dire ce que la signature a refusé
         if: failure()

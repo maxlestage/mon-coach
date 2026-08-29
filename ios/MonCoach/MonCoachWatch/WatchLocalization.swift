@@ -23,9 +23,9 @@ enum WatchUI {
         es: "Esperando al teléfono"
     )
     static let waitingDetail = LocalizedText(
-        fr: "Ouvre Mon Coach sur ton iPhone une première fois : la montre recevra la séance du jour et pourra ensuite fonctionner seule.",
-        en: "Open Mon Coach on your iPhone once: the watch will receive today's session and can then work on its own.",
-        es: "Abre Mon Coach en tu iPhone una vez: el reloj recibirá la sesión del día y luego podrá funcionar solo."
+        fr: "Ouvre Fitness Coach sur ton iPhone une première fois : la montre recevra la séance du jour et pourra ensuite fonctionner seule.",
+        en: "Open Fitness Coach on your iPhone once: the watch will receive today's session and can then work on its own.",
+        es: "Abre Fitness Coach en tu iPhone una vez: el reloj recibirá la sesión del día y luego podrá funcionar solo."
     )
     static let start = LocalizedText(fr: "Démarrer", en: "Start", es: "Empezar")
     static let rest = LocalizedText(fr: "Repos", en: "Rest day", es: "Descanso")
