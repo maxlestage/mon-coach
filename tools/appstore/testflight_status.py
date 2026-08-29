@@ -16,7 +16,13 @@ différentes, séparées par trois étapes qu'aucun journal de build ne montre :
    page d'App Store Connect le montre et le téléphone non — ce qui ressemble
    à s'y méprendre à un envoi qui n'a pas eu lieu.
 
-Ce script lit les trois d'un coup et le dit en clair. Il ne modifie rien.
+Ce script lit les trois d'un coup et le dit en clair.
+
+Il ne modifie rien, sauf si on le lui demande explicitement : `ATTRIBUTE`
+rattache le dernier build traité aux groupes de testeurs **internes**, ce
+qu'Apple ne fait pas tout seul et sans quoi le troisième cas ne se résout
+jamais. Lire un état et changer une distribution sont deux gestes différents,
+et le second se décide au lancement plutôt qu'à chaque coup d'œil.
 """
 
 from __future__ import annotations
@@ -67,6 +73,47 @@ def build_groups(client: Client, build_id: str) -> list[str]:
     except AppleRefused:
         return []
     return [item["attributes"].get("name", "?") for item in found]
+
+
+def attribute(client: Client, rows: list[dict], existing: list[dict]) -> None:
+    """Attribue le dernier build traité aux groupes internes qui ne l'ont pas.
+
+    C'est le maillon qui manquait : Apple ne rattache pas un nouveau build au
+    groupe de testeurs tout seul. Tant que personne ne le fait, un build
+    parfaitement traité reste invisible sur le téléphone, et rien ne le dit.
+
+    Seuls les groupes **internes** sont servis. Un groupe externe déclenche une
+    revue d'Apple et expose le build à des gens qui ne l'attendent pas : ce
+    n'est pas une décision à prendre au passage d'un script.
+    """
+    valid = [r for r in rows if r["attributes"].get("processingState") == "VALID"]
+    if not valid:
+        print("\nAucun build traité à attribuer.")
+        return
+
+    build = valid[0]
+    number = build["attributes"].get("version", "?")
+    internal = [g for g in existing if g["attributes"].get("isInternalGroup")]
+    if not internal:
+        print(f"\nBuild {number} : aucun groupe interne où l'attribuer.")
+        return
+
+    print(f"\nAttribution du build {number} :")
+    already = build_groups(client, build["id"])
+    for group in internal:
+        name = group["attributes"].get("name", "?")
+        if name in already:
+            print(f"  « {name} » l'a déjà.")
+            continue
+        try:
+            client.call(
+                f"betaGroups/{group['id']}/relationships/builds",
+                method="POST",
+                body={"data": [{"type": "builds", "id": build["id"]}]},
+            )
+            print(f"  attribué à « {name} ».")
+        except AppleRefused as refusal:
+            print(f"::warning::« {name} » a refusé le build : {refusal.detail}")
 
 
 def main() -> int:
@@ -120,6 +167,12 @@ def main() -> int:
             attributes = group["attributes"]
             kind = "interne" if attributes.get("isInternalGroup") else "externe"
             print(f"  - « {attributes.get('name', '?')} » ({kind})")
+
+    # L'attribution ne se fait que si on la demande. Lire l'état et changer la
+    # distribution sont deux gestes différents, et le second doit se voir dans
+    # l'historique des exécutions plutôt que se produire à chaque coup d'œil.
+    if os.environ.get("ATTRIBUTE", "").strip().lower() in ("1", "true", "oui"):
+        attribute(client, rows, existing)
 
     return 0
 
