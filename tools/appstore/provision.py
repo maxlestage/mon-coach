@@ -100,10 +100,13 @@ def ensure_capabilities(client: Client, identifier: str, bundle_key: str) -> Non
     if not wanted:
         return
 
+    # Sans « limit » : Apple refuse ce paramètre sur cette relation-là, par un
+    # 400 qui ne dit pas quelle requête est en cause. La liste est de toute
+    # façon courte — un identifiant n'a qu'une poignée de capacités.
     present = {
         item["attributes"]["capabilityType"]
         for item in client.call(
-            f"bundleIds/{bundle_key}/bundleIdCapabilities?limit=200"
+            f"bundleIds/{bundle_key}/bundleIdCapabilities"
         ).get("data", [])
     }
 
