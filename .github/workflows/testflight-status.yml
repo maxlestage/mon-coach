@@ -7,11 +7,19 @@ name: État TestFlight
 # échec (qui part par courriel), et l'attribution à un groupe de testeurs sans
 # laquelle rien n'apparaît sur le téléphone. Les trois se lisent par l'API.
 #
-# Rien n'est modifié ici : c'est une lecture, et elle tourne sur Linux en une
-# poignée de secondes plutôt que sur un exécuteur macOS.
+# C'est une lecture, qui tourne sur Linux en une poignée de secondes plutôt que
+# sur un exécuteur macOS. La case « Attribuer » y ajoute le seul geste qui
+# écrit : rattacher le dernier build traité aux groupes internes, ce qu'Apple
+# ne fait pas tout seul et sans quoi le troisième cas ne se résout jamais.
 
 on:
   workflow_dispatch:
+    inputs:
+      attribuer:
+        description: "Attribuer le dernier build traité aux groupes de testeurs internes"
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   status:
@@ -31,6 +39,9 @@ jobs:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID || secrets.APPSTORE_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID || secrets.APPSTORE_ISSUER_ID }}
           PRIVATE_KEY: ${{ secrets.ASC_KEY_P8 || secrets.APPSTORE_PRIVATE_KEY }}
+          # Le seul geste qui écrit. Décidé au lancement, donc daté dans
+          # l'historique des exécutions.
+          ATTRIBUTE: ${{ inputs.attribuer }}
         run: |
           # La clé est écrite hors du dépôt, dans un dossier qui meurt avec la
           # machine. Elle est acceptée en clair comme en base64 : le workflow
