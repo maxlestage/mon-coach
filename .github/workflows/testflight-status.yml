@@ -20,6 +20,11 @@ on:
         required: false
         default: false
         type: boolean
+      plantages:
+        description: "Lire les plantages remontés depuis TestFlight"
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   status:
@@ -42,6 +47,7 @@ jobs:
           # Le seul geste qui écrit. Décidé au lancement, donc daté dans
           # l'historique des exécutions.
           ATTRIBUTE: ${{ inputs.attribuer }}
+          CRASHES: ${{ inputs.plantages }}
         run: |
           # La clé est écrite hors du dépôt, dans un dossier qui meurt avec la
           # machine. Elle est acceptée en clair comme en base64 : le workflow
