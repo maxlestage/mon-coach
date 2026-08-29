@@ -170,11 +170,36 @@ public final class LocationTracker: NSObject {
         currentAccuracy = -1
     }
 
+    /// L'application déclare-t-elle le mode d'arrière-plan « location » ?
+    ///
+    /// La question n'a rien de rhétorique. `allowsBackgroundLocationUpdates`
+    /// ne se contente pas d'être refusé quand la déclaration manque :
+    /// CoreLocation **lève une exception**, et l'application meurt à
+    /// l'instant précis où l'athlète appuie sur Démarrer. Sur tout le chemin
+    /// de ce bouton, c'est la seule ligne qui puisse lever quoi que ce soit.
+    ///
+    /// Et la déclaration doit être un *tableau*. Un Info.plist engendré à
+    /// partir d'un réglage de projet peut écrire une chaîne à sa place : iOS
+    /// ne lit alors aucun mode, le réglage paraît juste et ne l'est pas.
+    /// C'est pour ce cas-là que la vérification existe — pas pour le cas où
+    /// quelqu'un aurait oublié la ligne.
+    public static let declaresBackgroundLocation: Bool = {
+        guard let modes = Bundle.main.object(forInfoDictionaryKey: "UIBackgroundModes") as? [String]
+        else { return false }
+        return modes.contains("location")
+    }()
+
     private func beginUpdates() {
         state = .running
         // Continuer écran éteint, mais seulement pendant une sortie : le mode
         // « toujours » n'est jamais demandé au démarrage de l'application.
-        manager.allowsBackgroundLocationUpdates = true
+        //
+        // Et seulement si l'application a le droit de le demander. Sans la
+        // déclaration, mieux vaut une sortie qui s'arrête quand l'écran
+        // s'éteint qu'une application qui meurt quand on appuie sur Démarrer.
+        if Self.declaresBackgroundLocation {
+            manager.allowsBackgroundLocationUpdates = true
+        }
         manager.startUpdatingLocation()
     }
 

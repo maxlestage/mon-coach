@@ -148,6 +148,69 @@ def attribute(client: Client, rows: list[dict], existing: list[dict]) -> None:
             print("  groupe → « Distribuer automatiquement les builds ».")
 
 
+def crashes(client: Client, identifier: str) -> None:
+    """Les plantages remontés depuis TestFlight, avec leur journal.
+
+    Un plantage vu par le testeur est une capture d'écran et une phrase ;
+    vu d'ici, c'est une pile d'appels qui nomme la ligne. Apple garde les
+    deux, et la seconde ne demande qu'à être lue plutôt que devinée.
+
+    Le journal est imprimé tel quel : il ne contient que des adresses et
+    des noms de symboles de l'application, rien de l'appareil ni de son
+    propriétaire au-delà du modèle et de la version d'iOS.
+    """
+    try:
+        found = client.call(
+            f"apps/{identifier}/betaFeedbackCrashSubmissions"
+            "?limit=5&sort=-createdDate&include=build"
+        )
+    except AppleRefused as refusal:
+        print(f"::warning::Plantages illisibles : {refusal.explain()}")
+        return
+
+    rows = found.get("data", [])
+    if not rows:
+        print("\nAucun plantage remonté depuis TestFlight.")
+        print("Un plantage n'arrive ici que si le testeur a envoyé le retour")
+        print("qu'iOS propose juste après — sinon il ne quitte pas l'appareil.")
+        return
+
+    print(f"\n{len(rows)} plantage(s) remonté(s) :")
+    for row in rows:
+        attributes = row["attributes"]
+        print()
+        print(f"  {attributes.get('createdDate', '?')[:19].replace('T', ' à ')}")
+        print(f"    appareil : {attributes.get('deviceModel', '?')}"
+              f" — {attributes.get('osVersion', '?')}")
+        uptime = attributes.get("appUptimeInMilliseconds")
+        if uptime is not None:
+            # Le temps écoulé depuis le lancement situe le plantage mieux
+            # qu'aucune description : deux secondes désignent le démarrage,
+            # deux minutes désignent un écran qu'on a ouvert.
+            print(f"    plantage après {uptime / 1000:.1f} s d'utilisation")
+        for key in ("comment", "appPlatform", "devicePlatform", "buildBundleId"):
+            if attributes.get(key):
+                print(f"    {key} : {attributes[key]}")
+
+        url = (attributes.get("crashLog") or {}).get("url") if isinstance(
+            attributes.get("crashLog"), dict
+        ) else attributes.get("crashLog")
+        if not url:
+            print("    (aucun journal joint)")
+            continue
+        try:
+            import urllib.request
+
+            with urllib.request.urlopen(url, timeout=60) as response:
+                log = response.read().decode("utf-8", "replace")
+        except Exception as error:  # noqa: BLE001
+            print(f"    journal illisible : {error}")
+            continue
+        print("    --- journal ---")
+        for line in log.splitlines()[:120]:
+            print(f"    {line}")
+
+
 def main() -> int:
     bundle_id = os.environ.get("BUNDLE_ID", "com.maxlestage.fitnesscoach")
     client = Client.from_environment()
@@ -229,6 +292,9 @@ def main() -> int:
     # l'historique des exécutions plutôt que se produire à chaque coup d'œil.
     if os.environ.get("ATTRIBUTE", "").strip().lower() in ("1", "true", "oui"):
         attribute(client, rows, existing)
+
+    if os.environ.get("CRASHES", "").strip().lower() in ("1", "true", "oui"):
+        crashes(client, identifier)
 
     return 0
 
