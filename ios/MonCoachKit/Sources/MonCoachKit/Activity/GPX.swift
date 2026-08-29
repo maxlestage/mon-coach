@@ -4,7 +4,8 @@ import Foundation
 ///
 /// C'est la contrepartie honnête d'un produit sans compte : les données de
 /// l'athlète entrent et sortent dans le format que tout le monde parle —
-/// montres, Strava, Garmin, OpenRunner — sans passer par personne. Un
+/// montres, applications de sport, planificateurs d'itinéraires — sans
+/// passer par personne. Un
 /// produit qui garde tout sur l'appareil ET dans un format à lui serait une
 /// prison avec de beaux principes.
 public enum GPX {
@@ -152,8 +153,9 @@ public enum GPX {
         let declaredType = element("type", in: text)?.lowercased()
         let sport = declaredType.flatMap { declared in
             Sport(rawValue: declared) ?? {
-                // Les dialectes des autres : Strava écrit « running »,
-                // Garmin « cycling ». On reconnaît sans exiger.
+                // Les dialectes des autres exportateurs : « running » plutôt
+                // que « run », « cycling » plutôt que « ride ». On reconnaît
+                // sans exiger.
                 switch declared {
                 case "running", "run", "trail_running": Sport.run
                 case "cycling", "biking", "ride": Sport.ride

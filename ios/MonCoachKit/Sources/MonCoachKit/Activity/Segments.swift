@@ -2,7 +2,7 @@ import Foundation
 
 /// Un morceau de parcours découpé dans une sortie passée, pour s'y comparer.
 ///
-/// C'est la moitié utile des segments de Strava, celle qui ne demande pas de
+/// C'est la moitié utile d'un segment partagé, celle qui ne demande pas de
 /// serveur : la comparaison au monde entier disparaît, la comparaison au même
 /// terrain reste. Une côte reste la même côte, et c'est ça qui rend le
 /// chrono lisible — contrairement à un « meilleur 5 km » qui dépend d'où on
