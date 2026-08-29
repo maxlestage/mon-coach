@@ -197,6 +197,23 @@ jobs:
           VERSION: ${{ inputs.version }}
         run: |
           set -o pipefail
+
+          # Xcode télécharge les profils qu'il vient de créer dans ces deux
+          # dossiers, sans jamais les créer lui-même. Sur un exécuteur neuf,
+          # aucun des deux n'existe : le profil est bien créé chez Apple, son
+          # identifiant apparaît dans le graphe de construction, et l'écriture
+          # échoue en silence. Le build meurt alors sur un « fichier d'entrée
+          # introuvable » qui désigne un profil dont personne n'a demandé
+          # l'emplacement.
+          mkdir -p "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+
+          # xcbeautify rend le journal lisible, mais il jette précisément ce
+          # qu'on veut quand la signature échoue. Le brut part dans un fichier,
+          # gardé en pièce jointe et résumé plus bas en cas d'échec.
+          mkdir -p "$GITHUB_WORKSPACE/build"
+          RAW="$GITHUB_WORKSPACE/build/xcodebuild-archive.log"
+
           # La version n'est écrasée que si elle est fournie : sinon celle du
           # projet fait foi, et le dépôt reste la source de vérité.
           VERSION_ARGS=""
@@ -230,7 +247,30 @@ jobs:
             DEVELOPMENT_TEAM="$TEAM_ID" \
             CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
             $VERSION_ARGS \
-            | $FORMATTER
+            2>&1 | tee "$RAW" | $FORMATTER
+
+      - name: Dire ce que la signature a refusé
+        if: failure()
+        run: |
+          RAW="$GITHUB_WORKSPACE/build/xcodebuild-archive.log"
+          [ -f "$RAW" ] || exit 0
+
+          # Ce que xcbeautify n'a pas montré. La signature automatique est la
+          # seule partie du build qui dépend d'un état distant — profils et
+          # certificats chez Apple — et son diagnostic tient dans ces lignes.
+          echo "::group::Signature : lignes utiles du journal brut"
+          grep -iE "provisioning|certificat|signing|codesign|entitlement|no account|team|does not (have|match)|failed to|unable to" \
+            "$RAW" | sort -u | head -60 || echo "Rien à signaler dans le journal brut."
+          echo "::endgroup::"
+
+          echo "::group::Profils réellement présents sur l'exécuteur"
+          ls -la "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles" 2>/dev/null || echo "dossier absent"
+          ls -la "$HOME/Library/MobileDevice/Provisioning Profiles" 2>/dev/null || echo "dossier absent"
+          echo "::endgroup::"
+
+          echo "::group::Certificats de signature visibles"
+          security find-identity -v -p codesigning || true
+          echo "::endgroup::"
 
       - name: Exporter et envoyer à TestFlight
         env:
