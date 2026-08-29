@@ -62,11 +62,6 @@ jobs:
           PRIVATE_KEY: ${{ secrets.ASC_KEY_P8 || secrets.APPSTORE_PRIVATE_KEY }}
           CERTIFICATE: ${{ secrets.APPLE_DISTRIBUTION_CERT_P12 }}
           CERTIFICATE_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_CERT_PASSWORD }}
-          # Les noms — jamais les valeurs — des secrets que ce travail reçoit
-          # vraiment. Un secret posé dans le mauvais onglet (Codespaces,
-          # Dependabot) ou dans un environnement n'arrive pas ici, et sans
-          # cette liste une absence est indiscernable d'une faute de frappe.
-          VISIBLE: ${{ toJSON(secrets) }}
         run: |
           missing=""
           [ -z "$TEAM_ID" ] && missing="$missing APPLE_TEAM_ID"
@@ -76,15 +71,12 @@ jobs:
           if [ -n "$missing" ]; then
             echo "::error::Secrets obligatoires manquants :$missing — voir docs/TESTFLIGHT.md"
             echo ""
-            echo "Secrets que ce workflow reçoit réellement (noms seuls) :"
-            printf '%s' "$VISIBLE" | python3 -c \
-              'import json,sys; [print("  -", k) for k in sorted(json.load(sys.stdin))]'
-            echo ""
-            echo "Un nom attendu absent de cette liste veut dire que le secret"
-            echo "n'est pas sous Settings → Secrets and variables → Actions →"
-            echo "onglet Secrets → Repository secrets. Les onglets Codespaces"
-            echo "et Dependabot, et les secrets d'environnement, ne sont pas"
-            echo "lus ici. Un secret rangé en « Variables » non plus."
+            echo "Un secret vu ici comme manquant peut être posé au mauvais"
+            echo "endroit : seuls comptent Settings → Secrets and variables →"
+            echo "Actions → onglet Secrets → Repository secrets. Les onglets"
+            echo "Codespaces et Dependabot, les secrets d'environnement et les"
+            echo "« Variables » ne sont pas lus ici. Les noms sont sensibles à"
+            echo "la casse, et ASC_KEY_ID / APPSTORE_KEY_ID sont acceptés."
             exit 1
           fi
 
