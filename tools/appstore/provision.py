@@ -168,8 +168,33 @@ def ensure_app_record(client: Client, identifier: str, name: str, sku: str) -> i
         print(f"  fiche créée : « {created['data']['attributes'].get('name', name)} »")
         return 0
     except AppleRefused as refusal:
-        print(f"::error::La fiche d'application n'a pas pu être créée par l'API.")
+        print(f"::error::Aucune fiche pour {identifier}, et l'API ne peut pas la créer.")
         print(f"Réponse d'Apple ({refusal.status}) : {refusal.detail}")
+        print()
+
+        # Ce que le compte contient vraiment. « Introuvable » et « rangée sous
+        # un autre identifiant » se ressemblent beaucoup vues d'ici, et se
+        # distinguent d'un coup d'œil sur cette liste. Une fiche créée à
+        # l'instant peut aussi mettre quelques minutes à devenir visible.
+        try:
+            everything = client.call("apps?limit=200").get("data", [])
+        except AppleRefused:
+            everything = []
+        if everything:
+            print("Fiches présentes sur le compte :")
+            for app in everything:
+                attributes = app["attributes"]
+                mark = "  ←  attendu ici" if attributes.get("bundleId") == identifier else ""
+                print(
+                    f"  - « {attributes.get('name', '?')} » "
+                    f"→ {attributes.get('bundleId', '?')}{mark}"
+                )
+            print()
+            print("Si la fiche est là sous un autre identifiant, c'est celui du")
+            print("projet qu'il faut aligner, pas la fiche. Si elle vient d'être")
+            print("créée, quelques minutes suffisent parfois à la rendre visible.")
+        else:
+            print("Le compte ne contient aucune fiche d'application.")
         print()
         print("C'est le seul geste de toute la chaîne qui reste manuel. Il se")
         print("fait une fois, depuis un téléphone :")
