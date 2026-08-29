@@ -75,6 +75,27 @@ def build_groups(client: Client, build_id: str) -> list[str]:
     return [item["attributes"].get("name", "?") for item in found]
 
 
+def testers(client: Client, group_id: str) -> list[str]:
+    """Qui reçoit vraiment les builds de ce groupe.
+
+    Le dernier maillon de la chaîne, et le seul qui restait invérifié. Un
+    groupe qui reçoit tous les builds mais ne contient personne laisse
+    l'application TestFlight du téléphone aussi vide qu'un groupe absent.
+    """
+    try:
+        found = client.call(f"betaGroups/{group_id}/betaTesters").get("data", [])
+    except AppleRefused:
+        return []
+    names = []
+    for item in found:
+        attributes = item["attributes"]
+        label = " ".join(
+            part for part in (attributes.get("firstName"), attributes.get("lastName")) if part
+        )
+        names.append(label or attributes.get("email", "?"))
+    return names
+
+
 def attribute(client: Client, rows: list[dict], existing: list[dict]) -> None:
     """Ouvre les groupes internes à tous les builds, présents et à venir.
 
@@ -144,6 +165,18 @@ def main() -> int:
         print("parfois quelques minutes avant que le build apparaisse ici.")
         return 0
 
+    existing = groups(client, identifier)
+
+    # Un groupe interne réglé sur « tous les builds » ne matérialise aucun
+    # lien vers chacun d'eux : l'API rend une liste vide, et en déduire que
+    # le build n'est distribué nulle part est faux. Cet outil a fait cette
+    # erreur, et a envoyé quelqu'un cocher une case déjà cochée.
+    automatic = [
+        g["attributes"].get("name", "?")
+        for g in existing
+        if g["attributes"].get("isInternalGroup") and g["attributes"].get("hasAccessToAllBuilds")
+    ]
+
     print("Builds, du plus récent au plus ancien :")
     for row in rows:
         attributes = row["attributes"]
@@ -156,15 +189,14 @@ def main() -> int:
 
         if state != "VALID":
             continue
-        attributed = build_groups(client, row["id"])
+        attributed = build_groups(client, row["id"]) + automatic
         if attributed:
-            print(f"    attribué à : {', '.join(attributed)}")
+            print(f"    distribué à : {', '.join(sorted(set(attributed)))}")
         else:
-            print("    ::warning:: attribué à aucun groupe de testeurs.")
+            print("    ::warning:: distribué à aucun groupe de testeurs.")
             print("    Il est visible dans App Store Connect, mais pas dans")
             print("    l'application TestFlight du téléphone.")
 
-    existing = groups(client, identifier)
     print("\nGroupes de testeurs :")
     if not existing:
         print("  Aucun. C'est ce qui manque le plus souvent : sans groupe, et")
@@ -178,7 +210,19 @@ def main() -> int:
         for group in existing:
             attributes = group["attributes"]
             kind = "interne" if attributes.get("isInternalGroup") else "externe"
-            print(f"  - « {attributes.get('name', '?')} » ({kind})")
+            reach = (
+                ", reçoit tous les builds"
+                if attributes.get("hasAccessToAllBuilds")
+                else ", ne reçoit que les builds qu'on lui attribue"
+            )
+            print(f"  - « {attributes.get('name', '?')} » ({kind}{reach})")
+            people = testers(client, group["id"])
+            if people:
+                print(f"      testeurs : {', '.join(people)}")
+            else:
+                print("      ::warning:: aucun testeur dans ce groupe.")
+                print("      Un groupe vide ne fait rien apparaître sur aucun")
+                print("      téléphone, quels que soient les builds qu'il reçoit.")
 
     # L'attribution ne se fait que si on la demande. Lire l'état et changer la
     # distribution sont deux gestes différents, et le second doit se voir dans

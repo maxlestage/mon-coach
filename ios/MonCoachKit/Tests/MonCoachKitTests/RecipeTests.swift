@@ -92,11 +92,16 @@ struct RecipeCatalogTests {
         for diet in DietPreference.allCases {
             let dinners = RecipeCatalog.available(slot: .dinner, diet: diet)
             let breakfasts = RecipeCatalog.available(slot: .breakfast, diet: diet)
-            // Quatre dîners au minimum : c'est ce qu'il faut pour qu'une
-            // semaine ne serve pas deux fois la même chose, et le seuil que
-            // vérifie déjà le test de variété de la journée alimentaire.
-            #expect(dinners.count >= 4, Comment(rawValue: "\(diet.rawValue) : \(dinners.count) dîners"))
-            #expect(breakfasts.count >= 2, Comment(rawValue: "\(diet.rawValue) : \(breakfasts.count) matins"))
+            // Quarante dîners au minimum. Le menu n'en retient que quatre,
+            // mais il les choisit parmi ceux qui tiennent la cible du jour :
+            // un catalogue étroit se réduit à la même semaine pour tout le
+            // monde, quel que soit le corps et quel que soit l'objectif.
+            #expect(dinners.count >= 40, Comment(rawValue: "\(diet.rawValue) : \(dinners.count) dîners"))
+            // Quatre matins au minimum : le menu en retient deux, et il faut
+            // de quoi choisir. Les régimes les plus étroits — végétalien,
+            // sans gluten — sont ceux qui tombent en premier quand on ajoute
+            // des recettes sans y penser.
+            #expect(breakfasts.count >= 10, Comment(rawValue: "\(diet.rawValue) : \(breakfasts.count) matins"))
         }
     }
 
@@ -143,9 +148,17 @@ struct RecipeInPlanTests {
         let week = MealPlanner.week(target: Self.target(.hypertrophy))
         for meal in week.flatMap(\.meals) {
             guard let recipe = meal.recipe else { continue }
+            // Un sous-ensemble, pas une égalité : le solveur peut ramener un
+            // aliment à zéro gramme — une cuillère d'huile dans un repas déjà
+            // au plafond lipidique — et le plat reste ce plat. Ce qui ne peut
+            // pas disparaître, c'est ce qui le définit.
             #expect(
-                Set(meal.items.map(\.foodID)) == Set(recipe.foodIDs),
+                Set(meal.items.map(\.foodID)).isSubset(of: Set(recipe.foodIDs)),
                 Comment(rawValue: "\(recipe.id) : \(meal.items.map(\.foodID))")
+            )
+            #expect(
+                meal.items.contains { $0.foodID == recipe.proteinID },
+                Comment(rawValue: "\(recipe.id) sans sa protéine")
             )
         }
     }
