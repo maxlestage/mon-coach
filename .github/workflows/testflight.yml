@@ -52,19 +52,39 @@ jobs:
         # clé d'API — voir l'étape d'archivage pour ce que ça coûte.
         env:
           TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
-          ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
-          PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+          # Deux jeux de noms sont acceptés pour la clé d'API : ASC_* d'abord,
+          # APPSTORE_* ensuite. Un nom de secret ne se renomme pas — il se
+          # supprime et se repose, valeur comprise — et forcer ce geste pour
+          # une question d'étiquette ferait perdre la clé à qui ne l'a plus
+          # sous la main. Le workflow s'adapte, pas la personne.
+          KEY_ID: ${{ secrets.ASC_KEY_ID || secrets.APPSTORE_KEY_ID }}
+          ISSUER_ID: ${{ secrets.ASC_ISSUER_ID || secrets.APPSTORE_ISSUER_ID }}
+          PRIVATE_KEY: ${{ secrets.ASC_KEY_P8 || secrets.APPSTORE_PRIVATE_KEY }}
           CERTIFICATE: ${{ secrets.APPLE_DISTRIBUTION_CERT_P12 }}
           CERTIFICATE_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_CERT_PASSWORD }}
+          # Les noms — jamais les valeurs — des secrets que ce travail reçoit
+          # vraiment. Un secret posé dans le mauvais onglet (Codespaces,
+          # Dependabot) ou dans un environnement n'arrive pas ici, et sans
+          # cette liste une absence est indiscernable d'une faute de frappe.
+          VISIBLE: ${{ toJSON(secrets) }}
         run: |
           missing=""
           [ -z "$TEAM_ID" ] && missing="$missing APPLE_TEAM_ID"
-          [ -z "$KEY_ID" ] && missing="$missing APPSTORE_KEY_ID"
-          [ -z "$ISSUER_ID" ] && missing="$missing APPSTORE_ISSUER_ID"
-          [ -z "$PRIVATE_KEY" ] && missing="$missing APPSTORE_PRIVATE_KEY"
+          [ -z "$KEY_ID" ] && missing="$missing ASC_KEY_ID"
+          [ -z "$ISSUER_ID" ] && missing="$missing ASC_ISSUER_ID"
+          [ -z "$PRIVATE_KEY" ] && missing="$missing ASC_KEY_P8"
           if [ -n "$missing" ]; then
             echo "::error::Secrets obligatoires manquants :$missing — voir docs/TESTFLIGHT.md"
+            echo ""
+            echo "Secrets que ce workflow reçoit réellement (noms seuls) :"
+            printf '%s' "$VISIBLE" | python3 -c \
+              'import json,sys; [print("  -", k) for k in sorted(json.load(sys.stdin))]'
+            echo ""
+            echo "Un nom attendu absent de cette liste veut dire que le secret"
+            echo "n'est pas sous Settings → Secrets and variables → Actions →"
+            echo "onglet Secrets → Repository secrets. Les onglets Codespaces"
+            echo "et Dependabot, et les secrets d'environnement, ne sont pas"
+            echo "lus ici. Un secret rangé en « Variables » non plus."
             exit 1
           fi
 
@@ -150,18 +170,38 @@ jobs:
 
       - name: Poser la clé d'API App Store Connect
         env:
-          KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
-          PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+          KEY_ID: ${{ secrets.ASC_KEY_ID || secrets.APPSTORE_KEY_ID }}
+          PRIVATE_KEY: ${{ secrets.ASC_KEY_P8 || secrets.APPSTORE_PRIVATE_KEY }}
         run: |
           mkdir -p "$RUNNER_TEMP/private_keys"
-          echo "$PRIVATE_KEY" | base64 --decode \
-            > "$RUNNER_TEMP/private_keys/AuthKey_${KEY_ID}.p8"
+          DEST="$RUNNER_TEMP/private_keys/AuthKey_${KEY_ID}.p8"
+
+          # Le contenu du .p8 se pose de deux façons également naturelles :
+          # collé tel quel depuis le fichier, ou encodé en base64. Les deux
+          # sont acceptés. Décoder à l'aveugle un PEM déjà en clair produit
+          # un fichier vide ou du bruit, et l'erreur ne tomberait qu'à
+          # l'archivage, sous la forme d'un « invalid authentication » qui
+          # ne dit rien de la cause.
+          case "$PRIVATE_KEY" in
+            *"BEGIN PRIVATE KEY"*) printf '%s\n' "$PRIVATE_KEY" > "$DEST" ;;
+            *) printf '%s' "$PRIVATE_KEY" | base64 --decode > "$DEST" ;;
+          esac
+
+          # Une vérification franche ici vaut vingt minutes de build perdues.
+          if ! grep -q "BEGIN PRIVATE KEY" "$DEST"; then
+            echo "::error::La clé privée n'est pas exploitable : ni PEM en clair, ni base64 d'un PEM."
+            echo "Repose le secret avec le contenu exact du fichier .p8 téléchargé"
+            echo "chez Apple, lignes -----BEGIN----- et -----END----- comprises."
+            exit 1
+          fi
+          chmod 600 "$DEST"
+          echo "Clé d'API en place pour le Key ID fourni."
 
       - name: Archiver
         env:
           TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
-          ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          KEY_ID: ${{ secrets.ASC_KEY_ID || secrets.APPSTORE_KEY_ID }}
+          ISSUER_ID: ${{ secrets.ASC_ISSUER_ID || secrets.APPSTORE_ISSUER_ID }}
           VERSION: ${{ inputs.version }}
         run: |
           set -o pipefail
@@ -203,8 +243,8 @@ jobs:
       - name: Exporter et envoyer à TestFlight
         env:
           TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
-          ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          KEY_ID: ${{ secrets.ASC_KEY_ID || secrets.APPSTORE_KEY_ID }}
+          ISSUER_ID: ${{ secrets.ASC_ISSUER_ID || secrets.APPSTORE_ISSUER_ID }}
         run: |
           set -o pipefail
           # `destination: upload` fait l'envoi dans la foulée de l'export,
