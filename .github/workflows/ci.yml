@@ -94,7 +94,7 @@ jobs:
             curl -sf "http://127.0.0.1:8080/?lang=$lang" -o /dev/null \
               || { echo "la page ne répond pas en $lang"; exit 1; }
           done
-          grep -q "Mon Coach" /tmp/page.html
+          grep -q "Stride" /tmp/page.html
           asset=$(grep -oE '/assets/[a-zA-Z0-9._-]+\.js' /tmp/page.html | head -1)
           test -n "$asset"
           curl -sfI "http://127.0.0.1:8080$asset" | grep -qi "max-age=31536000"
@@ -134,7 +134,7 @@ jobs:
             sleep 1
           done
           cat /tmp/start.log
-          grep -q "Mon Coach" /tmp/page.html
+          grep -q "Stride" /tmp/page.html
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8090/route-inconnue)" = "404"
           echo "Le démarrage à froid sert bien le site."
 

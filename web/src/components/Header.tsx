@@ -52,7 +52,7 @@ export function Header() {
       <div className="shell site-header__inner">
         <a className="brand" href="/">
           <BrandMark className="brand__mark" size={30} />
-          Mon&nbsp;Coach
+          Stride
         </a>
         <nav className="site-nav" aria-label={t.nav}>
           <a href="/#profil">{t.profile}</a>

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Fabrique la marque de Mon Coach, une seule fois, pour tous les supports.
+"""Fabrique la marque de Stride, une seule fois, pour tous les supports.
 
 La marque n'est pas une initiale : c'est ce que l'application produit.
 
@@ -518,7 +518,7 @@ def tsx() -> str:
     return f'''import {{ useId }} from "react";
 
 /**
- * La marque de Mon Coach.
+ * La marque de Stride.
  *
  * Fichier produit par `tools/brand/generate.py` — ne pas modifier à la main :
  * la prochaine exécution du script écraserait la retouche, et le SVG du site

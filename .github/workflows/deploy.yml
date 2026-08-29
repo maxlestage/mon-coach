@@ -128,7 +128,7 @@ jobs:
           # Un dyno froid met une poignée de secondes à répondre.
           for attempt in $(seq 1 24); do
             code=$(curl -s -o /tmp/page.html -w "%{http_code}" "$URL" || true)
-            if [ "$code" = "200" ] && grep -q "Mon Coach" /tmp/page.html; then
+            if [ "$code" = "200" ] && grep -q "Stride" /tmp/page.html; then
               echo "::notice::Le site est en ligne : $URL"
               exit 0
             fi

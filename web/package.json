@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Site produit de Mon Coach",
+  "description": "Site produit de Stride",
   "scripts": {
     "dev": "bun --hot ./src/index.html",
     "build": "bun run ./build.ts",

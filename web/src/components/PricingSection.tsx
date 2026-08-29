@@ -4,7 +4,7 @@ const copy = {
   fr: {
     eyebrow: "Tarifs",
     title: "Le premier bloc est complet, et gratuit",
-    lede: "Pas de démo bridée : la formule gratuite est le vrai coach, pendant tout un bloc d'entraînement. Mon Coach+ débloque la suite — la continuité, le poignet, l'écran verrouillé. Et tes données ne sont jamais un otage : l'historique et l'export restent gratuits, pour toujours.",
+    lede: "Pas de démo bridée : la formule gratuite est le vrai coach, pendant tout un bloc d'entraînement. Stride+ débloque la suite — la continuité, le poignet, l'écran verrouillé. Et tes données ne sont jamais un otage : l'historique et l'export restent gratuits, pour toujours.",
     freeName: "Gratuit",
     freePrice: "0 €",
     freePeriod: "pour toujours",
@@ -18,7 +18,7 @@ const copy = {
       "Export JSON intégral et effacement — à vie",
     ],
     badge: "Recommandé",
-    plusName: "Mon Coach+",
+    plusName: "Stride+",
     plusPrice: "14,99 €",
     plusPer: " / mois",
     plusPeriod: "ou 119,99 € par an, soit quatre mois offerts",
@@ -36,7 +36,7 @@ const copy = {
   en: {
     eyebrow: "Pricing",
     title: "The first block is complete, and free",
-    lede: "No crippled demo: the free tier is the real coach, for a whole training block. Mon Coach+ unlocks what comes next — continuity, the wrist, the lock screen. And your data is never a hostage: history and export stay free, forever.",
+    lede: "No crippled demo: the free tier is the real coach, for a whole training block. Stride+ unlocks what comes next — continuity, the wrist, the lock screen. And your data is never a hostage: history and export stay free, forever.",
     freeName: "Free",
     freePrice: "€0",
     freePeriod: "forever",
@@ -50,7 +50,7 @@ const copy = {
       "Full JSON export and erasure — for life",
     ],
     badge: "Recommended",
-    plusName: "Mon Coach+",
+    plusName: "Stride+",
     plusPrice: "€14.99",
     plusPer: " / month",
     plusPeriod: "or €119.99 a year, four months free",
@@ -68,7 +68,7 @@ const copy = {
   es: {
     eyebrow: "Precios",
     title: "El primer bloque es completo, y gratuito",
-    lede: "Nada de demos recortadas: el plan gratuito es el entrenador de verdad, durante un bloque entero. Mon Coach+ desbloquea lo que viene después: la continuidad, la muñeca, la pantalla bloqueada. Y tus datos nunca son un rehén: el historial y la exportación siguen siendo gratis, para siempre.",
+    lede: "Nada de demos recortadas: el plan gratuito es el entrenador de verdad, durante un bloque entero. Stride+ desbloquea lo que viene después: la continuidad, la muñeca, la pantalla bloqueada. Y tus datos nunca son un rehén: el historial y la exportación siguen siendo gratis, para siempre.",
     freeName: "Gratis",
     freePrice: "0 €",
     freePeriod: "para siempre",
@@ -82,7 +82,7 @@ const copy = {
       "Exportación JSON íntegra y borrado — de por vida",
     ],
     badge: "Recomendado",
-    plusName: "Mon Coach+",
+    plusName: "Stride+",
     plusPrice: "14,99 €",
     plusPer: " / mes",
     plusPeriod: "o 119,99 € al año, cuatro meses de regalo",
@@ -104,7 +104,7 @@ const copy = {
  *
  * Le principe est documenté dans docs/MODELE-ECONOMIQUE.md : le premier bloc
  * complet est gratuit — un vrai coach pendant cinq semaines, pas une démo —
- * et Mon Coach+ débloque la continuité. Les données restent gratuites à vie,
+ * et Stride+ débloque la continuité. Les données restent gratuites à vie,
  * parce qu'un export payant contredirait tout ce que la page promet.
  */
 export function PricingSection() {

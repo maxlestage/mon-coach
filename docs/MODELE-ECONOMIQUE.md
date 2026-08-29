@@ -38,7 +38,7 @@ frontière payante.
 | Enregistrement des séances et pesées, sans limite | les données appartiennent à l'utilisateur |
 | Export JSON et effacement | **non négociable** : un export payant transformerait la promesse « tes données t'appartiennent » en mensonge |
 
-**Mon Coach+ :**
+**Stride+ :**
 
 | Quoi | Pourquoi c'est la bonne frontière |
 | --- | --- |
