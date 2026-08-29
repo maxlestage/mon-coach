@@ -92,14 +92,16 @@ struct RecipeCatalogTests {
         for diet in DietPreference.allCases {
             let dinners = RecipeCatalog.available(slot: .dinner, diet: diet)
             let breakfasts = RecipeCatalog.available(slot: .breakfast, diet: diet)
-            // Huit dîners au minimum : le menu en retient quatre, et sans
-            // marge le choix se réduit aux mêmes plats pour tout le monde.
-            #expect(dinners.count >= 8, Comment(rawValue: "\(diet.rawValue) : \(dinners.count) dîners"))
+            // Quarante dîners au minimum. Le menu n'en retient que quatre,
+            // mais il les choisit parmi ceux qui tiennent la cible du jour :
+            // un catalogue étroit se réduit à la même semaine pour tout le
+            // monde, quel que soit le corps et quel que soit l'objectif.
+            #expect(dinners.count >= 40, Comment(rawValue: "\(diet.rawValue) : \(dinners.count) dîners"))
             // Quatre matins au minimum : le menu en retient deux, et il faut
             // de quoi choisir. Les régimes les plus étroits — végétalien,
             // sans gluten — sont ceux qui tombent en premier quand on ajoute
             // des recettes sans y penser.
-            #expect(breakfasts.count >= 4, Comment(rawValue: "\(diet.rawValue) : \(breakfasts.count) matins"))
+            #expect(breakfasts.count >= 10, Comment(rawValue: "\(diet.rawValue) : \(breakfasts.count) matins"))
         }
     }
 

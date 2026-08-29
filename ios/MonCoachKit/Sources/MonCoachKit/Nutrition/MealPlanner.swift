@@ -466,7 +466,7 @@ enum DishPreference {
             // légumes par jour, et à eux seuls la moitié d'un excès de fibres
             // qui rend la journée pénible à tenir. 150 g chacun restent deux
             // vraies portions.
-            vegetableGrams = 150
+            vegetableGrams = fixedVegetableGrams(for: slot)
         case .snack:
             proteinPool = pool(role: .protein, diet: diet, excluding: excluded, restrictedTo: breakfastProteins)
             carbPool = pool(role: .fruit, diet: diet, excluding: excluded)
@@ -624,9 +624,27 @@ enum DishPreference {
         excluded: Set<String>,
         count: Int
     ) -> [Recipe] {
+        // Le menu ne propose que des plats que le repas acceptera.
+        //
+        // Sans ce filtre, `menu` retenait des plats sur la seule faisabilité
+        // de leur protéine, et `meal` les refusait ensuite sur l'écart
+        // calorique : le menu était proposé puis ignoré, les déjeuners ne
+        // reprenaient plus les dîners, et la semaine servait trois plats.
+        // Deux endroits qui décident de la même chose finissent toujours par
+        // décider différemment ; ils partagent désormais le critère.
         let candidates = dishes(
             slot: slot, target: target, diet: diet, excluded: excluded, avoiding: []
-        )
+        ).filter { dish in
+            let items = solve(
+                protein: FoodCatalog.food(id: dish.proteinID),
+                carb: FoodCatalog.food(id: dish.carbID),
+                fat: FoodCatalog.food(id: dish.fatID),
+                fixed: dish.extraIDs.compactMap { FoodCatalog.food(id: $0) },
+                vegetableGrams: fixedVegetableGrams(for: slot),
+                target: target
+            )
+            return kcalDrift(items, target: target) <= 0.08
+        }
         guard !candidates.isEmpty, count > 0 else { return [] }
         let wanted = min(count, candidates.count)
         var chosen: [Recipe] = [candidates[0]]
@@ -662,6 +680,17 @@ enum DishPreference {
             basket.formUnion(best.foodIDs)
         }
         return chosen
+    }
+
+    /// Le poids fixe des légumes d'un repas, quand il en porte.
+    ///
+    /// Deux légumes à 150 g dans chaque repas principal : c'est là que se
+    /// joue le volume de l'assiette, et le solveur ne les étire pas.
+    static func fixedVegetableGrams(for slot: MealSlot) -> Double? {
+        switch slot {
+        case .lunch, .dinner: 150
+        case .breakfast, .snack, .preWorkout: nil
+        }
     }
 
     /// L'écart calorique d'un repas résolu à ce qu'on lui demandait.
@@ -860,6 +889,22 @@ enum DishPreference {
             }
         }
 
+        /// Le plat qu'on impose à ce repas, selon ce qu'on est prêt à lâcher.
+        ///
+        /// Le rattrapage des fibres abandonnait tout le menu : les jours
+        /// concernés ne suivaient plus rien, les déjeuners ne reprenaient
+        /// plus les dîners de la veille et la semaine servait trois plats au
+        /// lieu de quatre. Or le manque de fibres se comble au petit-déjeuner
+        /// et à la collation, pas en changeant le dîner qu'on avait prévu de
+        /// cuisiner : c'est là qu'on prend la liberté, et nulle part ailleurs.
+        func imposed(_ slot: MealSlot, _ preference: DishPreference) -> Recipe? {
+            switch preference {
+            case .varied: return dish(for: slot)
+            case .richestInFibre: return slot == .lunch || slot == .dinner ? dish(for: slot) : nil
+            case .none: return nil
+            }
+        }
+
         func build(_ preference: DishPreference) -> [Meal] {
             var meals: [Meal] = []
             var usedProteins: Set<String> = []
@@ -873,7 +918,7 @@ enum DishPreference {
                     seed: variety(for: entry.slot, menuDay: menuDay) * 7 + index * 3,
                     menuDay: variety(for: entry.slot, menuDay: menuDay),
                     dishes: preference,
-                    preferring: preference == .varied ? dish(for: entry.slot) : nil
+                    preferring: imposed(entry.slot, preference)
                 )
                 for item in built.items where item.food?.role == .protein {
                     usedProteins.insert(item.foodID)
