@@ -92,11 +92,14 @@ struct RecipeCatalogTests {
         for diet in DietPreference.allCases {
             let dinners = RecipeCatalog.available(slot: .dinner, diet: diet)
             let breakfasts = RecipeCatalog.available(slot: .breakfast, diet: diet)
-            // Quatre dîners au minimum : c'est ce qu'il faut pour qu'une
-            // semaine ne serve pas deux fois la même chose, et le seuil que
-            // vérifie déjà le test de variété de la journée alimentaire.
-            #expect(dinners.count >= 4, Comment(rawValue: "\(diet.rawValue) : \(dinners.count) dîners"))
-            #expect(breakfasts.count >= 2, Comment(rawValue: "\(diet.rawValue) : \(breakfasts.count) matins"))
+            // Huit dîners au minimum : le menu en retient quatre, et sans
+            // marge le choix se réduit aux mêmes plats pour tout le monde.
+            #expect(dinners.count >= 8, Comment(rawValue: "\(diet.rawValue) : \(dinners.count) dîners"))
+            // Quatre matins au minimum : le menu en retient deux, et il faut
+            // de quoi choisir. Les régimes les plus étroits — végétalien,
+            // sans gluten — sont ceux qui tombent en premier quand on ajoute
+            // des recettes sans y penser.
+            #expect(breakfasts.count >= 4, Comment(rawValue: "\(diet.rawValue) : \(breakfasts.count) matins"))
         }
     }
 
