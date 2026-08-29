@@ -51,7 +51,11 @@ public final class LocationTracker: NSObject {
         super.init()
         manager.delegate = self
         manager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
+        // Absent de watchOS, où CoreLocation ne met jamais les relevés en
+        // pause de lui-même : il n'y a rien à désactiver là-bas.
+        #if !os(watchOS)
         manager.pausesLocationUpdatesAutomatically = false
+        #endif
         configure(for: .run)
     }
 
@@ -195,11 +199,11 @@ public final class LocationTracker: NSObject {
 
 extension LocationTracker: CLLocationManagerDelegate {
 
-    nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+    public nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         MainActor.assumeIsolated { ingest(locations) }
     }
 
-    nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+    public nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         let status = manager.authorizationStatus
         MainActor.assumeIsolated {
             switch status {
@@ -213,7 +217,7 @@ extension LocationTracker: CLLocationManagerDelegate {
         }
     }
 
-    nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+    public nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         // Une erreur ponctuelle n'arrête pas la sortie : CoreLocation en émet
         // au moindre passage sous un tunnel, et perdre l'enregistrement pour
         // ça serait pire que de continuer avec un trou dans la trace.
