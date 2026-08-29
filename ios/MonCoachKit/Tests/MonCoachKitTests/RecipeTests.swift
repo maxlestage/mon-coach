@@ -143,9 +143,17 @@ struct RecipeInPlanTests {
         let week = MealPlanner.week(target: Self.target(.hypertrophy))
         for meal in week.flatMap(\.meals) {
             guard let recipe = meal.recipe else { continue }
+            // Un sous-ensemble, pas une égalité : le solveur peut ramener un
+            // aliment à zéro gramme — une cuillère d'huile dans un repas déjà
+            // au plafond lipidique — et le plat reste ce plat. Ce qui ne peut
+            // pas disparaître, c'est ce qui le définit.
             #expect(
-                Set(meal.items.map(\.foodID)) == Set(recipe.foodIDs),
+                Set(meal.items.map(\.foodID)).isSubset(of: Set(recipe.foodIDs)),
                 Comment(rawValue: "\(recipe.id) : \(meal.items.map(\.foodID))")
+            )
+            #expect(
+                meal.items.contains { $0.foodID == recipe.proteinID },
+                Comment(rawValue: "\(recipe.id) sans sa protéine")
             )
         }
     }

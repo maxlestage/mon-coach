@@ -671,6 +671,528 @@ public enum RecipeCatalog {
                 ),
             ]
         ),
+        Recipe(
+            id: "dinde-riz-cajun",
+            name: LocalizedText(
+                fr: "Dinde cajun, riz basmati",
+                en: "Cajun turkey with basmati rice",
+                es: "Pavo cajún con arroz basmati"
+            ),
+            slots: [.lunch, .dinner],
+            proteinID: "dinde", carbID: "riz-basmati",
+            fatID: "huile-olive", extraIDs: ["poivron", "oignon"],
+            minutes: 25,
+            steps: [
+                LocalizedText(
+                    fr: "Mélange paprika fumé, ail, origan et poivre de Cayenne, et enrobe la dinde en dés.",
+                    en: "Mix smoked paprika, garlic, oregano and cayenne, and coat the diced turkey.",
+                    es: "Mezcla pimentón ahumado, ajo, orégano y cayena, y reboza el pavo en dados."
+                ),
+                LocalizedText(
+                    fr: "Poêle très chaude, en une seule couche : entassée, la viande bout au lieu de dorer.",
+                    en: "Very hot pan, in a single layer: crowded, the meat stews instead of browning.",
+                    es: "Sartén muy caliente, en una sola capa: amontonada, la carne se cuece en vez de dorarse."
+                ),
+                LocalizedText(
+                    fr: "Ajoute poivrons et oignons, huit minutes, et sers sur le riz.",
+                    en: "Add peppers and onions, eight minutes, and serve over the rice.",
+                    es: "Añade pimientos y cebollas, ocho minutos, y sirve sobre el arroz."
+                ),
+            ]
+        ),
+        Recipe(
+            id: "poulet-citron-boulgour",
+            name: LocalizedText(
+                fr: "Poulet au citron, boulgour",
+                en: "Lemon chicken with bulgur",
+                es: "Pollo al limón con bulgur"
+            ),
+            slots: [.lunch, .dinner],
+            proteinID: "blanc-de-poulet", carbID: "boulgour",
+            fatID: "huile-olive", extraIDs: ["courgette", "tomate"],
+            minutes: 30,
+            steps: [
+                LocalizedText(
+                    fr: "Fais mariner le poulet dix minutes dans le jus de citron, l'ail et l'huile.",
+                    en: "Marinate the chicken ten minutes in lemon juice, garlic and oil.",
+                    es: "Marina el pollo diez minutos en zumo de limón, ajo y aceite."
+                ),
+                LocalizedText(
+                    fr: "Saisis-le à feu vif, puis baisse et couvre cinq minutes.",
+                    en: "Sear it over high heat, then lower and cover for five minutes.",
+                    es: "Séllalo a fuego fuerte, baja y tapa cinco minutos."
+                ),
+                LocalizedText(
+                    fr: "Courgettes et tomates dans la même poêle, boulgour gonflé à côté.",
+                    en: "Courgettes and tomatoes in the same pan, bulgur swollen alongside.",
+                    es: "Calabacín y tomate en la misma sartén, bulgur hinchado al lado."
+                ),
+            ]
+        ),
+        Recipe(
+            id: "boeuf-bourguignon-simple",
+            name: LocalizedText(
+                fr: "Bœuf mijoté aux carottes, pommes de terre",
+                en: "Braised beef with carrots and potatoes",
+                es: "Ternera guisada con zanahoria y patata"
+            ),
+            slots: [.lunch, .dinner],
+            proteinID: "boeuf-15", carbID: "pomme-de-terre",
+            fatID: "huile-olive", extraIDs: ["carotte", "oignon"],
+            minutes: 55,
+            steps: [
+                LocalizedText(
+                    fr: "Fais dorer la viande par petites quantités : c'est la couleur qui fait le goût.",
+                    en: "Brown the meat in small batches: the colour is what makes the flavour.",
+                    es: "Dora la carne en tandas pequeñas: el color es lo que da el sabor."
+                ),
+                LocalizedText(
+                    fr: "Ajoute oignons et carottes, mouille à hauteur, thym et laurier.",
+                    en: "Add onions and carrots, cover with liquid, thyme and bay.",
+                    es: "Añade cebolla y zanahoria, cubre de líquido, tomillo y laurel."
+                ),
+                LocalizedText(
+                    fr: "Quarante minutes à couvert, feu très doux. Les pommes de terre rejoignent à mi-cuisson.",
+                    en: "Forty minutes covered, very low heat. The potatoes join halfway.",
+                    es: "Cuarenta minutos tapado a fuego muy suave. Las patatas entran a mitad."
+                ),
+            ]
+        ),
+        Recipe(
+            id: "colin-poireaux",
+            name: LocalizedText(
+                fr: "Colin à la crème de poireaux, riz",
+                en: "Hake with creamed leeks and rice",
+                es: "Merluza con puerros a la crema y arroz"
+            ),
+            slots: [.lunch, .dinner],
+            proteinID: "colin-lieu", carbID: "riz-blanc",
+            fatID: "creme-legere", extraIDs: ["poireau", "carotte"],
+            minutes: 30,
+            steps: [
+                LocalizedText(
+                    fr: "Émince les poireaux finement et fais-les fondre à couvert, dix minutes, sans coloration.",
+                    en: "Slice the leeks thinly and sweat them covered, ten minutes, without colour.",
+                    es: "Corta los puerros finos y póchalos tapados diez minutos, sin que tomen color."
+                ),
+                LocalizedText(
+                    fr: "Ajoute la crème et les carottes en rondelles, laisse épaissir.",
+                    en: "Add the cream and the sliced carrots, let it thicken.",
+                    es: "Añade la nata y la zanahoria en rodajas, deja espesar."
+                ),
+                LocalizedText(
+                    fr: "Pose le colin dessus, couvre, huit minutes : il cuit à la vapeur de la sauce.",
+                    en: "Lay the hake on top, cover, eight minutes: it steams in the sauce.",
+                    es: "Coloca la merluza encima, tapa, ocho minutos: se cuece al vapor de la salsa."
+                ),
+            ]
+        ),
+        Recipe(
+            id: "lentilles-saucisse-vegetale",
+            name: LocalizedText(
+                fr: "Lentilles aux légumes, riz complet",
+                en: "Lentils with vegetables and brown rice",
+                es: "Lentejas con verduras y arroz integral"
+            ),
+            slots: [.lunch, .dinner],
+            proteinID: "lentilles", carbID: "riz-complet",
+            fatID: "huile-olive", extraIDs: ["carotte", "celeri-branche"],
+            minutes: 35,
+            steps: [
+                LocalizedText(
+                    fr: "Carottes, céleri et oignon en petits dés, dix minutes à l'huile : c'est la base de tout.",
+                    en: "Carrot, celery and onion finely diced, ten minutes in oil: the base of everything.",
+                    es: "Zanahoria, apio y cebolla en dados pequeños, diez minutos en aceite: la base de todo."
+                ),
+                LocalizedText(
+                    fr: "Ajoute les lentilles et deux fois leur volume d'eau, laurier, vingt-cinq minutes.",
+                    en: "Add the lentils and twice their volume of water, bay leaf, twenty-five minutes.",
+                    es: "Añade las lentejas y el doble de su volumen de agua, laurel, veinticinco minutos."
+                ),
+                LocalizedText(
+                    fr: "Sale seulement à la fin : le sel en début de cuisson durcit la peau des lentilles.",
+                    en: "Salt only at the end: salt early toughens the skins.",
+                    es: "Sala solo al final: la sal al principio endurece la piel de las lentejas."
+                ),
+            ]
+        ),
+        Recipe(
+            id: "thon-riz-poivrons",
+            name: LocalizedText(
+                fr: "Riz sauté au thon et aux poivrons",
+                en: "Tuna and pepper fried rice",
+                es: "Arroz salteado con atún y pimientos"
+            ),
+            slots: [.lunch, .dinner],
+            proteinID: "thon-boite", carbID: "riz-blanc",
+            fatID: "huile-colza", extraIDs: ["poivron", "germes-soja"],
+            minutes: 20,
+            steps: [
+                LocalizedText(
+                    fr: "Le riz de la veille est meilleur : froid, il ne colle pas et saute vraiment.",
+                    en: "Yesterday's rice is better: cold, it does not stick and really fries.",
+                    es: "El arroz del día anterior es mejor: frío, no se pega y saltea de verdad."
+                ),
+                LocalizedText(
+                    fr: "Poivrons à feu vif, puis le riz, puis les germes de soja.",
+                    en: "Peppers over high heat, then the rice, then the bean sprouts.",
+                    es: "Pimientos a fuego fuerte, luego el arroz y después los brotes."
+                ),
+                LocalizedText(
+                    fr: "Le thon en dernier, hors du feu, pour qu'il reste en morceaux.",
+                    en: "Tuna last, off the heat, so it stays in pieces.",
+                    es: "El atún al final, fuera del fuego, para que quede en trozos."
+                ),
+            ]
+        ),
+        Recipe(
+            id: "pois-chiches-epinards",
+            name: LocalizedText(
+                fr: "Pois chiches aux épinards, riz",
+                en: "Chickpeas with spinach and rice",
+                es: "Garbanzos con espinacas y arroz"
+            ),
+            slots: [.lunch, .dinner],
+            proteinID: "pois-chiches", carbID: "riz-blanc",
+            fatID: "huile-olive", extraIDs: ["epinards", "tomate"],
+            minutes: 25,
+            steps: [
+                LocalizedText(
+                    fr: "Ail et cumin dans l'huile, trente secondes, jusqu'à ce que ça sente.",
+                    en: "Garlic and cumin in the oil, thirty seconds, until it smells.",
+                    es: "Ajo y comino en el aceite, treinta segundos, hasta que huela."
+                ),
+                LocalizedText(
+                    fr: "Tomates concassées et pois chiches égouttés, quinze minutes.",
+                    en: "Chopped tomatoes and drained chickpeas, fifteen minutes.",
+                    es: "Tomate troceado y garbanzos escurridos, quince minutos."
+                ),
+                LocalizedText(
+                    fr: "Épinards en dernier, ils fondent en trente secondes. Un trait de vinaigre réveille tout.",
+                    en: "Spinach last, it wilts in thirty seconds. A dash of vinegar wakes it all up.",
+                    es: "Espinacas al final, se deshacen en treinta segundos. Un chorro de vinagre lo despierta."
+                ),
+            ]
+        ),
+        Recipe(
+            id: "dorade-four",
+            name: LocalizedText(
+                fr: "Dorade au four, pommes de terre et fenouil",
+                en: "Baked sea bream with potatoes and fennel",
+                es: "Dorada al horno con patatas e hinojo"
+            ),
+            slots: [.lunch, .dinner],
+            proteinID: "dorade", carbID: "pomme-de-terre",
+            fatID: "huile-olive", extraIDs: ["fenouil", "tomate"],
+            minutes: 40,
+            steps: [
+                LocalizedText(
+                    fr: "Pommes de terre en fines rondelles et fenouil émincé au fond du plat, huile, sel.",
+                    en: "Thinly sliced potatoes and fennel in the dish, oil, salt.",
+                    es: "Patatas en rodajas finas e hinojo en el fondo de la fuente, aceite, sal."
+                ),
+                LocalizedText(
+                    fr: "Vingt minutes à 200 °C, puis pose la dorade et les tomates dessus.",
+                    en: "Twenty minutes at 200 °C, then lay the bream and tomatoes on top.",
+                    es: "Veinte minutos a 200 °C, luego coloca la dorada y los tomates encima."
+                ),
+                LocalizedText(
+                    fr: "Encore quinze minutes. L'œil du poisson devient blanc quand c'est cuit.",
+                    en: "Fifteen minutes more. The fish's eye turns white when it is done.",
+                    es: "Quince minutos más. El ojo del pescado se vuelve blanco cuando está listo."
+                ),
+            ]
+        ),
+        Recipe(
+            id: "oeufs-plat-haricots",
+            name: LocalizedText(
+                fr: "Œufs au plat à la tomate, pommes de terre sautées",
+                en: "Fried eggs in tomato with sautéed potatoes",
+                es: "Huevos fritos con alubias en tomate"
+            ),
+            slots: [.lunch, .dinner],
+            proteinID: "oeuf", carbID: "pomme-de-terre",
+            fatID: "huile-olive", extraIDs: ["sauce-tomate", "epinards"],
+            minutes: 25,
+            steps: [
+                LocalizedText(
+                    fr: "Fais chauffer la sauce tomate avec du paprika, ajoute les épinards.",
+                    en: "Heat the tomato sauce with paprika, add the spinach.",
+                    es: "Calienta la salsa de tomate con pimentón y añade las espinacas."
+                ),
+                LocalizedText(
+                    fr: "Casse les œufs directement dedans, couvre, quatre minutes.",
+                    en: "Crack the eggs straight in, cover, four minutes.",
+                    es: "Casca los huevos directamente encima, tapa, cuatro minutos."
+                ),
+                LocalizedText(
+                    fr: "Le blanc doit être pris et le jaune coulant. Pommes de terre sautées à côté.",
+                    en: "The white set, the yolk running. Sautéed potatoes alongside.",
+                    es: "La clara cuajada y la yema líquida. Patatas salteadas al lado."
+                ),
+            ]
+        ),
+        Recipe(
+            id: "crevettes-riz-coco",
+            name: LocalizedText(
+                fr: "Crevettes au curry, riz basmati",
+                en: "Curried prawns with basmati rice",
+                es: "Gambas al curry con arroz basmati"
+            ),
+            slots: [.lunch, .dinner],
+            proteinID: "crevettes", carbID: "riz-basmati",
+            fatID: "huile-colza", extraIDs: ["poivron", "epinards"],
+            minutes: 20,
+            steps: [
+                LocalizedText(
+                    fr: "Fais chauffer la pâte de curry dans l'huile avant tout le reste.",
+                    en: "Warm the curry paste in the oil before anything else.",
+                    es: "Calienta la pasta de curry en el aceite antes que nada."
+                ),
+                LocalizedText(
+                    fr: "Poivrons trois minutes, puis les crevettes, puis les épinards.",
+                    en: "Peppers three minutes, then the prawns, then the spinach.",
+                    es: "Pimientos tres minutos, luego las gambas y después las espinacas."
+                ),
+                LocalizedText(
+                    fr: "Deux minutes de plus et les crevettes deviennent caoutchouteuses. Coupe le feu tôt.",
+                    en: "Two minutes more and the prawns turn rubbery. Cut the heat early.",
+                    es: "Dos minutos más y las gambas se vuelven gomosas. Apaga pronto."
+                ),
+            ]
+        ),
+        Recipe(
+            id: "porc-pommes-boulgour",
+            name: LocalizedText(
+                fr: "Porc aux pommes, boulgour",
+                en: "Pork with apples and bulgur",
+                es: "Cerdo con manzana y bulgur"
+            ),
+            slots: [.lunch, .dinner],
+            proteinID: "porc-echine", carbID: "boulgour",
+            fatID: "huile-olive", extraIDs: ["oignon", "chou"],
+            minutes: 35,
+            steps: [
+                LocalizedText(
+                    fr: "Fais dorer le porc en tranches épaisses, deux minutes par face, puis réserve.",
+                    en: "Brown the thick pork slices, two minutes a side, then set aside.",
+                    es: "Dora el cerdo en lonchas gruesas, dos minutos por cara, y reserva."
+                ),
+                LocalizedText(
+                    fr: "Oignons et chou émincé dans la même poêle, dix minutes à couvert.",
+                    en: "Onions and sliced cabbage in the same pan, ten minutes covered.",
+                    es: "Cebolla y col en juliana en la misma sartén, diez minutos tapado."
+                ),
+                LocalizedText(
+                    fr: "Remets le porc, un fond de cidre ou de bouillon, quinze minutes.",
+                    en: "Return the pork, a splash of cider or stock, fifteen minutes.",
+                    es: "Devuelve el cerdo, un chorro de sidra o caldo, quince minutos."
+                ),
+            ]
+        ),
+        Recipe(
+            id: "tofu-curry-patate",
+            name: LocalizedText(
+                fr: "Curry de tofu, patate douce",
+                en: "Tofu and sweet potato curry",
+                es: "Curry de tofu y boniato"
+            ),
+            slots: [.lunch, .dinner],
+            proteinID: "tofu-fume", carbID: "patate-douce",
+            fatID: "huile-colza", extraIDs: ["epinards", "tomate"],
+            minutes: 30,
+            steps: [
+                LocalizedText(
+                    fr: "Patate douce en cubes, dix minutes à l'eau bouillante : elle finira dans la sauce.",
+                    en: "Sweet potato in cubes, ten minutes in boiling water: it finishes in the sauce.",
+                    es: "Boniato en cubos, diez minutos en agua hirviendo: termina en la salsa."
+                ),
+                LocalizedText(
+                    fr: "Curry et gingembre dans l'huile, puis tomates et tofu fumé en dés.",
+                    en: "Curry and ginger in the oil, then tomatoes and diced smoked tofu.",
+                    es: "Curry y jengibre en el aceite, luego tomate y tofu ahumado en dados."
+                ),
+                LocalizedText(
+                    fr: "Ajoute la patate douce et les épinards, dix minutes à petit feu.",
+                    en: "Add the sweet potato and spinach, ten minutes on a low heat.",
+                    es: "Añade el boniato y las espinacas, diez minutos a fuego suave."
+                ),
+            ]
+        ),
+        Recipe(
+            id: "dinde-hachis",
+            name: LocalizedText(
+                fr: "Hachis de dinde, purée de pommes de terre",
+                en: "Turkey shepherd's pie",
+                es: "Pastel de pavo con puré de patata"
+            ),
+            slots: [.lunch, .dinner],
+            proteinID: "dinde", carbID: "pomme-de-terre",
+            fatID: "creme-legere", extraIDs: ["carotte", "oignon"],
+            minutes: 45,
+            steps: [
+                LocalizedText(
+                    fr: "Fais revenir la dinde hachée avec les carottes et les oignons en petits dés.",
+                    en: "Cook the minced turkey with finely diced carrots and onions.",
+                    es: "Sofríe el pavo picado con zanahoria y cebolla en dados pequeños."
+                ),
+                LocalizedText(
+                    fr: "Écrase les pommes de terre cuites avec la crème, sans mixeur : le mixeur fait de la colle.",
+                    en: "Mash the boiled potatoes with the cream, no blender: a blender makes glue.",
+                    es: "Machaca las patatas cocidas con la nata, sin batidora: la batidora hace pegamento."
+                ),
+                LocalizedText(
+                    fr: "Monte en couches, vingt minutes à 200 °C, jusqu'à ce que le dessus dore.",
+                    en: "Layer it up, twenty minutes at 200 °C, until the top browns.",
+                    es: "Monta por capas, veinte minutos a 200 °C, hasta que la superficie se dore."
+                ),
+            ]
+        ),
+        Recipe(
+            id: "maquereau-quinoa",
+            name: LocalizedText(
+                fr: "Maquereau, quinoa et betterave",
+                en: "Mackerel with quinoa and beetroot",
+                es: "Caballa con quinoa y remolacha"
+            ),
+            slots: [.lunch, .dinner],
+            proteinID: "maquereau", carbID: "quinoa",
+            fatID: "huile-noix", extraIDs: ["betterave", "roquette"],
+            minutes: 20,
+            steps: [
+                LocalizedText(
+                    fr: "Le quinoa cuit en douze minutes, rincé avant pour ôter l'amertume.",
+                    en: "Quinoa cooks in twelve minutes, rinsed first to remove bitterness.",
+                    es: "La quinoa se hace en doce minutos, enjuagada antes para quitar el amargor."
+                ),
+                LocalizedText(
+                    fr: "Betterave cuite en dés, roquette, huile de noix et vinaigre.",
+                    en: "Diced cooked beetroot, rocket, walnut oil and vinegar.",
+                    es: "Remolacha cocida en dados, rúcula, aceite de nuez y vinagre."
+                ),
+                LocalizedText(
+                    fr: "Le maquereau se pose dessus, à peine réchauffé. Aucune cuisson longue.",
+                    en: "The mackerel goes on top, barely warmed. No long cooking.",
+                    es: "La caballa se pone encima, apenas templada. Nada de cocciones largas."
+                ),
+            ]
+        ),
+        Recipe(
+            id: "haricots-noirs-polenta",
+            name: LocalizedText(
+                fr: "Haricots noirs épicés, polenta",
+                en: "Spiced black beans with polenta",
+                es: "Alubias negras especiadas con polenta"
+            ),
+            slots: [.lunch, .dinner],
+            proteinID: "haricots-noirs", carbID: "polenta",
+            fatID: "huile-olive", extraIDs: ["poivron", "oignon"],
+            minutes: 25,
+            steps: [
+                LocalizedText(
+                    fr: "Oignon et poivron à l'huile, puis cumin, paprika et un peu de cacao amer.",
+                    en: "Onion and pepper in oil, then cumin, paprika and a little bitter cocoa.",
+                    es: "Cebolla y pimiento en aceite, luego comino, pimentón y un poco de cacao amargo."
+                ),
+                LocalizedText(
+                    fr: "Haricots rincés et un verre d'eau, quinze minutes à découvert.",
+                    en: "Rinsed beans and a glass of water, fifteen minutes uncovered.",
+                    es: "Alubias enjuagadas y un vaso de agua, quince minutos destapado."
+                ),
+                LocalizedText(
+                    fr: "La polenta se fouette cinq minutes sans s'arrêter, sinon elle fait des grumeaux.",
+                    en: "Whisk the polenta five minutes without stopping, or it turns lumpy.",
+                    es: "Bate la polenta cinco minutos sin parar, si no se hace grumos."
+                ),
+            ]
+        ),
+        Recipe(
+            id: "veau-champignons",
+            name: LocalizedText(
+                fr: "Veau aux champignons, pâtes",
+                en: "Veal with mushrooms and pasta",
+                es: "Ternera con champiñones y pasta"
+            ),
+            slots: [.lunch, .dinner],
+            proteinID: "veau-escalope", carbID: "pates-completes",
+            fatID: "creme-legere", extraIDs: ["champignons", "epinards"],
+            minutes: 25,
+            steps: [
+                LocalizedText(
+                    fr: "Champignons à feu vif, en une seule couche, sans sel au début : le sel les fait rendre leur eau.",
+                    en: "Mushrooms over high heat, in one layer, no salt at first: salt draws their water.",
+                    es: "Champiñones a fuego fuerte, en una capa, sin sal al principio: la sal los hace soltar agua."
+                ),
+                LocalizedText(
+                    fr: "Veau en lanières, deux minutes, puis la crème et les épinards.",
+                    en: "Veal in strips, two minutes, then the cream and spinach.",
+                    es: "Ternera en tiras, dos minutos, luego la nata y las espinacas."
+                ),
+                LocalizedText(
+                    fr: "Une louche d'eau de cuisson des pâtes lie la sauce.",
+                    en: "A ladle of pasta water binds the sauce.",
+                    es: "Un cucharón del agua de la pasta liga la salsa."
+                ),
+            ]
+        ),
+        Recipe(
+            id: "tempeh-nouilles",
+            name: LocalizedText(
+                fr: "Tempeh sauté, vermicelles de riz",
+                en: "Tempeh stir-fry with rice noodles",
+                es: "Tempeh salteado con fideos de arroz"
+            ),
+            slots: [.lunch, .dinner],
+            proteinID: "tempeh", carbID: "vermicelles-riz",
+            fatID: "huile-colza", extraIDs: ["carotte", "germes-soja"],
+            minutes: 20,
+            steps: [
+                LocalizedText(
+                    fr: "Fais dorer le tempeh en fines tranches : sans couleur, il reste amer.",
+                    en: "Brown the thinly sliced tempeh: without colour it stays bitter.",
+                    es: "Dora el tempeh en lonchas finas: sin color, queda amargo."
+                ),
+                LocalizedText(
+                    fr: "Carottes en bâtonnets deux minutes, germes de soja trente secondes.",
+                    en: "Julienned carrots two minutes, bean sprouts thirty seconds.",
+                    es: "Zanahoria en bastones dos minutos, brotes de soja treinta segundos."
+                ),
+                LocalizedText(
+                    fr: "Vermicelles réhydratés hors du feu, sauce soja, tout mélanger et servir.",
+                    en: "Noodles rehydrated off the heat, soy sauce, toss and serve.",
+                    es: "Fideos rehidratados fuera del fuego, salsa de soja, mezcla y sirve."
+                ),
+            ]
+        ),
+        Recipe(
+            id: "truite-pommes-terre",
+            name: LocalizedText(
+                fr: "Truite aux amandes, pommes de terre",
+                en: "Trout with almonds and potatoes",
+                es: "Trucha con almendras y patatas"
+            ),
+            slots: [.lunch, .dinner],
+            proteinID: "truite", carbID: "pomme-de-terre",
+            fatID: "amandes", extraIDs: ["haricots-verts", "champignons"],
+            minutes: 30,
+            steps: [
+                LocalizedText(
+                    fr: "Fais griller les amandes effilées à sec, elles brûlent en dix secondes de trop.",
+                    en: "Toast the flaked almonds dry; ten seconds too long and they burn.",
+                    es: "Tuesta las almendras laminadas en seco; diez segundos de más y se queman."
+                ),
+                LocalizedText(
+                    fr: "La truite, quatre minutes côté peau, deux de l'autre.",
+                    en: "The trout, four minutes skin down, two on the other side.",
+                    es: "La trucha, cuatro minutos por la piel, dos por el otro lado."
+                ),
+                LocalizedText(
+                    fr: "Amandes et jus de citron par-dessus, haricots verts et champignons poêlés à côté.",
+                    en: "Almonds and lemon juice over it, green beans and pan-fried mushrooms alongside.",
+                    es: "Almendras y zumo de limón encima, judías verdes y champiñones salteados al lado."
+                ),
+            ]
+        ),
     ]
 
     // MARK: - Petits-déjeuners
@@ -890,6 +1412,59 @@ public enum RecipeCatalog {
                     fr: "Fraises coupées à côté, un tour de moulin à poivre si tu oses — ça marche.",
                     en: "Sliced strawberries alongside, a twist of pepper if you dare — it works.",
                     es: "Fresas cortadas al lado, una vuelta de pimienta si te atreves: funciona."
+                ),
+            ]
+        ),
+        Recipe(
+            id: "skyr-avoine-pomme",
+            name: LocalizedText(
+                fr: "Skyr, avoine et pomme râpée",
+                en: "Skyr with oats and grated apple",
+                es: "Skyr con avena y manzana rallada"
+            ),
+            slots: [.breakfast],
+            proteinID: "skyr", carbID: "flocons-avoine",
+            fatID: "noisettes", extraIDs: ["pomme"],
+            minutes: 5,
+            steps: [
+                LocalizedText(
+                    fr: "Râpe la pomme avec la peau : c'est là que sont les fibres.",
+                    en: "Grate the apple with its skin: that is where the fibre is.",
+                    es: "Ralla la manzana con piel: ahí está la fibra."
+                ),
+                LocalizedText(
+                    fr: "Mélange au skyr et aux flocons crus, cannelle, noisettes concassées.",
+                    en: "Mix with the skyr and raw oats, cinnamon, crushed hazelnuts.",
+                    es: "Mezcla con el skyr y los copos crudos, canela, avellanas picadas."
+                ),
+            ]
+        ),
+        Recipe(
+            id: "oeufs-durs-pain",
+            name: LocalizedText(
+                fr: "Œufs durs, pain de seigle et avocat",
+                en: "Boiled eggs with rye bread and avocado",
+                es: "Huevos duros con pan de centeno y aguacate"
+            ),
+            slots: [.breakfast],
+            proteinID: "oeuf", carbID: "pain-seigle",
+            fatID: "avocat", extraIDs: ["orange"],
+            minutes: 10,
+            steps: [
+                LocalizedText(
+                    fr: "Neuf minutes à l'eau frémissante donnent un jaune juste pris, pas gris.",
+                    en: "Nine minutes at a simmer gives a just-set yolk, not grey.",
+                    es: "Nueve minutos a fuego suave dan una yema cuajada, no gris."
+                ),
+                LocalizedText(
+                    fr: "Passe-les sous l'eau froide aussitôt : c'est ce qui rend l'écalage facile.",
+                    en: "Cool them under cold water at once: that is what makes peeling easy.",
+                    es: "Pásalos por agua fría enseguida: así se pelan fácil."
+                ),
+                LocalizedText(
+                    fr: "Avocat écrasé sur le pain, œufs en rondelles, poivre. Orange à côté.",
+                    en: "Mashed avocado on the bread, sliced eggs, pepper. Orange alongside.",
+                    es: "Aguacate aplastado sobre el pan, huevo en rodajas, pimienta. Naranja al lado."
                 ),
             ]
         ),

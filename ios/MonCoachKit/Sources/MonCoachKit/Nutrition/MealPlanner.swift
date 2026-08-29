@@ -1,6 +1,11 @@
 import Foundation
 
 /// Une ligne de liste de courses.
+///
+/// `grams` est ce que le plan prescrit : du produit prêt à consommer, parce
+/// que c'est ainsi qu'on calcule des macros. Ce n'est pas ce qu'on achète, et
+/// la différence n'est pas un détail — mille sept cents grammes de riz cuit
+/// tiennent dans un demi-paquet.
 public struct ShoppingLine: Sendable, Equatable, Identifiable {
     public var id: String { foodID }
     public var foodID: String
@@ -8,6 +13,61 @@ public struct ShoppingLine: Sendable, Equatable, Identifiable {
     public var role: FoodRole
 
     public var food: Food? { FoodCatalog.food(id: foodID) }
+
+    /// Le poids à mettre dans le panier : le cru pour ce qui gonfle en cuisant.
+    public var weightToBuy: Double {
+        ShoppingUnits.weightToBuy(grams, foodID: foodID)
+    }
+
+    public var purchase: ShoppingUnits.Purchase {
+        ShoppingUnits.purchase(for: foodID)
+    }
+
+    /// Ce qui se garde au placard et se rachète quand c'est fini.
+    ///
+    /// Ces lignes-là n'ont pas de quantité utile : « 10 g de graines de
+    /// tournesol » n'est pas une course, c'est un reste de calcul. Elles sont
+    /// nommées et rangées à part, sans chiffre.
+    public var isPantry: Bool {
+        if case .pantry = purchase { return true }
+        return false
+    }
+
+    /// Ce qu'il faut prendre dans le rayon, dit comme on le dirait.
+    public func quantity(_ language: Language) -> String {
+        switch purchase {
+        case .loose:
+            return weight(language)
+        case .pantry(let shape):
+            return shape.one[language]
+        case .pack(let shape), .piece(let shape):
+            guard shape.grams > 0 else { return shape.one[language] }
+            let count = max(1, Int((weightToBuy / shape.grams).rounded(.up)))
+            let noun = (count == 1 ? shape.one : shape.many)[language]
+            if case .piece = purchase { return "\(count) \(noun)" }
+            // Le format du conditionnement est rappelé : deux pots de 450 g et
+            // deux pots de 150 g ne remplissent pas le même caddie.
+            return "\(count) \(noun) de \(weight(language, grams: shape.grams))"
+        }
+    }
+
+    private func weight(_ language: Language, grams value: Double? = nil) -> String {
+        let raw = value ?? weightToBuy
+        // « 600 g de riz complet cuit » désigne désormais du riz sec, et le
+        // nom de l'aliment dit le contraire : il vient du catalogue, où il
+        // décrit ce qu'on mange. Le préciser sur la quantité lève le doute
+        // là où il se pose — devant le rayon, une balance à la main.
+        let dry = (value == nil && (ShoppingUnits.dryWeight[foodID] ?? 1) < 1)
+            ? " " + LocalizedText(fr: "secs", en: "dry", es: "en seco")[language]
+            : ""
+        if raw >= 1_000 {
+            return "\(Format.number(raw / 1_000, decimals: 1, language: language)) kg\(dry)"
+        }
+        // Aux cinquante grammes : une balance de magasin n'est pas une
+        // balance de cuisine, et « 347 g de carottes » ne s'achète pas.
+        let rounded = value == nil ? (raw / 50).rounded(.up) * 50 : raw
+        return "\(Int(rounded)) g\(dry)"
+    }
 }
 
 /// Construit des journées alimentaires qui atteignent les macros prescrites.
@@ -372,7 +432,9 @@ enum DishPreference {
         excluded: Set<String>,
         avoidingProteins avoided: Set<String> = [],
         seed: Int,
-        dishes preference: DishPreference = .varied
+        menuDay: Int = 0,
+        dishes preference: DishPreference = .varied,
+        preferring imposed: Recipe? = nil
     ) -> Meal {
         let proteinPool: [Food]
         let carbPool: [Food]
@@ -473,12 +535,43 @@ enum DishPreference {
             acceptable.append((dish, items, items.map(\.macros).total.fiberG))
         }
 
+        // Un plat imposé l'emporte s'il tient la cible : c'est le restant
+        // de la veille, servi à midi. Il est résolu contre la cible de ce
+        // repas-ci, donc l'assiette n'est pas la même — c'est bien le même
+        // plat, ce n'est pas la même portion.
+        if let imposed {
+            // Le restant se résout contre la cible de ce repas-ci : même
+            // plat, autre portion. Et il est accepté un peu plus largement
+            // que les autres — un déjeuner ne porte pas la même part de la
+            // journée qu'un dîner, et refuser le restant pour deux pour cent
+            // d'écart rendrait à la semaine les huit plats qu'on vient de
+            // lui retirer. L'équilibrage de fin de journée absorbe le reste.
+            if let match = acceptable.first(where: { $0.dish.id == imposed.id }) {
+                return Meal(slot: slot, items: match.items, note: note(for: slot), recipeID: match.dish.id)
+            }
+            let items = solve(
+                protein: FoodCatalog.food(id: imposed.proteinID),
+                carb: FoodCatalog.food(id: imposed.carbID),
+                fat: FoodCatalog.food(id: imposed.fatID),
+                fixed: imposed.extraIDs.compactMap { FoodCatalog.food(id: $0) },
+                vegetableGrams: vegetableGrams,
+                target: target
+            )
+            if kcalDrift(items, target: target) <= max(tolerance, 0.12) {
+                return Meal(slot: slot, items: items, note: note(for: slot), recipeID: imposed.id)
+            }
+        }
+
         let chosen: (dish: Recipe, items: [MealItem], fibre: Double)?
         switch preference {
         case .varied:
+            // L'index vient du jour de menu, pas de la graine. La graine vaut
+            // menuDay × 7 + slot × 3 : modulo un nombre de plats multiple de
+            // sept, elle rendait le même plat tous les jours, et la semaine
+            // servait trois dîners au lieu de quatre.
             chosen = acceptable.isEmpty
                 ? nil
-                : acceptable[((seed % acceptable.count) + acceptable.count) % acceptable.count]
+                : acceptable[((menuDay + seed) % acceptable.count + acceptable.count) % acceptable.count]
         case .richestInFibre:
             // À égalité de fibres, le premier du catalogue : le choix reste
             // reproductible, ce qu'un tri instable ne garantirait pas.
@@ -497,6 +590,78 @@ enum DishPreference {
         }
 
         return Meal(slot: slot, items: assembled, note: note(for: slot))
+    }
+
+    /// De quoi décaler les plats d'un créneau à l'autre.
+    ///
+    /// Sans lui, déjeuner et dîner d'une même journée de menu tomberaient sur
+    /// le même plat : ils partagent la liste des plats acceptables, et le
+    /// jour de menu est le même.
+    static func slotOffset(_ slot: MealSlot) -> Int {
+        switch slot {
+        case .breakfast: 0
+        case .lunch: 1
+        case .snack: 2
+        case .dinner: 2
+        case .preWorkout: 3
+        }
+    }
+
+    /// Les plats de la semaine pour un créneau, choisis une fois.
+    ///
+    /// Le menu est une fonction pure de la cible, du régime et des aliments
+    /// refusés : il ne dépend pas du jour. C'est ce qui permet à une journée
+    /// isolée — celle d'aujourd'hui, dans l'écran du jour — de connaître le
+    /// menu de sa semaine sans avoir à la construire.
+    ///
+    /// Les plats sont pris à intervalle régulier dans la liste plutôt qu'en
+    /// tête : deux recettes voisines au catalogue partagent souvent une
+    /// protéine, et quatre plats de suite feraient une semaine de poulet.
+    static func menu(
+        slot: MealSlot,
+        target: Macros,
+        diet: DietPreference,
+        excluded: Set<String>,
+        count: Int
+    ) -> [Recipe] {
+        let candidates = dishes(
+            slot: slot, target: target, diet: diet, excluded: excluded, avoiding: []
+        )
+        guard !candidates.isEmpty, count > 0 else { return [] }
+        let wanted = min(count, candidates.count)
+        var chosen: [Recipe] = [candidates[0]]
+        var basket = Set(candidates[0].foodIDs)
+
+        while chosen.count < wanted {
+            let remaining = candidates.filter { candidate in
+                !chosen.contains { $0.id == candidate.id }
+                    && !chosen.contains { $0.proteinID == candidate.proteinID }
+            }
+            guard !remaining.isEmpty else { break }
+
+            // Parmi les plats qui restent, celui qui réutilise le plus le
+            // panier déjà commencé — sans jamais reprendre une protéine déjà
+            // prise, sinon la semaine se réduirait à un seul plat décliné.
+            //
+            // C'est ce qui évite trois riz différents dans la même semaine :
+            // riz basmati, riz blanc et riz complet sont trois lignes de
+            // course, trois paquets, et aucun palais ne fait la différence
+            // dans un plat en sauce.
+            let best = remaining.max { left, right in
+                let leftShared = basket.intersection(left.foodIDs).count
+                let rightShared = basket.intersection(right.foodIDs).count
+                if leftShared != rightShared { return leftShared < rightShared }
+                // À égalité, l'ordre du catalogue tranche : le choix reste
+                // reproductible, ce qu'un tri instable ne garantirait pas.
+                let leftRank = candidates.firstIndex { $0.id == left.id } ?? 0
+                let rightRank = candidates.firstIndex { $0.id == right.id } ?? 0
+                return leftRank > rightRank
+            }
+            guard let best else { break }
+            chosen.append(best)
+            basket.formUnion(best.foodIDs)
+        }
+        return chosen
     }
 
     /// L'écart calorique d'un repas résolu à ce qu'on lui demandait.
@@ -588,6 +753,28 @@ enum DishPreference {
 
     // MARK: - Une journée
 
+    /// Combien de versions différentes d'un repas dans une semaine.
+    ///
+    /// Le petit-déjeuner et la collation en ont deux, pas quatre. C'est ainsi
+    /// qu'on mange — on ne réinvente pas son petit-déjeuner tous les matins —
+    /// et c'est ce qui fait disparaître de la liste de courses les quatre
+    /// fruits, quatre matières grasses et quatre poudres qu'aucun panier
+    /// n'aurait contenus ensemble.
+    static func variety(for slot: MealSlot, menuDay: Int) -> Int {
+        switch slot {
+        case .breakfast, .snack, .preWorkout: menuDay % 2
+        case .lunch, .dinner: menuDay
+        }
+    }
+
+    /// Le nombre de journées différentes dans une semaine.
+    ///
+    /// Quatre, et non sept. On ne cuisine pas sept plats différents par
+    /// semaine, et surtout on ne fait pas les courses pour sept : le panier
+    /// se remplit alors de portions qu'aucun magasin ne vend.
+    static let distinctDaysPerWeek = 4
+
+
     public static func day(
         target: NutritionTarget,
         diet: DietPreference = .omnivore,
@@ -610,24 +797,83 @@ enum DishPreference {
         let proteinMeals = max(1, layout.filter { $0.slot != .preWorkout }.count)
         let proteinPerMeal = dayTarget.proteinG / Double(proteinMeals)
 
+        // La semaine tient en quelques journées, répétées.
+        //
+        // Sans cela, chaque jour tirait ses aliments indépendamment, et la
+        // liste de courses de la semaine comptait cinquante-quatre lignes
+        // dont « 60 g de steak » et « 30 g de caséine ». Ce n'est pas une
+        // liste de courses, c'est une addition : personne n'achète soixante
+        // grammes de steak, et personne ne cuisine quinze protéines
+        // différentes en sept jours.
+        //
+        // Quatre journées distinctes suffisent à ne pas lasser — c'est aussi
+        // le seuil que vérifie le test de variété — et elles divisent par
+        // deux le nombre d'ingrédients tout en doublant les quantités, qui
+        // deviennent enfin celles d'un vrai panier.
+        let menuDay = ((dayIndex % distinctDaysPerWeek) + distinctDaysPerWeek) % distinctDaysPerWeek
+
+        func mealTarget(_ entry: (slot: MealSlot, share: Double)) -> Macros {
+            Macros(
+                kcal: dayTarget.kcal * entry.share,
+                proteinG: entry.slot == .preWorkout ? 0 : proteinPerMeal,
+                carbsG: dayTarget.carbsG * entry.share,
+                fatG: entry.slot == .preWorkout ? 0 : dayTarget.fatG * entry.share
+            )
+        }
+
+        // Le menu de la semaine : quelques dîners, et les déjeuners qui les
+        // remangent le lendemain. C'est ainsi qu'on mange — on cuisine une
+        // fois, on mange deux fois — et c'est ce qui rend la liste de courses
+        // achetable : huit plats par semaine demandent quarante ingrédients
+        // en portions que personne ne vend, quatre en demandent la moitié.
+        let dinnerSlot = layout.firstIndex { $0.slot == .dinner }
+        let dinners = dinnerSlot.map {
+            menu(
+                slot: .dinner, target: mealTarget(layout[$0]), diet: diet,
+                excluded: excluded, count: distinctDaysPerWeek
+            )
+        } ?? []
+        let breakfastSlot = layout.firstIndex { $0.slot == .breakfast }
+        let breakfasts = breakfastSlot.map {
+            // Deux, pas quatre : on ne réinvente pas son petit-déjeuner tous
+            // les matins, et c'est ce qui retirait de la liste quatre fruits,
+            // quatre matières grasses et quatre poudres.
+            menu(
+                slot: .breakfast, target: mealTarget(layout[$0]), diet: diet,
+                excluded: excluded, count: 2
+            )
+        } ?? []
+
+        func dish(for slot: MealSlot) -> Recipe? {
+            switch slot {
+            case .dinner:
+                return dinners.isEmpty ? nil : dinners[menuDay % dinners.count]
+            case .lunch:
+                // Le dîner de la veille, refroidi et remangé à midi.
+                guard !dinners.isEmpty else { return nil }
+                let yesterday = (menuDay + distinctDaysPerWeek - 1) % distinctDaysPerWeek
+                return dinners[yesterday % dinners.count]
+            case .breakfast:
+                return breakfasts.isEmpty ? nil : breakfasts[(menuDay % 2) % breakfasts.count]
+            case .snack, .preWorkout:
+                return nil
+            }
+        }
+
         func build(_ preference: DishPreference) -> [Meal] {
             var meals: [Meal] = []
             var usedProteins: Set<String> = []
             for (index, entry) in layout.enumerated() {
-                let mealTarget = Macros(
-                    kcal: dayTarget.kcal * entry.share,
-                    proteinG: entry.slot == .preWorkout ? 0 : proteinPerMeal,
-                    carbsG: dayTarget.carbsG * entry.share,
-                    fatG: entry.slot == .preWorkout ? 0 : dayTarget.fatG * entry.share
-                )
                 let built = meal(
                     slot: entry.slot,
-                    target: mealTarget,
+                    target: mealTarget(entry),
                     diet: diet,
                     excluded: excluded,
                     avoidingProteins: usedProteins,
-                    seed: dayIndex * 7 + index * 3,
-                    dishes: preference
+                    seed: variety(for: entry.slot, menuDay: menuDay) * 7 + index * 3,
+                    menuDay: variety(for: entry.slot, menuDay: menuDay),
+                    dishes: preference,
+                    preferring: preference == .varied ? dish(for: entry.slot) : nil
                 )
                 for item in built.items where item.food?.role == .protein {
                     usedProteins.insert(item.foodID)

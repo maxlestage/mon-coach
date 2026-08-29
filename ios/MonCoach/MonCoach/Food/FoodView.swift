@@ -337,9 +337,9 @@ struct ShoppingListView: View {
                         let done = list.filter { checked.contains($0.foodID) }.count
                         Card(
                             subtitle: LocalizedText(
-                                fr: "Pour sept jours, \(done) sur \(list.count) pris. Les quantités sont celles du produit prêt à consommer : compte environ un tiers pour les féculents secs.",
-                                en: "For seven days, \(done) of \(list.count) picked up. Quantities are for ready-to-eat product: count roughly a third for dry starches.",
-                                es: "Para siete días, \(done) de \(list.count) cogidos. Las cantidades son de producto listo para consumir: cuenta un tercio para los farináceos secos."
+                                fr: "Pour sept jours, \(done) sur \(list.count) pris. Les quantités sont celles du magasin : le riz et les pâtes sont donnés secs, le reste en conditionnements entiers.",
+                                en: "For seven days, \(done) of \(list.count) picked up. Quantities are shop quantities: rice and pasta are given dry, the rest in whole packs.",
+                                es: "Para siete días, \(done) de \(list.count) cogidos. Las cantidades son las de la tienda: el arroz y la pasta van en seco, el resto en envases enteros."
                             )[language]
                         ) {
                             if done > 0 {
@@ -364,7 +364,7 @@ struct ShoppingListView: View {
                         // qu'en une seule colonne de trente lignes : c'est
                         // ainsi qu'on fait ses courses, et la liste sert à
                         // faire ses courses.
-                        ForEach(aisles(of: list), id: \.role) { aisle in
+                        ForEach(aisles(of: list.filter { !$0.isPantry }), id: \.role) { aisle in
                             Card(title: aisle.role.label[language]) {
                                 VStack(spacing: 6) {
                                     ForEach(aisle.lines) { line in
@@ -383,9 +383,51 @@ struct ShoppingListView: View {
                                                     .foregroundStyle(Theme.primaryText)
                                                     .strikethrough(checked.contains(line.foodID))
                                                 Spacer()
-                                                Text(quantity(line))
+                                                Text(line.quantity(language))
                                                     .font(Theme.captionFont)
                                                     .foregroundStyle(Theme.secondaryText)
+                                            }
+                                            .contentShape(Rectangle())
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                }
+                            }
+                        }
+
+                        // Le placard à part, et sans chiffres. « 10 g de
+                        // graines de tournesol » n'est pas une course, c'est
+                        // un reste de calcul : ces produits se rachètent
+                        // quand le paquet est fini, pas au gramme.
+                        let pantry = list.filter(\.isPantry)
+                        if !pantry.isEmpty {
+                            Card(
+                                title: LocalizedText(
+                                    fr: "Placard", en: "Cupboard", es: "Despensa"
+                                )[language],
+                                subtitle: LocalizedText(
+                                    fr: "À racheter seulement si tu n'en as plus.",
+                                    en: "Only worth buying if you have run out.",
+                                    es: "Solo hay que comprarlo si se te ha acabado."
+                                )[language]
+                            ) {
+                                VStack(spacing: 6) {
+                                    ForEach(pantry) { line in
+                                        Button {
+                                            toggle(line.foodID)
+                                        } label: {
+                                            HStack(spacing: 10) {
+                                                Image(systemName: checked.contains(line.foodID)
+                                                    ? "checkmark.circle.fill"
+                                                    : "circle")
+                                                    .foregroundStyle(checked.contains(line.foodID)
+                                                        ? Theme.accent
+                                                        : Theme.secondaryText)
+                                                Text(line.quantity(language))
+                                                    .font(Theme.bodyFont)
+                                                    .foregroundStyle(Theme.primaryText)
+                                                    .strikethrough(checked.contains(line.foodID))
+                                                Spacer()
                                             }
                                             .contentShape(Rectangle())
                                         }
@@ -426,10 +468,4 @@ struct ShoppingListView: View {
         return order.map { ($0, grouped[$0] ?? []) }
     }
 
-    /// Au-delà du kilo, on compte en kilos : personne n'achète 2 450 g de riz.
-    private func quantity(_ line: ShoppingLine) -> String {
-        line.grams >= 1_000
-            ? "\(Format.number(line.grams / 1_000, decimals: 1, language: language)) kg"
-            : "\(Int(line.grams)) g"
-    }
 }
