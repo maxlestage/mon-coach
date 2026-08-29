@@ -41,9 +41,15 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Vérifier que tout est configuré
+        id: config
         # Un échec franc et nommé, jamais un vert de bonne conscience : un
         # travail qui « réussit » sans rien livrer a déjà coûté cher à ce
         # dépôt côté déploiement web. Chaque secret manquant est dit.
+        #
+        # Le certificat de distribution est facultatif, et c'est délibéré :
+        # sa clé privée se génère sur une machine, ce qui impose un Mac pour
+        # l'exporter. Sans lui, Xcode peut en créer un sur l'exécuteur via la
+        # clé d'API — voir l'étape d'archivage pour ce que ça coûte.
         env:
           TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
@@ -57,11 +63,31 @@ jobs:
           [ -z "$KEY_ID" ] && missing="$missing APPSTORE_KEY_ID"
           [ -z "$ISSUER_ID" ] && missing="$missing APPSTORE_ISSUER_ID"
           [ -z "$PRIVATE_KEY" ] && missing="$missing APPSTORE_PRIVATE_KEY"
-          [ -z "$CERTIFICATE" ] && missing="$missing APPLE_DISTRIBUTION_CERT_P12"
-          [ -z "$CERTIFICATE_PASSWORD" ] && missing="$missing APPLE_DISTRIBUTION_CERT_PASSWORD"
           if [ -n "$missing" ]; then
-            echo "::error::Secrets manquants :$missing — voir docs/TESTFLIGHT.md"
+            echo "::error::Secrets obligatoires manquants :$missing — voir docs/TESTFLIGHT.md"
             exit 1
+          fi
+
+          # Le couple certificat / mot de passe se pose ensemble ou pas du
+          # tout : n'en avoir qu'un est une configuration à moitié faite, et
+          # l'échec arriverait bien plus tard, à la signature.
+          if [ -n "$CERTIFICATE" ] && [ -z "$CERTIFICATE_PASSWORD" ]; then
+            echo "::error::APPLE_DISTRIBUTION_CERT_P12 est posé mais APPLE_DISTRIBUTION_CERT_PASSWORD manque."
+            exit 1
+          fi
+          if [ -z "$CERTIFICATE" ] && [ -n "$CERTIFICATE_PASSWORD" ]; then
+            echo "::error::APPLE_DISTRIBUTION_CERT_PASSWORD est posé mais APPLE_DISTRIBUTION_CERT_P12 manque."
+            exit 1
+          fi
+
+          if [ -n "$CERTIFICATE" ]; then
+            echo "has_cert=true" >> "$GITHUB_OUTPUT"
+            echo "Certificat fourni : il sera importé dans un trousseau dédié."
+          else
+            echo "has_cert=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Aucun certificat fourni. Xcode tentera d'en créer un via la clé d'API."
+            echo "La clé doit alors avoir le rôle Admin, et chaque exécution consomme un"
+            echo "emplacement de certificat de distribution — il y en a deux par compte."
           fi
           echo "Configuration complète."
 
@@ -96,6 +122,7 @@ jobs:
             || echo "FORMATTER=cat" >> "$GITHUB_ENV"
 
       - name: Installer le certificat de distribution
+        if: steps.config.outputs.has_cert == 'true'
         env:
           CERTIFICATE: ${{ secrets.APPLE_DISTRIBUTION_CERT_P12 }}
           CERTIFICATE_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_CERT_PASSWORD }}
@@ -148,6 +175,16 @@ jobs:
           # `-allowProvisioningUpdates` avec la clé d'API laisse Xcode créer
           # et télécharger les profils des trois cibles — application, montre
           # et widget — sans qu'aucun profil n'ait à être versionné ici.
+          #
+          # Quand aucun certificat n'a été fourni, c'est aussi ce drapeau qui
+          # en fait créer un : Xcode génère la clé privée sur l'exécuteur et
+          # demande le certificat à Apple. Ça marche, avec deux réserves à
+          # connaître — la clé d'API doit avoir le rôle Admin, et un compte
+          # n'a droit qu'à deux certificats de distribution, or l'exécuteur
+          # est détruit après chaque build, donc chaque exécution en consomme
+          # un. Au troisième build, il faudra révoquer les précédents dans
+          # developer.apple.com. C'est un dépannage pour partir sans Mac, pas
+          # un régime de croisière.
           xcodebuild archive \
             -project "$PROJECT" \
             -scheme "$SCHEME" \

@@ -63,29 +63,55 @@ Après validation, note :
 
 ---
 
-## 3. Le certificat de distribution — l'étape qui demande un Mac
+## 3. Le certificat de distribution
 
-Un certificat de distribution est une paire de clés dont la partie privée
-ne peut pas être générée par un site web. Il faut donc un Mac **une fois**,
-pour le créer et l'exporter. Ensuite, il vit dans les secrets GitHub et
-reste valable un an.
+Un certificat de distribution est une paire de clés. Sa partie privée se
+génère **sur une machine**, jamais par un site web : il n'existe donc nulle
+part avant que tu ne le crées, et son mot de passe n'est pas donné par Apple
+— c'est toi qui l'inventes au moment de l'export.
 
-Sur un Mac, dans Xcode → **Settings** → **Accounts** → ton compte →
-**Manage Certificates** → **+** → **Apple Distribution**. Puis, dans
-**Trousseau d'accès** → Mes certificats → clic droit sur le certificat →
-**Exporter** → format `.p12`, avec un mot de passe que tu retiens.
+Deux chemins, selon que tu as un Mac sous la main.
 
-> **Sans aucun Mac accessible ?** L'automatisation ne peut pas être mise en
-> route, et aucun service en ligne sérieux ne contourne cette étape. La
-> solution est d'emprunter un Mac une heure, ou de passer par un service de
-> Mac à distance (MacStadium, MacinCloud) le temps de l'export.
+### Chemin A — sans Mac (dépannage)
 
----
+**Ne pose simplement pas** `APPLE_DISTRIBUTION_CERT_P12` ni
+`APPLE_DISTRIBUTION_CERT_PASSWORD`. Xcode créera le certificat lui-même sur
+la machine de build, via ta clé d'API.
 
-## 4. Poser les six secrets dans GitHub
+Deux réserves, à connaître avant de compter dessus :
 
-Dépôt → **Settings** → **Secrets and variables** → **Actions** → **New
-repository secret**, six fois :
+- la clé d'API doit avoir le rôle **Admin**, pas seulement App Manager —
+  créer un certificat est une opération d'administration ;
+- un compte n'a droit qu'à **deux certificats de distribution**, et la
+  machine de build est détruite après chaque exécution : chaque build en
+  consomme donc un. Au troisième, il faudra révoquer les précédents dans
+  [Certificates](https://developer.apple.com/account/resources/certificates/list).
+
+C'est de quoi obtenir un premier build sans Mac. Ce n'est pas un régime de
+croisière.
+
+### Chemin B — avec un Mac (recommandé)
+
+Sur un Mac, **une seule fois**, et le certificat vaut ensuite un an :
+
+1. Xcode → **Settings** → **Accounts** → ton compte → **Manage
+   Certificates** → **+** → **Apple Distribution**.
+2. Ouvre **Trousseau d'accès** → catégorie **Mes certificats** → clic droit
+   sur *Apple Distribution* → **Exporter**.
+3. Format **`.p12`**, et **choisis un mot de passe** à ce moment-là : c'est
+   lui qui deviendra `APPLE_DISTRIBUTION_CERT_PASSWORD`. Il n'existe pas
+   avant, personne ne te le donne, et il n'est récupérable nulle part si tu
+   l'oublies — il faudra réexporter.
+
+Le fichier `.p12` obtenu devient `APPLE_DISTRIBUTION_CERT_P12`, encodé en
+base64.
+
+## 4. Poser les secrets dans GitHub
+
+Dépôt → **Settings** → **Secrets and variables** → onglet **Actions** →
+**New repository secret**. Attention à l'onglet : *Secrets*, pas *Variables*.
+
+**Les quatre obligatoires**, tous récupérables depuis un téléphone :
 
 | Nom | Contenu |
 | --- | --- |
@@ -93,6 +119,13 @@ repository secret**, six fois :
 | `APPSTORE_ISSUER_ID` | L'Issuer ID de l'étape 2 |
 | `APPSTORE_KEY_ID` | Le Key ID de l'étape 2 |
 | `APPSTORE_PRIVATE_KEY` | Le fichier `.p8`, **encodé en base64** |
+
+**Les deux facultatifs** — le chemin B ci-dessus. Posés ensemble ou pas du
+tout ; n'en poser qu'un fait échouer le build dès la première étape, ce qui
+vaut mieux que de le découvrir à la signature :
+
+| Nom | Contenu |
+| --- | --- |
 | `APPLE_DISTRIBUTION_CERT_P12` | Le fichier `.p12`, **encodé en base64** |
 | `APPLE_DISTRIBUTION_CERT_PASSWORD` | Le mot de passe choisi à l'export |
 
