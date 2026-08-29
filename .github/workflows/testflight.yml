@@ -163,6 +163,23 @@ jobs:
           chmod 600 "$DEST"
           echo "Clé d'API en place pour le Key ID fourni."
 
+      - name: Préparer les identifiants et la fiche chez Apple
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID || secrets.APPSTORE_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID || secrets.APPSTORE_ISSUER_ID }}
+          APP_NAME: ${{ vars.APP_STORE_NAME || 'Fitness Coach' }}
+        run: |
+          # Trois choses doivent exister chez Apple avant qu'un build parte,
+          # et aucune ne se crée pendant la compilation : les identifiants des
+          # trois cibles, la capacité HealthKit de la montre, et la fiche de
+          # l'application. Tout est créé ici, à l'identique si c'est déjà là.
+          #
+          # Cette étape tombe avant l'archivage, qui dure un quart d'heure.
+          # Sans elle, l'absence de fiche ne se voyait qu'à l'envoi, sur un
+          # « Error Downloading App Information » qui ne nomme rien.
+          export ASC_KEY_PATH="$RUNNER_TEMP/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+          python3 tools/appstore/provision.py
+
       - name: Poser un certificat de distribution
         # L'étape décisive, et celle qui a coûté le plus cher à comprendre.
         #
@@ -419,7 +436,23 @@ jobs:
             -authenticationKeyPath "$RUNNER_TEMP/private_keys/AuthKey_${KEY_ID}.p8" \
             -authenticationKeyID "$KEY_ID" \
             -authenticationKeyIssuerID "$ISSUER_ID" \
-            | $FORMATTER
+            2>&1 | tee "$GITHUB_WORKSPACE/build/xcodebuild-export.log" | $FORMATTER
+
+      - name: Récupérer le journal de distribution
+        if: failure()
+        run: |
+          # Xcode range le détail de l'échec d'envoi dans un dossier temporaire
+          # dont il imprime le chemin, puis l'exécuteur est détruit avec. Le
+          # journal visible, lui, se réduit à une phrase qui ne nomme rien.
+          LOG="$GITHUB_WORKSPACE/build/xcodebuild-export.log"
+          [ -f "$LOG" ] || exit 0
+          BUNDLE="$(sed -n 's/.*Created bundle at path "\([^"]*\)".*/\1/p' "$LOG" | head -1)"
+          [ -n "$BUNDLE" ] && [ -d "$BUNDLE" ] || exit 0
+          cp -R "$BUNDLE" "$GITHUB_WORKSPACE/build/distribution-logs" || true
+          echo "::group::Détail de l'échec d'envoi"
+          find "$GITHUB_WORKSPACE/build/distribution-logs" -type f -name "*.txt" \
+            -exec sh -c 'echo "--- $1"; tail -40 "$1"' _ {} \;
+          echo "::endgroup::"
 
       - name: Rendre la place du certificat
         if: always()
@@ -459,6 +492,7 @@ jobs:
           name: journaux-xcodebuild
           path: |
             ${{ github.workspace }}/build/**/*.log
+            ${{ github.workspace }}/build/distribution-logs
             ~/Library/Logs/gym
           if-no-files-found: ignore
           retention-days: 7

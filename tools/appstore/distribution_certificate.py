@@ -30,168 +30,22 @@ from __future__ import annotations
 
 import base64
 import datetime
-import json
 import os
 import subprocess
 import sys
-import time
-import urllib.error
-import urllib.request
 
-API = "https://api.appstoreconnect.apple.com/v1"
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from asc import AppleRefused, Client  # noqa: E402
+
 # Le type que veut TestFlight. « DISTRIBUTION » est le nom actuel de ce que
 # l'interface d'Apple appelle « Apple Distribution » — un seul certificat pour
 # iOS, watchOS et le reste, là où l'ancien IOS_DISTRIBUTION ne couvrait qu'iOS.
 CERTIFICATE_TYPE = "DISTRIBUTION"
 
 
-def b64url(raw: bytes) -> str:
-    """base64 sans remplissage, alphabet URL : l'encodage des jetons JWT."""
-    return base64.urlsafe_b64encode(raw).rstrip(b"=").decode("ascii")
-
-
-def der_to_raw_signature(der: bytes) -> bytes:
-    """Convertit une signature ECDSA DER en la paire (r, s) brute du JWT.
-
-    `openssl dgst -sign` rend du DER : une séquence de deux entiers de
-    longueur variable. ES256 veut exactement soixante-quatre octets, r et s
-    complétés à trente-deux chacun. Sans cette conversion, Apple répond 401 à
-    une signature pourtant valide — l'erreur la plus coûteuse de tout ce
-    fichier, parce qu'elle ressemble à une mauvaise clé.
-    """
-    if not der or der[0] != 0x30:
-        raise ValueError("signature DER attendue (séquence)")
-
-    index = 2
-    if der[1] & 0x80:  # longueur sur plusieurs octets
-        index = 2 + (der[1] & 0x7F)
-
-    def read_integer(pos: int) -> tuple[int, int]:
-        if der[pos] != 0x02:
-            raise ValueError("entier DER attendu")
-        length = der[pos + 1]
-        start = pos + 2
-        value = der[start : start + length]
-        # DER préfixe un zéro quand le bit de poids fort est à 1, pour que
-        # l'entier reste positif. Ce zéro n'appartient pas au nombre.
-        return int.from_bytes(value, "big"), start + length
-
-    r, next_pos = read_integer(index)
-    s, _ = read_integer(next_pos)
-    return r.to_bytes(32, "big") + s.to_bytes(32, "big")
-
-
-def jwt(key_path: str, key_id: str, issuer_id: str) -> str:
-    """Le jeton d'authentification App Store Connect, signé par la clé .p8."""
-    header = {"alg": "ES256", "kid": key_id, "typ": "JWT"}
-    now = int(time.time())
-    payload = {
-        "iss": issuer_id,
-        "iat": now,
-        # Apple refuse au-delà de vingt minutes. Dix suffisent largement et
-        # laissent la marge d'une horloge d'exécuteur mal réglée.
-        "exp": now + 600,
-        "aud": "appstoreconnect-v1",
-    }
-    signing_input = f"{b64url(json.dumps(header).encode())}.{b64url(json.dumps(payload).encode())}"
-
-    der = subprocess.run(
-        ["openssl", "dgst", "-sha256", "-sign", key_path, "-binary"],
-        input=signing_input.encode(),
-        capture_output=True,
-        check=True,
-    ).stdout
-
-    return f"{signing_input}.{b64url(der_to_raw_signature(der))}"
-
-
-def call(token: str, path: str, method: str = "GET", body: dict | None = None) -> dict:
-    request = urllib.request.Request(
-        f"{API}/{path}",
-        method=method,
-        data=json.dumps(body).encode() if body else None,
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-        },
-    )
-    try:
-        with urllib.request.urlopen(request, timeout=60) as response:
-            return json.loads(response.read() or b"{}")
-    except urllib.error.HTTPError as error:
-        detail = error.read().decode("utf-8", "replace")
-        raise AppleRefused(error.code, detail) from None
-
-
-class AppleRefused(Exception):
-    def __init__(self, status: int, body: str):
-        super().__init__(f"HTTP {status}")
-        self.status = status
-        self.body = body
-
-    def explain(self) -> str:
-        """Traduit le refus en ce qu'il faut faire, pas en ce qu'Apple a dit."""
-        try:
-            errors = json.loads(self.body).get("errors", [])
-            detail = "; ".join(
-                f"{e.get('title', '')} — {e.get('detail', '')}".strip(" —")
-                for e in errors
-            )
-        except (ValueError, AttributeError):
-            detail = self.body[:400]
-
-        if self.status == 401:
-            # Un 401 n'est pas un problème de droits : Apple n'a pas reconnu
-            # le jeton. Renvoyer la personne vers le rôle de la clé lui ferait
-            # refaire une clé qui ne changerait rien.
-            return (
-                f"Apple ne reconnaît pas la clé d'API ({self.status}). {detail}\n"
-                "\n"
-                "Ce n'est pas une question de droits : le jeton lui-même est "
-                "rejeté.\n"
-                "Vérifie que ASC_KEY_ID est bien le Key ID de la clé (dix "
-                "caractères),\n"
-                "que ASC_ISSUER_ID est l'Issuer ID du compte, et que "
-                "ASC_KEY_P8 contient\n"
-                "le fichier .p8 correspondant à ce Key ID. Une clé révoquée "
-                "donne aussi\n"
-                "cette réponse."
-            )
-        if self.status == 403:
-            return (
-                f"Apple refuse la demande ({self.status}). {detail}\n"
-                "\n"
-                "La cause la plus fréquente : la clé d'API n'a pas le rôle "
-                "Admin.\n"
-                "Créer un certificat de distribution est réservé à ce rôle ; "
-                "une clé\n"
-                "« App Manager » lit tout mais ne signe rien. Le rôle d'une "
-                "clé ne se\n"
-                "change pas après coup — il faut en créer une nouvelle dans "
-                "App Store\n"
-                "Connect → Users and Access → Integrations, avec le rôle "
-                "Admin, puis\n"
-                "reposer ASC_KEY_ID, ASC_ISSUER_ID et ASC_KEY_P8."
-            )
-        if self.status == 409:
-            return (
-                f"Apple refuse la demande ({self.status}). {detail}\n"
-                "\n"
-                "Un compte n'a droit qu'à deux certificats de distribution, et "
-                "les deux\n"
-                "sont pris. Chaque exécution en consomme un, puisque "
-                "l'exécuteur est\n"
-                "détruit ensuite avec la clé privée. Révoque les anciens dans "
-                "le portail\n"
-                "développeur (Certificates), ou fournis un .p12 par les "
-                "secrets pour ne\n"
-                "plus en créer du tout."
-            )
-        return f"Apple refuse la demande ({self.status}). {detail}"
-
-
-def distribution_certificates(token: str) -> list[dict]:
-    response = call(token, "certificates?limit=200")
+def distribution_certificates(client: Client) -> list[dict]:
+    response = client.call("certificates?limit=200")
     return [
         item
         for item in response.get("data", [])
@@ -217,11 +71,11 @@ def created_within_days(attributes: dict, days: int) -> bool:
     return 0 <= (datetime.date.today() - created).days <= days
 
 
-def revoke(token: str, identifier: str) -> None:
-    call(token, f"certificates/{identifier}", method="DELETE")
+def revoke(client: Client, identifier: str) -> None:
+    client.call(f"certificates/{identifier}", method="DELETE")
 
 
-def revoke_stale(key_path: str, key_id: str, issuer_id: str, days: int) -> int:
+def revoke_stale(client: Client, days: int) -> int:
     """Libère la place prise par les certificats de cette automatisation.
 
     Un compte n'a droit qu'à deux certificats de distribution. Chaque
@@ -235,10 +89,9 @@ def revoke_stale(key_path: str, key_id: str, issuer_id: str, days: int) -> int:
     et le révoquer casserait sa signature : celui-là n'est jamais touché, et
     le refus d'Apple est alors rapporté tel quel.
     """
-    token = jwt(key_path, key_id, issuer_id)
     stale = [
         item
-        for item in distribution_certificates(token)
+        for item in distribution_certificates(client)
         if created_within_days(item["attributes"], days)
     ]
     if not stale:
@@ -255,24 +108,78 @@ def revoke_stale(key_path: str, key_id: str, issuer_id: str, days: int) -> int:
             f"(série {attributes.get('serialNumber', '?')}, "
             f"expirait le {attributes.get('expirationDate', '?')[:10]})"
         )
-        revoke(token, item["id"])
+        revoke(client, item["id"])
     return len(stale)
+
+
+def find_app(client: Client, bundle_id: str) -> int:
+    """La fiche de l'application existe-t-elle dans App Store Connect ?
+
+    L'envoi vers TestFlight suppose une fiche déjà créée : Xcode va y chercher
+    les informations de l'application avant de téléverser. Quand elle manque,
+    il échoue sur « Error Downloading App Information » — une phrase qui ne
+    nomme ni l'application, ni l'identifiant, ni ce qu'il faut faire, et qui
+    tombe après le quart d'heure qu'a duré l'archivage.
+
+    Cette vérification coûte une requête et tombe avant tout le reste.
+    """
+    try:
+        response = client.call(f"apps?filter[bundleId]={bundle_id}&limit=10")
+    except AppleRefused as refusal:
+        print(f"::warning::Impossible de vérifier la fiche : {refusal.explain()}")
+        # Ne pas bloquer sur un doute : c'est une vérification de confort, et
+        # l'export dira la vérité de toute façon.
+        return 0
+
+    apps = response.get("data", [])
+    exact = [a for a in apps if a["attributes"].get("bundleId") == bundle_id]
+    if exact:
+        attributes = exact[0]["attributes"]
+        print(
+            f"Fiche trouvée : « {attributes.get('name', '?')} » "
+            f"({bundle_id})"
+        )
+        return 0
+
+    print(
+        f"::error::Aucune fiche d'application pour {bundle_id} dans App Store Connect."
+    )
+    print()
+    print("L'envoi vers TestFlight suppose une fiche déjà créée : Xcode y lit")
+    print("les informations de l'application avant de téléverser. Sans elle, il")
+    print("échoue sur « Error Downloading App Information », après l'archivage.")
+    print()
+    print("À faire une fois, depuis un téléphone :")
+    print("  App Store Connect → Apps → +  → New App")
+    print("    Plateformes : iOS")
+    print(f"    Bundle ID   : {bundle_id}")
+    print("    Nom         : unique sur tout l'App Store — un nom déjà pris est")
+    print("                  refusé, et c'est le cas de la plupart des noms")
+    print("                  génériques. Il pourra être changé plus tard.")
+    print("    SKU         : n'importe quel identifiant interne, par exemple")
+    print(f"                  {bundle_id}")
+    print()
+    print("Si le Bundle ID n'apparaît pas dans la liste, il faut d'abord le")
+    print("déclarer : developer.apple.com → Certificates, Identifiers &")
+    print("Profiles → Identifiers → +.")
+    return 1
 
 
 def main() -> int:
     key_path = os.environ["ASC_KEY_PATH"]
-    key_id = os.environ["ASC_KEY_ID"]
-    issuer_id = os.environ["ASC_ISSUER_ID"]
     out_dir = os.environ.get("OUT_DIR", ".")
+    client = Client.from_environment()
 
     # Deux modes annexes, appelés par le workflow autour du mode principal.
     if len(sys.argv) > 1 and sys.argv[1] == "--revoke":
-        revoke(jwt(key_path, key_id, issuer_id), sys.argv[2])
+        revoke(client, sys.argv[2])
         print(f"Certificat {sys.argv[2]} révoqué.")
         return 0
     if len(sys.argv) > 1 and sys.argv[1] == "--revoke-stale":
-        revoke_stale(key_path, key_id, issuer_id, days=3)
+        revoke_stale(client, days=3)
         return 0
+    if len(sys.argv) > 1 and sys.argv[1] == "--find-app":
+        return find_app(client, sys.argv[2])
 
     os.makedirs(out_dir, exist_ok=True)
     private_key = os.path.join(out_dir, "distribution.key")
@@ -293,15 +200,12 @@ def main() -> int:
     )
     os.chmod(private_key, 0o600)
 
-    token = jwt(key_path, key_id, issuer_id)
-
     with open(csr, "r", encoding="ascii") as handle:
         csr_content = handle.read()
 
     print("Demande d'un certificat de distribution à Apple…")
     try:
-        response = call(
-            token,
+        response = client.call(
             "certificates",
             method="POST",
             body={
@@ -319,7 +223,7 @@ def main() -> int:
         # Ce que le compte a déjà, quand on a le droit de le lire : sans cette
         # liste, « deux certificats sur deux » reste une affirmation.
         try:
-            existing = call(jwt(key_path, key_id, issuer_id), "certificates?limit=200")
+            existing = client.call("certificates?limit=200")
             rows = [
                 item["attributes"]
                 for item in existing.get("data", [])
