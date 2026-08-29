@@ -380,8 +380,8 @@
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "Kinetik";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Kinetik utilise le GPS pour mesurer tes sorties : distance, allure et dénivelé. La trace reste sur ton téléphone.";
+				INFOPLIST_KEY_CFBundleDisplayName = "Stride";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Stride utilise le GPS pour mesurer tes sorties : distance, allure et dénivelé. La trace reste sur ton téléphone.";
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Autoriser en permanence permet de continuer à enregistrer ta sortie quand l'écran est éteint ou que tu changes d'application. La trace reste sur ton téléphone.";
 				INFOPLIST_KEY_NSMotionUsageDescription = "Le podomètre complète le GPS quand le signal se dégrade, sous un tunnel ou entre les immeubles.";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
@@ -417,8 +417,8 @@
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "Kinetik";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Kinetik utilise le GPS pour mesurer tes sorties : distance, allure et dénivelé. La trace reste sur ton téléphone.";
+				INFOPLIST_KEY_CFBundleDisplayName = "Stride";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Stride utilise le GPS pour mesurer tes sorties : distance, allure et dénivelé. La trace reste sur ton téléphone.";
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Autoriser en permanence permet de continuer à enregistrer ta sortie quand l'écran est éteint ou que tu changes d'application. La trace reste sur ton téléphone.";
 				INFOPLIST_KEY_NSMotionUsageDescription = "Le podomètre complète le GPS quand le signal se dégrade, sous un tunnel ou entre les immeubles.";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
@@ -452,7 +452,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "Kinetik";
+				INFOPLIST_KEY_CFBundleDisplayName = "Stride";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "La montre utilise son GPS pour mesurer ta sortie sans emporter ton téléphone.";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "La montre lit ta fréquence cardiaque pendant la sortie pour afficher tes zones d'effort. Les battements restent dans le couple montre-téléphone.";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.maxlestage.fitnesscoach;
@@ -480,7 +480,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "Kinetik";
+				INFOPLIST_KEY_CFBundleDisplayName = "Stride";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "La montre utilise son GPS pour mesurer ta sortie sans emporter ton téléphone.";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "La montre lit ta fréquence cardiaque pendant la sortie pour afficher tes zones d'effort. Les battements restent dans le couple montre-téléphone.";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.maxlestage.fitnesscoach;
@@ -507,7 +507,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MonCoachWidgets/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Kinetik";
+				INFOPLIST_KEY_CFBundleDisplayName = "Stride";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -530,7 +530,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MonCoachWidgets/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Kinetik";
+				INFOPLIST_KEY_CFBundleDisplayName = "Stride";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

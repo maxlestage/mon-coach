@@ -23,9 +23,9 @@ enum WatchUI {
         es: "Esperando al teléfono"
     )
     static let waitingDetail = LocalizedText(
-        fr: "Ouvre Kinetik sur ton iPhone une première fois : la montre recevra la séance du jour et pourra ensuite fonctionner seule.",
-        en: "Open Kinetik on your iPhone once: the watch will receive today's session and can then work on its own.",
-        es: "Abre Kinetik en tu iPhone una vez: el reloj recibirá la sesión del día y luego podrá funcionar solo."
+        fr: "Ouvre Stride sur ton iPhone une première fois : la montre recevra la séance du jour et pourra ensuite fonctionner seule.",
+        en: "Open Stride on your iPhone once: the watch will receive today's session and can then work on its own.",
+        es: "Abre Stride en tu iPhone una vez: el reloj recibirá la sesión del día y luego podrá funcionar solo."
     )
     static let start = LocalizedText(fr: "Démarrer", en: "Start", es: "Empezar")
     static let rest = LocalizedText(fr: "Repos", en: "Rest day", es: "Descanso")

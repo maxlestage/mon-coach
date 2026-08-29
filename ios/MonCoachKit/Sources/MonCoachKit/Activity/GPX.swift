@@ -21,7 +21,7 @@ public enum GPX {
         var lines: [String] = []
         lines.append(#"<?xml version="1.0" encoding="UTF-8"?>"#)
         lines.append(
-            #"<gpx version="1.1" creator="Kinetik" xmlns="http://www.topografix.com/GPX/1/1" "#
+            #"<gpx version="1.1" creator="Stride" xmlns="http://www.topografix.com/GPX/1/1" "#
             + #"xmlns:gpxtpx="http://www.garmin.com/xmlschemas/TrackPointExtension/v1">"#
         )
         lines.append("  <metadata><time>\(DateCoding.string(from: activity.startedAt))</time></metadata>")
