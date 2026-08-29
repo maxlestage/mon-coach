@@ -35,6 +35,33 @@ CAPABILITIES = {
 }
 
 
+# Les noms de boutique, du plus voulu au plus sûr d'être libre.
+#
+# Un nom d'App Store doit être unique sur toute la boutique, et rien ne permet
+# de savoir à l'avance s'il l'est : il n'existe pas de requête « ce nom est-il
+# pris ». Essayer est le seul moyen — d'où cette liste plutôt qu'un pari.
+#
+# « Kinetik » d'abord, c'est le nom choisi. Les suivants ne servent que s'il est
+# déjà pris : ils gagnent en singularité ce qu'ils perdent en tranchant, ce qui
+# est exactement ce qu'on attend d'un repli.
+DEFAULT_APP_NAMES = [
+    "Kinetik",
+    "Kinetik Entraînement",
+    "Kinetik — Fonte & Foulée",
+    "Kinetik Lestage",
+]
+
+
+def app_names() -> list[str]:
+    """La liste des noms à tenter, la variable de dépôt ayant le dernier mot."""
+    chosen = os.environ.get("APP_NAME", "").strip()
+    if not chosen:
+        return DEFAULT_APP_NAMES
+    # Le nom choisi passe devant, sans perdre les replis : si Apple le refuse,
+    # mieux vaut une fiche nommée qu'une fiche restée à son identifiant.
+    return [chosen] + [n for n in DEFAULT_APP_NAMES if n != chosen]
+
+
 def bundle_identifiers(pbxproj: str) -> list[str]:
     """Les identifiants du projet, dans l'ordre où Apple veut les voir.
 
@@ -135,12 +162,17 @@ def ensure_capabilities(client: Client, identifier: str, bundle_key: str) -> Non
             print(f"::warning::Capacité {capability} refusée : {refusal.detail}")
 
 
-def rename_app(client: Client, app_id: str, name: str) -> bool:
+def rename_app(client: Client, app_id: str, candidates: list[str]) -> bool:
     """Donne son nom à la fiche, si elle en porte encore un provisoire.
 
     Le nom ne vit pas sur la fiche elle-même mais sur ses localisations, une
     par langue. C'est pour ça qu'Apple autorise UPDATE sur « apps » sans
     qu'on puisse pour autant y écrire un nom.
+
+    Un nom d'App Store doit être libre sur toute la boutique, et rien ne
+    permet de le savoir avant d'essayer : il n'existe pas de requête « ce nom
+    est-il pris ». D'où la liste, essayée dans l'ordre — le premier accepté
+    l'emporte, et les suivants ne servent que s'il ne l'est pas.
 
     Le renommage n'a lieu que si le nom actuel est l'identifiant de bundle —
     ce que laisse une fiche créée en tapant l'identifiant dans le champ Nom.
@@ -156,28 +188,38 @@ def rename_app(client: Client, app_id: str, name: str) -> bool:
             current = localization["attributes"].get("name") or ""
             if not current.startswith("com."):
                 continue
-            try:
-                client.call(
-                    f"appInfoLocalizations/{localization['id']}",
-                    method="PATCH",
-                    body={
-                        "data": {
-                            "id": localization["id"],
-                            "type": "appInfoLocalizations",
-                            "attributes": {"name": name},
-                        }
-                    },
-                )
-                print(f"  fiche renommée : « {current} » → « {name} »")
-                return True
-            except AppleRefused as refusal:
-                print(f"::warning::Renommage refusé : {refusal.detail}")
-                print("  Un nom d'App Store doit être libre sur toute la boutique.")
-                return False
+
+            refusals = []
+            for name in candidates:
+                try:
+                    client.call(
+                        f"appInfoLocalizations/{localization['id']}",
+                        method="PATCH",
+                        body={
+                            "data": {
+                                "id": localization["id"],
+                                "type": "appInfoLocalizations",
+                                "attributes": {"name": name},
+                            }
+                        },
+                    )
+                    print(f"  fiche renommée : « {current} » → « {name} »")
+                    return True
+                except AppleRefused as refusal:
+                    refusals.append((name, refusal.detail))
+                    print(f"  « {name} » refusé, on essaie le suivant.")
+
+            print("::warning::Aucun des noms proposés n'a été accepté.")
+            for name, detail in refusals:
+                print(f"  « {name} » : {detail}")
+            print("  Un nom d'App Store doit être libre sur toute la boutique.")
+            return False
     return False
 
 
-def ensure_app_record(client: Client, identifier: str, name: str, sku: str) -> int:
+def ensure_app_record(
+    client: Client, identifier: str, names: list[str], sku: str
+) -> int:
     """Tente la fiche d'application, et rapporte ce qu'Apple répond.
 
     Apple ne documente pas de création de fiche par l'API. Plutôt que de
@@ -189,7 +231,7 @@ def ensure_app_record(client: Client, identifier: str, name: str, sku: str) -> i
     exact = [a for a in apps if a["attributes"].get("bundleId") == identifier]
     if exact:
         print(f"  fiche déjà là : « {exact[0]['attributes'].get('name', '?')} »")
-        rename_app(client, exact[0]["id"], name)
+        rename_app(client, exact[0]["id"], names)
         return 0
 
     try:
@@ -201,14 +243,14 @@ def ensure_app_record(client: Client, identifier: str, name: str, sku: str) -> i
                     "type": "apps",
                     "attributes": {
                         "bundleId": identifier,
-                        "name": name,
+                        "name": names[0],
                         "primaryLocale": "fr-FR",
                         "sku": sku,
                     },
                 }
             },
         )
-        print(f"  fiche créée : « {created['data']['attributes'].get('name', name)} »")
+        print(f"  fiche créée : « {created['data']['attributes'].get('name', names[0])} »")
         return 0
     except AppleRefused as refusal:
         print(f"::error::Aucune fiche pour {identifier}, et l'API ne peut pas la créer.")
@@ -280,7 +322,7 @@ def main() -> int:
     return ensure_app_record(
         client,
         identifiers[0],
-        os.environ.get("APP_NAME", "Fitness Coach"),
+        app_names(),
         os.environ.get("APP_SKU", identifiers[0]),
     )
 
