@@ -24,22 +24,22 @@ Dans [App Store Connect](https://appstoreconnect.apple.com) → **Mes apps** →
 **+** → **Nouvelle app** :
 
 - **Plateformes** : iOS
-- **Nom** : Mon Coach
+- **Nom** : celui que tu veux — il doit être libre sur tout l'App Store
 - **Langue principale** : Français
-- **Identifiant de bundle** : `com.moncoach.MonCoach`
+- **Identifiant de bundle** : `com.maxlestage.fitnesscoach`
   S'il n'apparaît pas dans la liste, il faut d'abord le créer dans
   [Certificates, Identifiers & Profiles](https://developer.apple.com/account/resources/identifiers/list)
   → **Identifiers** → **+** → App IDs → App, avec les capacités
   **HealthKit**, **Live Activities** et **App Groups** si tu veux la montre.
-- **SKU** : `moncoach` (usage interne, invisible)
+- **SKU** : `com.maxlestage.fitnesscoach` (usage interne, invisible)
 
 Il faut trois identifiants au total, un par cible :
 
 | Cible | Identifiant |
 | --- | --- |
-| Application | `com.moncoach.MonCoach` |
-| Montre | `com.moncoach.MonCoach.watchkitapp` |
-| Widgets | `com.moncoach.MonCoach.MonCoachWidgets` |
+| Application | `com.maxlestage.fitnesscoach` |
+| Montre | `com.maxlestage.fitnesscoach.watchkitapp` |
+| Widgets | `com.maxlestage.fitnesscoach.widgets` |
 
 ---
 
@@ -137,9 +137,9 @@ Allowed operations are: GET_COLLECTION, GET_INSTANCE, UPDATE
 | Champ | Valeur |
 | --- | --- |
 | Plateformes | iOS |
-| Bundle ID | `com.moncoach.MonCoach` |
+| Bundle ID | `com.maxlestage.fitnesscoach` |
 | Nom | **unique sur tout l'App Store** |
-| SKU | `com.moncoach.MonCoach` |
+| SKU | `com.maxlestage.fitnesscoach` |
 
 Le nom est le vrai piège : il doit être libre sur l'App Store entier, ce que
 la plupart des noms génériques ne sont pas. Il se change plus tard, et il
@@ -151,10 +151,10 @@ capacité HealthKit de la montre sont créés par le workflow, à l'identique
 s'ils existent déjà :
 
 ```
-  identifiant créé : com.moncoach.MonCoach
-  identifiant créé : com.moncoach.MonCoach.watchkitapp
+  identifiant créé : com.maxlestage.fitnesscoach
+  identifiant créé : com.maxlestage.fitnesscoach.watchkitapp
     capacité ajoutée : HEALTHKIT
-  identifiant créé : com.moncoach.MonCoach.MonCoachWidgets
+  identifiant créé : com.maxlestage.fitnesscoach.widgets
 ```
 
 ---
@@ -232,7 +232,7 @@ lequel.
 ou son mot de passe ne correspond pas. Refaire l'encodage base64 sans
 espace ni retour à la ligne parasite.
 
-**« No profiles for 'com.moncoach.…' were found »** — un des trois
+**« No profiles for 'com.maxlestage.fitnesscoach…' were found »** — un des trois
 identifiants de bundle n'existe pas encore côté Apple. Les créer tous les
 trois (étape 1).
 
