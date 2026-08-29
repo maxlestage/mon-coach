@@ -196,7 +196,28 @@ jobs:
             # habituellement un Mac, et c'est ce qu'on remplace.
             export ASC_KEY_PATH="$RUNNER_TEMP/private_keys/AuthKey_${ASC_KEY_ID}.p8"
             export OUT_DIR="$WORK"
+
+            set +e
             python3 tools/appstore/distribution_certificate.py
+            created=$?
+            set -e
+
+            # Le code 9 veut dire « plus de place » : le compte a ses deux
+            # certificats de distribution, et ce sont les nôtres — la clé
+            # privée de chacun est morte avec l'exécuteur qui l'a créée.
+            # Personne ne peut plus s'en servir, pas même nous. On libère,
+            # puis on redemande une fois.
+            if [ "$created" -eq 9 ]; then
+              echo "::notice::Plus de place : libération des certificats laissés par cette automatisation."
+              python3 tools/appstore/distribution_certificate.py --revoke-stale
+              python3 tools/appstore/distribution_certificate.py
+            elif [ "$created" -ne 0 ]; then
+              exit "$created"
+            fi
+
+            # De quoi rendre la place en fin d'exécution, quoi qu'il arrive
+            # ensuite.
+            cp "$WORK/certificate-id.txt" "$RUNNER_TEMP/certificate-id.txt"
 
             P12_PASSWORD="$(uuidgen)"
             openssl pkcs12 -export \
@@ -399,6 +420,23 @@ jobs:
             -authenticationKeyID "$KEY_ID" \
             -authenticationKeyIssuerID "$ISSUER_ID" \
             | $FORMATTER
+
+      - name: Rendre la place du certificat
+        if: always()
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID || secrets.APPSTORE_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID || secrets.APPSTORE_ISSUER_ID }}
+        run: |
+          # Le certificat créé pour cette exécution est révoqué, qu'elle ait
+          # réussi ou non. Sa clé privée disparaît avec l'exécuteur : le
+          # garder ne servirait à personne, et un compte n'a droit qu'à deux
+          # certificats de distribution. Sans ce ménage, deux builds suffisent
+          # à saturer le compte — c'est exactement ce qui est arrivé.
+          [ -f "$RUNNER_TEMP/certificate-id.txt" ] || exit 0
+          export ASC_KEY_PATH="$RUNNER_TEMP/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+          python3 tools/appstore/distribution_certificate.py \
+            --revoke "$(cat "$RUNNER_TEMP/certificate-id.txt")" || \
+            echo "::warning::Révocation impossible ; à faire à la main si le compte sature."
 
       - name: Récapitulatif
         if: always()
