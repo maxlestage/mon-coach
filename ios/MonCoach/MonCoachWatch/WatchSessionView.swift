@@ -116,14 +116,32 @@ struct WatchSessionView: View {
                             isHapticFeedbackEnabled: true
                         )
 
-                    Picker(
-                        LocalizedText(fr: "Réglage", en: "Adjusting", es: "Ajuste")[language],
-                        selection: $adjusting
-                    ) {
-                        ForEach(Adjusting.allCases, id: \.self) { Text($0.label[language]).tag($0) }
+                    // Trois boutons plutôt qu'un Picker, et ce n'est pas un
+                    // pis-aller : watchOS n'a pas de style segmenté, et les
+                    // deux styles qu'il offre échouent tous les deux ici. La
+                    // roue se pilote à la couronne, déjà prise juste au-dessus
+                    // par la valeur qu'on règle. Le lien de navigation pousse
+                    // un écran entier pour changer de champ, entre deux séries,
+                    // essoufflé. Une rangée de boutons garde le geste à un seul
+                    // appui, sans quitter la série.
+                    HStack(spacing: 4) {
+                        ForEach(Adjusting.allCases, id: \.self) { choice in
+                            Button {
+                                adjusting = choice
+                            } label: {
+                                Text(choice.label[language])
+                                    .font(.caption2)
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.bordered)
+                            .tint(adjusting == choice ? .green : .gray)
+                        }
                     }
-                    .pickerStyle(.segmented)
                     .frame(height: 32)
+                    .accessibilityElement(children: .contain)
+                    .accessibilityLabel(
+                        LocalizedText(fr: "Réglage", en: "Adjusting", es: "Ajuste")[language]
+                    )
 
                     Button {
                         showsSubstitution = true
