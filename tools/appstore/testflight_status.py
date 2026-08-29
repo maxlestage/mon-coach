@@ -19,10 +19,10 @@ différentes, séparées par trois étapes qu'aucun journal de build ne montre :
 Ce script lit les trois d'un coup et le dit en clair.
 
 Il ne modifie rien, sauf si on le lui demande explicitement : `ATTRIBUTE`
-rattache le dernier build traité aux groupes de testeurs **internes**, ce
-qu'Apple ne fait pas tout seul et sans quoi le troisième cas ne se résout
-jamais. Lire un état et changer une distribution sont deux gestes différents,
-et le second se décide au lancement plutôt qu'à chaque coup d'œil.
+ouvre les groupes de testeurs **internes** à tous les builds, ce qu'Apple ne
+fait pas tout seul et sans quoi le troisième cas ne se résout jamais. Lire un
+état et changer une distribution sont deux gestes différents, et le second se
+décide au lancement plutôt qu'à chaque coup d'œil.
 """
 
 from __future__ import annotations
@@ -76,44 +76,55 @@ def build_groups(client: Client, build_id: str) -> list[str]:
 
 
 def attribute(client: Client, rows: list[dict], existing: list[dict]) -> None:
-    """Attribue le dernier build traité aux groupes internes qui ne l'ont pas.
+    """Ouvre les groupes internes à tous les builds, présents et à venir.
 
-    C'est le maillon qui manquait : Apple ne rattache pas un nouveau build au
-    groupe de testeurs tout seul. Tant que personne ne le fait, un build
-    parfaitement traité reste invisible sur le téléphone, et rien ne le dit.
+    Le premier essai fut d'attribuer le build au groupe, un par un. Apple
+    refuse, et le dit clairement :
 
-    Seuls les groupes **internes** sont servis. Un groupe externe déclenche une
-    revue d'Apple et expose le build à des gens qui ne l'attendent pas : ce
-    n'est pas une décision à prendre au passage d'un script.
+        Builds cannot be assigned to this internal group.
+        Cannot add internal group to a build.
+
+    Un groupe interne ne se garnit pas build par build : il porte un
+    interrupteur, `hasAccessToAllBuilds`, qui lui donne tout ce qui arrive —
+    « Distribuer automatiquement les builds » dans l'interface. C'est le seul
+    mécanisme qu'Apple offre, et il vaut mieux que l'autre : une fois posé,
+    aucun build suivant ne demande de geste.
+
+    Les groupes externes ne sont pas touchés. Les ouvrir déclencherait une
+    revue d'Apple et enverrait le build à des gens qui ne l'attendent pas.
     """
-    valid = [r for r in rows if r["attributes"].get("processingState") == "VALID"]
-    if not valid:
-        print("\nAucun build traité à attribuer.")
-        return
-
-    build = valid[0]
-    number = build["attributes"].get("version", "?")
     internal = [g for g in existing if g["attributes"].get("isInternalGroup")]
     if not internal:
-        print(f"\nBuild {number} : aucun groupe interne où l'attribuer.")
+        print("\nAucun groupe interne à ouvrir.")
         return
 
-    print(f"\nAttribution du build {number} :")
-    already = build_groups(client, build["id"])
+    valid = [r for r in rows if r["attributes"].get("processingState") == "VALID"]
+    latest = valid[0]["attributes"].get("version", "?") if valid else "?"
+
+    print("\nOuverture des groupes internes à tous les builds :")
     for group in internal:
-        name = group["attributes"].get("name", "?")
-        if name in already:
-            print(f"  « {name} » l'a déjà.")
+        attributes = group["attributes"]
+        name = attributes.get("name", "?")
+        if attributes.get("hasAccessToAllBuilds"):
+            print(f"  « {name} » les reçoit déjà tous.")
             continue
         try:
             client.call(
-                f"betaGroups/{group['id']}/relationships/builds",
-                method="POST",
-                body={"data": [{"type": "builds", "id": build["id"]}]},
+                f"betaGroups/{group['id']}",
+                method="PATCH",
+                body={
+                    "data": {
+                        "id": group["id"],
+                        "type": "betaGroups",
+                        "attributes": {"hasAccessToAllBuilds": True},
+                    }
+                },
             )
-            print(f"  attribué à « {name} ».")
+            print(f"  « {name} » reçoit désormais tous les builds, dont le {latest}.")
         except AppleRefused as refusal:
-            print(f"::warning::« {name} » a refusé le build : {refusal.detail}")
+            print(f"::warning::« {name} » : {refusal.detail}")
+            print("  À faire à la main : App Store Connect → TestFlight → ce")
+            print("  groupe → « Distribuer automatiquement les builds ».")
 
 
 def main() -> int:
@@ -161,7 +172,8 @@ def main() -> int:
         print("  téléphone.")
         print()
         print("  App Store Connect → l'app → TestFlight → Testeurs internes")
-        print("  → + → s'ajouter, puis attribuer le build au groupe.")
+        print("  → + → s'ajouter, puis cocher « Distribuer automatiquement les")
+        print("  builds » sur le groupe.")
     else:
         for group in existing:
             attributes = group["attributes"]
