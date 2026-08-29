@@ -227,7 +227,7 @@ struct TodayView: View {
                 StatTile(value: "\(target.fatG) g", label: "lipides")
             }
             if let first = target.rationale.first {
-                Text(first)
+                Text(first[language])
                     .font(Theme.captionFont)
                     .foregroundStyle(Theme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)

@@ -13,7 +13,7 @@ struct ActivityDetailView: View {
 
     private var unit: UnitSystem { store.profile?.unit ?? .metric }
     private var maximumBpm: Double {
-        HeartRateAnalysis.estimatedMaximum(age: store.profile?.age ?? 30)
+        HeartRateAnalysis.estimatedMaximum(age: store.profile?.age() ?? 30)
     }
 
     var body: some View {

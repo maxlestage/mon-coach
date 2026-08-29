@@ -63,7 +63,7 @@ public enum GPX {
         return lines.joined(separator: "\n")
     }
 
-    static func trackName(for activity: ActivityLog) -> String {
+    public static func trackName(for activity: ActivityLog) -> String {
         activity.note?.isEmpty == false
             ? activity.note!
             : "\(activity.sport.rawValue)-\(Int(activity.startedAt.timeIntervalSince1970))"
