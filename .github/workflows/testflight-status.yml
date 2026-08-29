@@ -1,0 +1,57 @@
+name: État TestFlight
+
+# Répond à « le build est envoyé, et je ne vois rien ».
+#
+# Entre l'envoi et l'installation, trois choses peuvent retenir un build, et
+# aucune ne se voit depuis le journal du build : le traitement chez Apple, son
+# échec (qui part par courriel), et l'attribution à un groupe de testeurs sans
+# laquelle rien n'apparaît sur le téléphone. Les trois se lisent par l'API.
+#
+# Rien n'est modifié ici : c'est une lecture, et elle tourne sur Linux en une
+# poignée de secondes plutôt que sur un exécuteur macOS.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  status:
+    name: Où en est le dernier build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Interroger App Store Connect
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID || secrets.APPSTORE_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID || secrets.APPSTORE_ISSUER_ID }}
+          PRIVATE_KEY: ${{ secrets.ASC_KEY_P8 || secrets.APPSTORE_PRIVATE_KEY }}
+        run: |
+          # La clé est écrite hors du dépôt, dans un dossier qui meurt avec la
+          # machine. Elle est acceptée en clair comme en base64 : le workflow
+          # s'adapte au secret posé plutôt que l'inverse.
+          mkdir -p "$RUNNER_TEMP/private_keys"
+          export ASC_KEY_PATH="$RUNNER_TEMP/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+          case "$PRIVATE_KEY" in
+            *"BEGIN PRIVATE KEY"*) printf '%s\n' "$PRIVATE_KEY" > "$ASC_KEY_PATH" ;;
+            *) printf '%s' "$PRIVATE_KEY" | base64 --decode > "$ASC_KEY_PATH" ;;
+          esac
+          chmod 600 "$ASC_KEY_PATH"
+
+          python3 tools/appstore/testflight_status.py | tee "$RUNNER_TEMP/etat.txt"
+
+      - name: Récapitulatif
+        if: always()
+        run: |
+          {
+            echo "## État TestFlight"
+            echo
+            echo '```'
+            cat "$RUNNER_TEMP/etat.txt" 2>/dev/null || echo "Lecture impossible."
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
