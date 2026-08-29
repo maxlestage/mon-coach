@@ -385,6 +385,7 @@
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Autoriser en permanence permet de continuer à enregistrer ta sortie quand l'écran est éteint ou que tu changes d'application. La trace reste sur ton téléphone.";
 				INFOPLIST_KEY_NSMotionUsageDescription = "Le podomètre complète le GPS quand le signal se dégrade, sous un tunnel ou entre les immeubles.";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIBackgroundModes = location;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -421,6 +422,7 @@
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Autoriser en permanence permet de continuer à enregistrer ta sortie quand l'écran est éteint ou que tu changes d'application. La trace reste sur ton téléphone.";
 				INFOPLIST_KEY_NSMotionUsageDescription = "Le podomètre complète le GPS quand le signal se dégrade, sous un tunnel ou entre les immeubles.";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIBackgroundModes = location;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

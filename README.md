@@ -164,6 +164,13 @@ second l'argument qu'il reçoit. La CI régénère ces deux fichiers et échoue 
 diffèrent des versions commitées. Une divergence d'une seule calorie entre
 l'application et le site casse le build.
 
+## L'application sur iPhone
+
+Le build TestFlight se lance depuis l'onglet Actions du dépôt (workflow
+**TestFlight**), une fois les six secrets Apple posés. La marche à suivre
+tient dans `docs/TESTFLIGHT.md`, et se fait depuis un téléphone — à
+l'exception du certificat de distribution, qui demande un Mac une fois.
+
 ## Mise en ligne
 
 Le site part sur Heroku, en image Docker, poussée par GitHub Actions à chaque
