@@ -167,7 +167,10 @@ jobs:
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID || secrets.APPSTORE_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID || secrets.APPSTORE_ISSUER_ID }}
-          APP_NAME: ${{ vars.APP_STORE_NAME || 'Fitness Coach' }}
+          # Vide par défaut : c'est le script qui porte la liste des noms à
+          # tenter, replis compris. Une valeur ici passe devant sans supprimer
+          # les replis — mieux vaut une fiche nommée autrement que pas nommée.
+          APP_NAME: ${{ vars.APP_STORE_NAME }}
         run: |
           # Trois choses doivent exister chez Apple avant qu'un build parte,
           # et aucune ne se crée pendant la compilation : les identifiants des
