@@ -48,8 +48,8 @@ jobs:
         #
         # Le certificat de distribution est facultatif, et c'est délibéré :
         # sa clé privée se génère sur une machine, ce qui impose un Mac pour
-        # l'exporter. Sans lui, Xcode peut en créer un sur l'exécuteur via la
-        # clé d'API — voir l'étape d'archivage pour ce que ça coûte.
+        # l'exporter. Sans lui, le workflow en fabrique un sur l'exécuteur via
+        # la clé d'API — voir l'étape qui le pose pour ce que ça coûte.
         env:
           TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           # Deux jeux de noms sont acceptés pour la clé d'API : ASC_* d'abord,
@@ -97,7 +97,7 @@ jobs:
             echo "Certificat fourni : il sera importé dans un trousseau dédié."
           else
             echo "has_cert=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Aucun certificat fourni. Xcode tentera d'en créer un via la clé d'API."
+            echo "::notice::Aucun certificat fourni : il sera créé via la clé d'API."
             echo "La clé doit alors avoir le rôle Admin, et chaque exécution consomme un"
             echo "emplacement de certificat de distribution — il y en a deux par compte."
           fi
@@ -133,32 +133,6 @@ jobs:
           command -v xcbeautify > /dev/null && echo "FORMATTER=xcbeautify --renderer github-actions" >> "$GITHUB_ENV" \
             || echo "FORMATTER=cat" >> "$GITHUB_ENV"
 
-      - name: Installer le certificat de distribution
-        if: steps.config.outputs.has_cert == 'true'
-        env:
-          CERTIFICATE: ${{ secrets.APPLE_DISTRIBUTION_CERT_P12 }}
-          CERTIFICATE_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_CERT_PASSWORD }}
-        run: |
-          # Un trousseau temporaire, propre à cette exécution : l'exécuteur
-          # est détruit après, mais un trousseau dédié évite de dépendre de
-          # l'état du trousseau par défaut de l'image.
-          KEYCHAIN="$RUNNER_TEMP/build.keychain"
-          KEYCHAIN_PASSWORD="$(uuidgen)"
-          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
-          security set-keychain-settings -lut 3600 "$KEYCHAIN"
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
-
-          echo "$CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/cert.p12"
-          security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN" \
-            -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
-          rm -f "$RUNNER_TEMP/cert.p12"
-
-          # Sans cette ligne, codesign ouvre une boîte de dialogue que
-          # personne ne verra jamais et le build reste bloqué jusqu'au
-          # délai d'attente.
-          security set-key-partition-list -S apple-tool:,apple:,codesign: \
-            -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" > /dev/null
-          security list-keychains -d user -s "$KEYCHAIN" login.keychain-db
 
       - name: Poser la clé d'API App Store Connect
         env:
@@ -188,6 +162,86 @@ jobs:
           fi
           chmod 600 "$DEST"
           echo "Clé d'API en place pour le Key ID fourni."
+
+      - name: Poser un certificat de distribution
+        # L'étape décisive, et celle qui a coûté le plus cher à comprendre.
+        #
+        # Une archive destinée à TestFlight doit être signée par un certificat
+        # *Apple Distribution*. Laissé seul avec `-allowProvisioningUpdates`,
+        # Xcode en demande un à Apple — et quand Apple refuse, il retombe sans
+        # un mot sur un certificat de *développement*. L'archive part alors
+        # signée pour le débogage, et le build meurt bien plus loin sur un
+        # profil introuvable, sans qu'une seule ligne parle de certificat.
+        #
+        # Cette décision silencieuse est donc retirée à Xcode : le certificat
+        # est ici, avant l'archivage, ou le build s'arrête en le disant.
+        env:
+          CERTIFICATE: ${{ secrets.APPLE_DISTRIBUTION_CERT_P12 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_CERT_PASSWORD }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID || secrets.APPSTORE_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID || secrets.APPSTORE_ISSUER_ID }}
+          HAS_CERT: ${{ steps.config.outputs.has_cert }}
+        run: |
+          set -o pipefail
+          WORK="$RUNNER_TEMP/signing"
+          mkdir -p "$WORK"
+          P12="$WORK/distribution.p12"
+
+          if [ "$HAS_CERT" = "true" ]; then
+            echo "$CERTIFICATE" | base64 --decode > "$P12"
+            P12_PASSWORD="$CERTIFICATE_PASSWORD"
+          else
+            # Le certificat naît ici : sa clé privée est générée sur cet
+            # exécuteur, et Apple ne signe que ça. C'est ce qui impose
+            # habituellement un Mac, et c'est ce qu'on remplace.
+            export ASC_KEY_PATH="$RUNNER_TEMP/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+            export OUT_DIR="$WORK"
+            python3 tools/appstore/distribution_certificate.py
+
+            P12_PASSWORD="$(uuidgen)"
+            openssl pkcs12 -export \
+              -inkey "$WORK/distribution.key" \
+              -in "$WORK/distribution.pem" \
+              -out "$P12" \
+              -passout "pass:$P12_PASSWORD"
+          fi
+          # Le mot de passe est aléatoire dans un cas, secret dans l'autre :
+          # masqué dans les deux, pour qu'aucune trace n'en subsiste si une
+          # commande venait à l'écho.
+          echo "::add-mask::$P12_PASSWORD"
+
+          # Un trousseau temporaire, propre à cette exécution : l'exécuteur
+          # est détruit après, mais un trousseau dédié évite de dépendre de
+          # l'état du trousseau par défaut de l'image.
+          KEYCHAIN="$RUNNER_TEMP/build.keychain"
+          KEYCHAIN_PASSWORD="$(uuidgen)"
+          echo "::add-mask::$KEYCHAIN_PASSWORD"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 3600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+
+          security import "$P12" -k "$KEYCHAIN" \
+            -P "$P12_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+          rm -f "$P12" "$WORK/distribution.key"
+
+          # Sans cette ligne, codesign ouvre une boîte de dialogue que
+          # personne ne verra jamais et le build reste bloqué jusqu'au
+          # délai d'attente.
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" > /dev/null
+          security list-keychains -d user -s "$KEYCHAIN" login.keychain-db
+
+          # La vérification qui manquait. Sans elle, l'absence d'identité de
+          # distribution ne se voyait qu'à l'échec de l'archivage, sous une
+          # forme qui n'en parlait pas.
+          echo "Identités de signature disponibles :"
+          security find-identity -v -p codesigning "$KEYCHAIN"
+          if ! security find-identity -v -p codesigning "$KEYCHAIN" \
+              | grep -q "Apple Distribution"; then
+            echo "::error::Aucune identité « Apple Distribution » dans le trousseau."
+            echo "Une archive signée en développement est refusée par TestFlight."
+            exit 1
+          fi
 
       - name: Archiver
         env:

@@ -75,8 +75,16 @@ Deux chemins, selon que tu as un Mac sous la main.
 ### Chemin A — sans Mac (dépannage)
 
 **Ne pose simplement pas** `APPLE_DISTRIBUTION_CERT_P12` ni
-`APPLE_DISTRIBUTION_CERT_PASSWORD`. Xcode créera le certificat lui-même sur
-la machine de build, via ta clé d'API.
+`APPLE_DISTRIBUTION_CERT_PASSWORD`. Le workflow fabrique le certificat sur la
+machine de build : il y génère une clé privée, en fait signer la demande par
+Apple via la clé d'API, et importe le résultat dans un trousseau détruit avec
+la machine.
+
+Ce travail n'est pas laissé à Xcode, et c'est délibéré. Livré à lui-même,
+Xcode demande le certificat, et quand Apple refuse il retombe **sans un mot**
+sur un certificat de *développement* : l'archive part signée pour le débogage
+et le build meurt bien plus loin, sur un profil introuvable, sans qu'une
+seule ligne parle de certificat.
 
 Deux réserves, à connaître avant de compter dessus :
 
