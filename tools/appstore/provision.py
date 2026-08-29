@@ -135,6 +135,48 @@ def ensure_capabilities(client: Client, identifier: str, bundle_key: str) -> Non
             print(f"::warning::Capacité {capability} refusée : {refusal.detail}")
 
 
+def rename_app(client: Client, app_id: str, name: str) -> bool:
+    """Donne son nom à la fiche, si elle en porte encore un provisoire.
+
+    Le nom ne vit pas sur la fiche elle-même mais sur ses localisations, une
+    par langue. C'est pour ça qu'Apple autorise UPDATE sur « apps » sans
+    qu'on puisse pour autant y écrire un nom.
+
+    Le renommage n'a lieu que si le nom actuel est l'identifiant de bundle —
+    ce que laisse une fiche créée en tapant l'identifiant dans le champ Nom.
+    Un nom choisi n'est jamais écrasé : ce serait défaire, à chaque build, une
+    décision prise à la main.
+    """
+    infos = client.call(f"apps/{app_id}/appInfos").get("data", [])
+    for info in infos:
+        localizations = client.call(
+            f"appInfos/{info['id']}/appInfoLocalizations"
+        ).get("data", [])
+        for localization in localizations:
+            current = localization["attributes"].get("name") or ""
+            if not current.startswith("com."):
+                continue
+            try:
+                client.call(
+                    f"appInfoLocalizations/{localization['id']}",
+                    method="PATCH",
+                    body={
+                        "data": {
+                            "id": localization["id"],
+                            "type": "appInfoLocalizations",
+                            "attributes": {"name": name},
+                        }
+                    },
+                )
+                print(f"  fiche renommée : « {current} » → « {name} »")
+                return True
+            except AppleRefused as refusal:
+                print(f"::warning::Renommage refusé : {refusal.detail}")
+                print("  Un nom d'App Store doit être libre sur toute la boutique.")
+                return False
+    return False
+
+
 def ensure_app_record(client: Client, identifier: str, name: str, sku: str) -> int:
     """Tente la fiche d'application, et rapporte ce qu'Apple répond.
 
@@ -147,6 +189,7 @@ def ensure_app_record(client: Client, identifier: str, name: str, sku: str) -> i
     exact = [a for a in apps if a["attributes"].get("bundleId") == identifier]
     if exact:
         print(f"  fiche déjà là : « {exact[0]['attributes'].get('name', '?')} »")
+        rename_app(client, exact[0]["id"], name)
         return 0
 
     try:
