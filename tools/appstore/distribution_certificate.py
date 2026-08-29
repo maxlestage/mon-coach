@@ -29,6 +29,7 @@ qu'on installe est une façon de plus d'échouer.
 from __future__ import annotations
 
 import base64
+import datetime
 import json
 import os
 import subprocess
@@ -189,11 +190,89 @@ class AppleRefused(Exception):
         return f"Apple refuse la demande ({self.status}). {detail}"
 
 
+def distribution_certificates(token: str) -> list[dict]:
+    response = call(token, "certificates?limit=200")
+    return [
+        item
+        for item in response.get("data", [])
+        if item["attributes"].get("certificateType") == CERTIFICATE_TYPE
+    ]
+
+
+def created_within_days(attributes: dict, days: int) -> bool:
+    """Le certificat a-t-il été créé dans les `days` derniers jours ?
+
+    Apple ne rend pas la date de création, seulement l'expiration. Un
+    certificat de distribution vaut un an : reculer d'un an sur l'expiration
+    donne la création à un cheveu près, ce qui suffit largement à distinguer
+    « créé tout à l'heure par cette automatisation » de « créé un autre jour
+    par quelqu'un ».
+    """
+    raw = attributes.get("expirationDate", "")[:10]
+    try:
+        expires = datetime.date.fromisoformat(raw)
+    except ValueError:
+        return False
+    created = expires - datetime.timedelta(days=365)
+    return 0 <= (datetime.date.today() - created).days <= days
+
+
+def revoke(token: str, identifier: str) -> None:
+    call(token, f"certificates/{identifier}", method="DELETE")
+
+
+def revoke_stale(key_path: str, key_id: str, issuer_id: str, days: int) -> int:
+    """Libère la place prise par les certificats de cette automatisation.
+
+    Un compte n'a droit qu'à deux certificats de distribution. Chaque
+    exécution en crée un dont la clé privée meurt avec l'exécuteur : deux
+    builds suffisent à saturer le compte avec des certificats que plus
+    personne ne peut utiliser, y compris celui qui les a créés.
+
+    La règle est volontairement étroite. Seuls partent les certificats de
+    distribution créés dans les tout derniers jours — ceux d'ici. Un
+    certificat plus ancien peut avoir sa clé privée sur le Mac de quelqu'un,
+    et le révoquer casserait sa signature : celui-là n'est jamais touché, et
+    le refus d'Apple est alors rapporté tel quel.
+    """
+    token = jwt(key_path, key_id, issuer_id)
+    stale = [
+        item
+        for item in distribution_certificates(token)
+        if created_within_days(item["attributes"], days)
+    ]
+    if not stale:
+        print(
+            "Aucun certificat récent à libérer : ceux qui occupent la place "
+            "datent d'avant, et ne sont pas à cette automatisation."
+        )
+        return 0
+
+    for item in stale:
+        attributes = item["attributes"]
+        print(
+            f"Révocation de {attributes.get('displayName', '?')} "
+            f"(série {attributes.get('serialNumber', '?')}, "
+            f"expirait le {attributes.get('expirationDate', '?')[:10]})"
+        )
+        revoke(token, item["id"])
+    return len(stale)
+
+
 def main() -> int:
     key_path = os.environ["ASC_KEY_PATH"]
     key_id = os.environ["ASC_KEY_ID"]
     issuer_id = os.environ["ASC_ISSUER_ID"]
     out_dir = os.environ.get("OUT_DIR", ".")
+
+    # Deux modes annexes, appelés par le workflow autour du mode principal.
+    if len(sys.argv) > 1 and sys.argv[1] == "--revoke":
+        revoke(jwt(key_path, key_id, issuer_id), sys.argv[2])
+        print(f"Certificat {sys.argv[2]} révoqué.")
+        return 0
+    if len(sys.argv) > 1 and sys.argv[1] == "--revoke-stale":
+        revoke_stale(key_path, key_id, issuer_id, days=3)
+        return 0
 
     os.makedirs(out_dir, exist_ok=True)
     private_key = os.path.join(out_dir, "distribution.key")
@@ -255,9 +334,20 @@ def main() -> int:
                     )
         except AppleRefused:
             pass
-        return 1
+        # Un code distinct pour « plus de place » : c'est le seul refus dont
+        # cette automatisation sache se relever seule, en libérant ce qu'elle
+        # a elle-même laissé. Tous les autres demandent une décision humaine.
+        return 9 if refusal.status == 409 else 1
 
     attributes = response["data"]["attributes"]
+
+    # L'identifiant est écrit tout de suite, avant même d'écrire le
+    # certificat : c'est lui qui permettra de rendre la place en fin de build.
+    # S'il se perdait, le compte garderait un certificat que personne ne peut
+    # plus utiliser, et deux builds suffisent à le saturer.
+    with open(os.path.join(out_dir, "certificate-id.txt"), "w", encoding="ascii") as handle:
+        handle.write(response["data"]["id"])
+
     der = base64.b64decode(attributes["certificateContent"])
     with open(os.path.join(out_dir, "distribution.cer"), "wb") as handle:
         handle.write(der)
