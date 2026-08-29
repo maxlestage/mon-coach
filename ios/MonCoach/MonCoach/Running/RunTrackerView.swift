@@ -19,6 +19,13 @@ struct RunTrackerView: View {
     @State private var finishedRun: ActivityLog?
     @State private var showsDiscardConfirmation = false
     @State private var liveActivity = RunActivityController()
+    /// Reste-t-il une Live Activity affichée sans sortie en cours ?
+    ///
+    /// Relu à l'ouverture de l'écran plutôt qu'à la création de la vue : une
+    /// activité peut apparaître ou disparaître entre les deux, et une valeur
+    /// figée à l'initialisation afficherait un bouton pour rien — ou le
+    /// cacherait quand il faudrait.
+    @State private var hasStrayActivity = false
 
     private var unit: UnitSystem { store.profile?.unit ?? .metric }
     private var loadsTiles: Bool { store.profile?.loadsMapTiles ?? true }
@@ -89,6 +96,47 @@ struct RunTrackerView: View {
 
     private var prepareCard: some View {
         VStack(spacing: Theme.stackSpacing) {
+            // Le vestige d'une sortie qui ne s'est pas terminée proprement.
+            // Le lancement en fait le ménage tout seul, mais l'application
+            // peut très bien être déjà ouverte quand ça arrive : le bouton
+            // existe pour ce cas-là, et pour qu'on ne reste jamais coincé
+            // avec un bandeau qu'on ne sait pas retirer.
+            if hasStrayActivity {
+                Card(
+                    title: LocalizedText(
+                        fr: "Une sortie est restée affichée",
+                        en: "A run is still on your lock screen",
+                        es: "Un rodaje sigue en la pantalla de bloqueo"
+                    )[language]
+                ) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        CoachText(
+                            LocalizedText(
+                                fr: "Elle vient d'une sortie précédente qui ne s'est pas refermée. Rien n'est enregistré dessus, et la retirer n'efface aucune trace.",
+                                en: "It comes from an earlier run that never closed. Nothing is being recorded on it, and removing it deletes no trace.",
+                                es: "Viene de un rodaje anterior que no se cerró. No registra nada, y quitarla no borra ninguna traza."
+                            )
+                        )
+                        Button {
+                            RunActivityController.endAll()
+                            WorkoutActivityController.endAll()
+                            liveActivity.forget()
+                            hasStrayActivity = false
+                        } label: {
+                            Text(
+                                LocalizedText(
+                                    fr: "La retirer",
+                                    en: "Remove it",
+                                    es: "Quitarla"
+                                )[language]
+                            )
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(Theme.accent)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
             if let plannedRun {
                 Card(title: plannedRun.type.label[language]) {
                     VStack(alignment: .leading, spacing: 10) {
@@ -193,6 +241,7 @@ struct RunTrackerView: View {
         }
         .onAppear {
             if let plannedRun { selectedType = plannedRun.type }
+            hasStrayActivity = RunActivityController.hasAny
         }
     }
 

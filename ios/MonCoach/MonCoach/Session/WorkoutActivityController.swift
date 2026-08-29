@@ -44,6 +44,24 @@ final class WorkoutActivityController {
         Task { await activity.end(nil, dismissalPolicy: .immediate) }
         #endif
     }
+
+    /// Met fin à toutes les Live Activities de séance, y compris celles
+    /// qu'une exécution précédente a laissées derrière elle.
+    ///
+    /// `end()` ne peut rien contre celles-là : il ne connaît que l'activité
+    /// qu'il a lui-même démarrée, et une application qui s'arrête
+    /// brutalement emporte cette référence sans emporter l'activité. Elle
+    /// reste alors sur l'écran verrouillé, et plus rien dans l'application
+    /// ne sait la retirer. Le système, lui, les rend toutes.
+    nonisolated static func endAll() {
+        #if canImport(ActivityKit)
+        Task {
+            for activity in Activity<WorkoutAttributes>.activities {
+                await activity.end(nil, dismissalPolicy: .immediate)
+            }
+        }
+        #endif
+    }
 }
 
 /// Pilote la Live Activity d'une sortie en cours.
@@ -89,6 +107,41 @@ final class RunActivityController {
         guard let activity else { return }
         self.activity = nil
         Task { await activity.end(nil, dismissalPolicy: .immediate) }
+        #endif
+    }
+
+    /// Reste-t-il une Live Activity de sortie affichée quelque part ?
+    ///
+    /// La question porte sur le système, pas sur cet objet : une activité
+    /// laissée par une exécution précédente est invisible d'ici et pourtant
+    /// bien présente sur l'écran verrouillé.
+    nonisolated static var hasAny: Bool {
+        #if canImport(ActivityKit)
+        return !Activity<RunAttributes>.activities.isEmpty
+        #else
+        return false
+        #endif
+    }
+
+    /// Met fin à toutes les Live Activities de sortie, celles des exécutions
+    /// précédentes comprises.
+    nonisolated static func endAll() {
+        #if canImport(ActivityKit)
+        Task {
+            for activity in Activity<RunAttributes>.activities {
+                await activity.end(nil, dismissalPolicy: .immediate)
+            }
+        }
+        #endif
+    }
+
+    /// Oublie l'activité tenue ici, sans y toucher.
+    ///
+    /// Sert après un `endAll` : l'activité n'existe plus, la référence ne
+    /// doit pas laisser croire le contraire.
+    func forget() {
+        #if canImport(ActivityKit)
+        activity = nil
         #endif
     }
 }
