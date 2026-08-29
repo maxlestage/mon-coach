@@ -226,35 +226,49 @@ struct ProfileView: View {
                 .tint(Theme.accent)
 
                 if let running = profile.running {
-                    LabeledRow(
-                        label: LocalizedText(fr: "Objectif", en: "Goal", es: "Objetivo")[language],
-                        value: running.goal.label[language]
-                    )
-                    LabeledRow(
-                        label: LocalizedText(fr: "Sorties par semaine", en: "Runs per week", es: "Rodajes por semana")[language],
-                        value: "\(running.runsPerWeek)"
-                    )
-                    LabeledRow(
-                        label: LocalizedText(fr: "Kilométrage actuel", en: "Current mileage", es: "Kilometraje actual")[language],
-                        value: Format.distance(meters: running.currentWeeklyMeters, unit: profile.unit, language: language)
-                    )
-                    Picker(
-                        LocalizedText(fr: "Objectif", en: "Goal", es: "Objetivo")[language],
-                        selection: runningGoalBinding
+                    SettingRow(
+                        label: LocalizedText(fr: "Objectif", en: "Goal", es: "Objetivo")[language]
                     ) {
-                        ForEach(RunningGoal.allCases, id: \.self) { goal in
-                            Text(goal.label[language]).tag(goal)
+                        Picker("", selection: runningGoalBinding) {
+                            ForEach(RunningGoal.allCases, id: \.self) { goal in
+                                Text(goal.label[language]).tag(goal)
+                            }
                         }
+                        .labelsHidden()
+                        .pickerStyle(.menu)
+                        .tint(Theme.accent)
                     }
-                    .pickerStyle(.menu)
-                    .tint(Theme.accent)
+
+                    SettingRow(
+                        label: LocalizedText(
+                            fr: "Kilométrage actuel",
+                            en: "Current mileage",
+                            es: "Kilometraje actual"
+                        )[language]
+                    ) {
+                        Picker("", selection: weeklyMetersBinding) {
+                            ForEach(weeklyMeterOptions, id: \.self) { meters in
+                                Text(Format.distance(meters: meters, unit: profile.unit, language: language))
+                                    .tag(meters)
+                            }
+                        }
+                        .labelsHidden()
+                        .pickerStyle(.menu)
+                        .tint(Theme.accent)
+                    }
 
                     Stepper(value: runsPerWeekBinding, in: 1...6) {
                         Text(
                             LocalizedText(
-                                fr: "\(running.runsPerWeek) sorties par semaine",
-                                en: "\(running.runsPerWeek) runs a week",
-                                es: "\(running.runsPerWeek) rodajes por semana"
+                                fr: running.runsPerWeek == 1
+                                    ? "1 sortie par semaine"
+                                    : "\(running.runsPerWeek) sorties par semaine",
+                                en: running.runsPerWeek == 1
+                                    ? "1 run a week"
+                                    : "\(running.runsPerWeek) runs a week",
+                                es: running.runsPerWeek == 1
+                                    ? "1 rodaje por semana"
+                                    : "\(running.runsPerWeek) rodajes por semana"
                             )[language]
                         )
                         .font(Theme.captionFont)
@@ -311,6 +325,54 @@ struct ProfileView: View {
         )
     }
 
+    /// Les paliers de kilométrage hebdomadaire proposés.
+    ///
+    /// Une liste plutôt qu'un pas à pas : personne ne connaît son volume au
+    /// kilomètre près, et aller de 15 à 40 par pas de un coûterait vingt-cinq
+    /// appuis. Les paliers sont ronds dans l'unité de l'athlète — les dériver
+    /// d'une seule liste par conversion donnerait « 24,14 km » à un coureur
+    /// métrique, ou « 9,32 mi » à l'autre.
+    private var weeklyMeterPresets: [Double] {
+        switch store.profile?.unit ?? .metric {
+        case .metric:
+            let kilometres: [Double] = [0, 5, 10, 15, 20, 25, 30, 35, 40, 50, 60, 80, 100]
+            return kilometres.map { $0 * 1_000 }
+        case .imperial:
+            let miles: [Double] = [0, 3, 6, 9, 12, 15, 20, 25, 30, 40, 50, 60]
+            return miles.map { $0 * 1_609.344 }
+        }
+    }
+
+    /// Les paliers, plus la valeur enregistrée si elle n'en est pas un.
+    ///
+    /// Un menu SwiftUI dont la sélection ne figure pas parmi ses options
+    /// s'affiche vide. Une valeur venue d'ailleurs — un changement d'unité,
+    /// une version antérieure — disparaîtrait donc de l'écran tout en
+    /// continuant de gouverner le plan.
+    private var weeklyMeterOptions: [Double] {
+        let current = store.profile?.running?.currentWeeklyMeters ?? 0
+        var options = weeklyMeterPresets
+        if !options.contains(where: { abs($0 - current) < 1 }) {
+            options.append(current)
+            options.sort()
+        }
+        return options
+    }
+
+    /// Le volume hebdomadaire actuel, sur lequel tout le plan de course
+    /// s'appuie : l'allure prescrite, la charge de départ et la progression.
+    private var weeklyMetersBinding: Binding<Double> {
+        Binding(
+            get: { store.profile?.running?.currentWeeklyMeters ?? 15_000 },
+            set: { newValue in
+                guard var profile = store.profile, var running = profile.running else { return }
+                running.currentWeeklyMeters = max(0, newValue)
+                profile.running = running
+                store.updateProfile(profile)
+            }
+        )
+    }
+
     private var runsPerWeekBinding: Binding<Int> {
         Binding(
             get: { store.profile?.running?.runsPerWeek ?? 3 },
@@ -359,6 +421,27 @@ struct ProfileView: View {
 }
 
 /// Label on the left, value on the right — the whole profile screen is these.
+/// Une ligne de réglage : le nom à gauche, le contrôle à droite.
+///
+/// La version modifiable de `LabeledRow`, dont elle reprend la géométrie. Un
+/// menu SwiftUI posé seul dans une pile n'affiche que sa valeur, jamais ce
+/// dont elle est la valeur : « 15,0 km » sans « Kilométrage actuel » à côté
+/// ne veut rien dire.
+struct SettingRow<Control: View>: View {
+    var label: String
+    @ViewBuilder var control: Control
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(label)
+                .font(Theme.captionFont)
+                .foregroundStyle(Theme.secondaryText)
+            Spacer(minLength: 12)
+            control
+        }
+    }
+}
+
 struct LabeledRow: View {
     var label: String
     var value: String
