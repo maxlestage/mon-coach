@@ -41,14 +41,14 @@ CAPABILITIES = {
 # de savoir à l'avance s'il l'est : il n'existe pas de requête « ce nom est-il
 # pris ». Essayer est le seul moyen — d'où cette liste plutôt qu'un pari.
 #
-# « Forge » d'abord : une syllabe, un mot que tout le monde connaît, l'image du
-# fer et du feu, et il se dit presque pareil en français, anglais et espagnol.
-# Les suivants gagnent en singularité ce qu'ils perdent en tranchant.
+# « Kinetik » d'abord, c'est le nom choisi. Les suivants ne servent que s'il est
+# déjà pris : ils gagnent en singularité ce qu'ils perdent en tranchant, ce qui
+# est exactement ce qu'on attend d'un repli.
 DEFAULT_APP_NAMES = [
-    "Forge",
-    "Forge Entraînement",
-    "Forge — Fonte & Foulée",
-    "Forge Lestage",
+    "Kinetik",
+    "Kinetik Entraînement",
+    "Kinetik — Fonte & Foulée",
+    "Kinetik Lestage",
 ]
 
 

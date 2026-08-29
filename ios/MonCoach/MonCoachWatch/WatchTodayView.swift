@@ -18,7 +18,7 @@ struct WatchTodayView: View {
                 }
             }
         }
-        .navigationTitle("Fitness Coach")
+        .navigationTitle("Kinetik")
         .navigationDestination(isPresented: $showsRun) {
             WatchRunView()
         }
