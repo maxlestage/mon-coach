@@ -422,6 +422,12 @@ jobs:
             <key>method</key><string>app-store-connect</string>
             <key>destination</key><string>upload</string>
             <key>teamID</key><string>${TEAM_ID}</string>
+            <!-- Sans cette ligne, l'export retombe en signature manuelle et
+                 réclame un profil pour chacune des trois cibles, alors que le
+                 projet est en signature automatique et que l'archive vient
+                 d'être signée sans encombre. Le message ne parle pas de style
+                 de signature : il dit seulement qu'il « faut un profil ». -->
+            <key>signingStyle</key><string>automatic</string>
             <key>uploadSymbols</key><true/>
             <key>manageAppVersionAndBuildNumber</key><false/>
           </dict>
