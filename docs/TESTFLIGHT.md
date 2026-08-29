@@ -114,6 +114,51 @@ Sur un Mac, **une seule fois**, et le certificat vaut ensuite un an :
 Le fichier `.p12` obtenu devient `APPLE_DISTRIBUTION_CERT_P12`, encodé en
 base64.
 
+---
+
+## 3 bis. La fiche d'application — le seul geste manuel
+
+Un envoi TestFlight suppose une fiche déjà créée dans App Store Connect :
+Xcode y lit les informations de l'application avant de téléverser. Sans
+elle, l'envoi échoue tout à la fin sur « Error Downloading App
+Information », une phrase qui ne nomme ni l'application ni l'identifiant.
+
+Ce geste **ne peut pas être automatisé**, et ce n'est pas faute d'avoir
+essayé. Le workflow tente la création à chaque exécution ; Apple répond :
+
+```
+The resource 'apps' does not allow 'CREATE'.
+Allowed operations are: GET_COLLECTION, GET_INSTANCE, UPDATE
+```
+
+À faire une fois, depuis un téléphone : App Store Connect → **Apps** →
+**+** → **New App**.
+
+| Champ | Valeur |
+| --- | --- |
+| Plateformes | iOS |
+| Bundle ID | `com.moncoach.MonCoach` |
+| Nom | **unique sur tout l'App Store** |
+| SKU | `com.moncoach.MonCoach` |
+
+Le nom est le vrai piège : il doit être libre sur l'App Store entier, ce que
+la plupart des noms génériques ne sont pas. Il se change plus tard, et il
+est **indépendant** du nom affiché sous l'icône — celui-là est dans le
+projet, et vaut « Fitness Coach ».
+
+Tout le reste est automatique. Les identifiants des trois cibles et la
+capacité HealthKit de la montre sont créés par le workflow, à l'identique
+s'ils existent déjà :
+
+```
+  identifiant créé : com.moncoach.MonCoach
+  identifiant créé : com.moncoach.MonCoach.watchkitapp
+    capacité ajoutée : HEALTHKIT
+  identifiant créé : com.moncoach.MonCoach.MonCoachWidgets
+```
+
+---
+
 ## 4. Poser les secrets dans GitHub
 
 Dépôt → **Settings** → **Secrets and variables** → onglet **Actions** →
