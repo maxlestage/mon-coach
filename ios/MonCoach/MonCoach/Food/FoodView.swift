@@ -119,7 +119,11 @@ struct MealCard: View {
     var meal: Meal
 
     @Environment(\.language) private var language
+    @Environment(CoachStore.self) private var store
     @State private var showingSteps = false
+    /// L'aliment sur lequel on vient d'appuyer, le temps de dire si on
+    /// l'aime ou non. Nil le reste du temps.
+    @State private var questioned: Food?
 
     /// Le nom du plat quand il y en a un, le moment de la journée sinon.
     ///
@@ -141,22 +145,32 @@ struct MealCard: View {
             VStack(alignment: .leading, spacing: 8) {
                 ForEach(meal.items) { item in
                     if let food = item.food {
-                        HStack(alignment: .top, spacing: 10) {
-                            Text("\(Int(item.grams)) g")
-                                .font(.system(size: 13, weight: .semibold, design: .rounded))
-                                .foregroundStyle(Theme.accent)
-                                .frame(width: 56, alignment: .leading)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(food.name[language])
-                                    .font(Theme.bodyFont)
-                                    .foregroundStyle(Theme.primaryText)
-                                if food.tier != .base {
-                                    Text(food.tier.label[language])
-                                        .font(.system(size: 11, weight: .medium))
-                                        .foregroundStyle(Theme.warning)
+                        // Chaque aliment s'ouvre : c'est devant l'assiette
+                        // qu'on se rend compte qu'on n'aime pas quelque
+                        // chose, pas dans un écran de réglages.
+                        Button {
+                            questioned = food
+                        } label: {
+                            HStack(alignment: .top, spacing: 10) {
+                                Text("\(Int(item.grams)) g")
+                                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                                    .foregroundStyle(Theme.accent)
+                                    .frame(width: 56, alignment: .leading)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(food.name[language])
+                                        .font(Theme.bodyFont)
+                                        .foregroundStyle(Theme.primaryText)
+                                    if food.tier != .base {
+                                        Text(food.tier.label[language])
+                                            .font(.system(size: 11, weight: .medium))
+                                            .foregroundStyle(Theme.warning)
+                                    }
                                 }
+                                Spacer()
                             }
+                            .contentShape(Rectangle())
                         }
+                        .buttonStyle(.plain)
                     }
                 }
                 if let recipe = meal.recipe {
@@ -207,6 +221,134 @@ struct MealCard: View {
                 }
                 if let note = meal.note {
                     CoachText(note, font: .system(size: 12))
+                }
+            }
+        }
+        .sheet(item: $questioned) { food in
+            RefuseFoodSheet(food: food)
+        }
+    }
+}
+
+/// « Je n'aime pas ça » — et ce qu'on mangera à la place.
+///
+/// Refuser un aliment sans savoir ce qui le remplace fait peur : on ignore
+/// ce qu'on perd. La feuille montre donc les remplaçants avant le geste,
+/// pas après. Et quand le refus viderait un rôle — les dernières protéines
+/// d'un régime — elle le dit au lieu de laisser une journée impossible.
+struct RefuseFoodSheet: View {
+    var food: Food
+
+    @Environment(CoachStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.language) private var language
+
+    private var diet: DietPreference { store.profile?.dietPreference ?? .omnivore }
+    private var alreadyRefused: Set<String> { store.profile?.excludedFoods ?? [] }
+    private var isRefused: Bool { alreadyRefused.contains(food.id) }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: Theme.stackSpacing) {
+                    if isRefused {
+                        Card(title: food.name[language]) {
+                            CoachText(
+                                LocalizedText(
+                                    fr: "Cet aliment est écarté de tes repas. Tu peux le rétablir quand tu veux — les goûts changent.",
+                                    en: "This food is kept out of your meals. You can bring it back whenever you like — tastes change.",
+                                    es: "Este alimento está fuera de tus comidas. Puedes recuperarlo cuando quieras: los gustos cambian."
+                                )
+                            )
+                            PrimaryButton(
+                                title: LocalizedText(fr: "Le remettre au menu", en: "Put it back", es: "Volver a ponerlo")[language],
+                                systemImage: "arrow.uturn.backward"
+                            ) {
+                                store.allowFood(food.id)
+                                dismiss()
+                            }
+                        }
+                    } else {
+                        let canRefuse = FoodSubstitutions.canRefuse(
+                            food.id, diet: diet, alreadyExcluded: alreadyRefused
+                        )
+                        let swaps = FoodSubstitutions.alternatives(
+                            to: food.id, diet: diet, excluding: alreadyRefused
+                        )
+                        Card(
+                            title: food.name[language],
+                            subtitle: LocalizedText(
+                                fr: "\(Int(food.kcal)) kcal · \(Int(food.proteinG)) g de protéines pour 100 g",
+                                en: "\(Int(food.kcal)) kcal · \(Int(food.proteinG)) g protein per 100 g",
+                                es: "\(Int(food.kcal)) kcal · \(Int(food.proteinG)) g de proteína por 100 g"
+                            )[language]
+                        ) {
+                            CoachText(food.reason)
+                        }
+
+                        if canRefuse {
+                            Card(
+                                title: LocalizedText(fr: "À la place", en: "Instead", es: "En su lugar")[language],
+                                subtitle: LocalizedText(
+                                    fr: "Même rôle dans l'assiette, macros les plus proches : la journée ne bougera presque pas.",
+                                    en: "Same role on the plate, closest macros: the day will barely move.",
+                                    es: "Mismo papel en el plato, macros más cercanos: el día apenas cambiará."
+                                )[language]
+                            ) {
+                                VStack(alignment: .leading, spacing: 10) {
+                                    ForEach(swaps) { swap in
+                                        HStack {
+                                            Text(swap.name[language])
+                                                .font(Theme.bodyFont)
+                                                .foregroundStyle(Theme.primaryText)
+                                            Spacer()
+                                            Text("\(Int(swap.kcal)) kcal · \(Int(swap.proteinG)) g P")
+                                                .font(.system(size: 11))
+                                                .foregroundStyle(Theme.secondaryText)
+                                        }
+                                    }
+                                }
+                            }
+                            PrimaryButton(
+                                title: LocalizedText(
+                                    fr: "Je n'aime pas, ne plus m'en servir",
+                                    en: "I don't like it, stop serving it",
+                                    es: "No me gusta, deja de servírmelo"
+                                )[language],
+                                systemImage: "hand.thumbsdown"
+                            ) {
+                                store.refuseFood(food.id)
+                                dismiss()
+                            }
+                        } else {
+                            Card(
+                                title: LocalizedText(
+                                    fr: "Celui-là, on le garde",
+                                    en: "This one has to stay",
+                                    es: "Este hay que conservarlo"
+                                )[language]
+                            ) {
+                                CoachText(
+                                    LocalizedText(
+                                        fr: "C'est l'un des derniers aliments de son rôle que ton régime accepte. L'écarter aussi rendrait la journée impossible à construire. Rétablis-en un autre d'abord, ou élargis ton régime.",
+                                        en: "It is one of the last foods in its role your diet accepts. Removing it too would make the day impossible to build. Bring another one back first, or widen your diet.",
+                                        es: "Es uno de los últimos alimentos de su papel que tu dieta acepta. Quitarlo también haría imposible construir el día. Recupera otro antes, o amplía tu dieta."
+                                    )
+                                )
+                            }
+                        }
+                    }
+                }
+                .padding(16)
+            }
+            .screenBackground()
+            .navigationTitle(
+                LocalizedText(fr: "Cet aliment", en: "This food", es: "Este alimento")[language]
+            )
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(UI.close[language]) { dismiss() }
                 }
             }
         }
@@ -312,6 +454,15 @@ struct ShoppingListView: View {
     /// fichier que l'athlète exporte.
     @AppStorage("courses-cochees") private var checkedRaw: String = ""
 
+    /// Sur combien de semaines on fait ses courses. Gardé entre deux
+    /// ouvertures : c'est une habitude, pas une question qu'on repose
+    /// chaque samedi.
+    @AppStorage("courses-duree") private var horizonWeeks: Int = 1
+
+    private var horizon: MealPlanner.ShoppingHorizon {
+        MealPlanner.ShoppingHorizon(rawValue: horizonWeeks) ?? .week
+    }
+
     private var checked: Set<String> {
         Set(checkedRaw.split(separator: "\n").map(String.init))
     }
@@ -333,15 +484,31 @@ struct ShoppingListView: View {
                             mealsPerDay: store.profile?.mealCount ?? 4,
                             excluding: store.profile?.excludedFoods ?? []
                         )
-                        let list = MealPlanner.shoppingList(for: week)
+                        let list = MealPlanner.shoppingList(for: week, horizon: horizon)
                         let done = list.filter { checked.contains($0.foodID) }.count
                         Card(
-                            subtitle: LocalizedText(
-                                fr: "Pour sept jours, \(done) sur \(list.count) pris. Les quantités sont celles du magasin : le riz et les pâtes sont donnés secs, le reste en conditionnements entiers.",
-                                en: "For seven days, \(done) of \(list.count) picked up. Quantities are shop quantities: rice and pasta are given dry, the rest in whole packs.",
-                                es: "Para siete días, \(done) de \(list.count) cogidos. Las cantidades son las de la tienda: el arroz y la pasta van en seco, el resto en envases enteros."
-                            )[language]
+                            subtitle: horizon == .week
+                                ? LocalizedText(
+                                    fr: "Pour sept jours, \(done) sur \(list.count) pris. Les quantités sont celles du magasin : le riz et les pâtes sont donnés secs, le reste en conditionnements entiers.",
+                                    en: "For seven days, \(done) of \(list.count) picked up. Quantities are shop quantities: rice and pasta are given dry, the rest in whole packs.",
+                                    es: "Para siete días, \(done) de \(list.count) cogidos. Las cantidades son las de la tienda: el arroz y la pasta van en seco, el resto en envases enteros."
+                                )[language]
+                                : LocalizedText(
+                                    fr: "Pour \(horizon.weeks) semaines, \(done) sur \(list.count) pris. Ce qui se garde est pris en une fois ; le frais reste à la quantité d'une semaine et porte « chaque semaine » — des épinards pour un mois pourrissent avant la troisième.",
+                                    en: "For \(horizon.weeks) weeks, \(done) of \(list.count) picked up. What keeps is bought in one go; fresh food stays at one week's worth and is marked “every week” — a month of spinach rots before week three.",
+                                    es: "Para \(horizon.weeks) semanas, \(done) de \(list.count) cogidos. Lo que se conserva se compra de una vez; lo fresco se queda en una semana y lleva «cada semana»: un mes de espinacas se pudre antes de la tercera."
+                                )[language]
                         ) {
+                            // La durée se choisit ici : personne ne fait ses
+                            // courses au même rythme, et l'application n'a
+                            // pas à trancher pour l'athlète.
+                            Picker("", selection: $horizonWeeks) {
+                                ForEach(MealPlanner.ShoppingHorizon.allCases) { choice in
+                                    Text(choice.label[language]).tag(choice.rawValue)
+                                }
+                            }
+                            .pickerStyle(.segmented)
+                            .padding(.bottom, 4)
                             if done > 0 {
                                 Button {
                                     checkedRaw = ""
@@ -378,10 +545,27 @@ struct ShoppingListView: View {
                                                     .foregroundStyle(checked.contains(line.foodID)
                                                         ? Theme.accent
                                                         : Theme.secondaryText)
-                                                Text(line.food?.name[language] ?? line.foodID)
-                                                    .font(Theme.bodyFont)
-                                                    .foregroundStyle(Theme.primaryText)
-                                                    .strikethrough(checked.contains(line.foodID))
+                                                VStack(alignment: .leading, spacing: 1) {
+                                                    Text(line.food?.name[language] ?? line.foodID)
+                                                        .font(Theme.bodyFont)
+                                                        .foregroundStyle(Theme.primaryText)
+                                                        .strikethrough(checked.contains(line.foodID))
+                                                    // Le frais ne se stocke pas : sa
+                                                    // quantité est celle d'une semaine,
+                                                    // et la ligne le dit plutôt que de
+                                                    // laisser croire au mois entier.
+                                                    if line.repeatsWeekly {
+                                                        Text(
+                                                            LocalizedText(
+                                                                fr: "chaque semaine",
+                                                                en: "every week",
+                                                                es: "cada semana"
+                                                            )[language]
+                                                        )
+                                                        .font(.system(size: 11, weight: .medium))
+                                                        .foregroundStyle(Theme.warning)
+                                                    }
+                                                }
                                                 Spacer()
                                                 Text(line.quantity(language))
                                                     .font(Theme.captionFont)

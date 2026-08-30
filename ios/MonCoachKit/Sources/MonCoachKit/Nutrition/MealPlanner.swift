@@ -33,6 +33,29 @@ public struct ShoppingLine: Sendable, Equatable, Identifiable {
         return false
     }
 
+    /// Cet aliment survit-il à un mois de placard ?
+    ///
+    /// Question posée par la liste de courses au mois : le riz et les
+    /// conserves se prennent en une fois, les épinards non. Le frais, c'est
+    /// tout ce qui se vend au poids en protéines, plus les légumes, les
+    /// fruits et les produits laitiers — quel que soit leur emballage. Les
+    /// œufs, vendus à la pièce, tiennent le mois.
+    public var keeps: Bool {
+        switch role {
+        case .vegetable, .fruit, .dairy:
+            return false
+        case .protein:
+            if case .loose = purchase { return false }
+            return true
+        case .carb, .fat, .drink, .treat:
+            return true
+        }
+    }
+
+    /// Vrai quand la liste couvre plusieurs semaines et que cette ligne est
+    /// du frais : la quantité est celle d'une semaine, à reprendre ensuite.
+    public var repeatsWeekly: Bool = false
+
     /// Ce qu'il faut prendre dans le rayon, dit comme on le dirait.
     public func quantity(_ language: Language) -> String {
         switch purchase {
@@ -1062,8 +1085,42 @@ enum DishPreference {
         }
     }
 
+    /// Sur combien de temps on fait ses courses.
+    ///
+    /// Personne ne fait ses courses au même rythme, et l'application n'a pas
+    /// à trancher : certains passent au marché le samedi, d'autres remplissent
+    /// un coffre une fois par mois. Le plan de repas, lui, tourne sur sept
+    /// jours — ce qu'on achète pour un mois, c'est quatre fois la semaine.
+    public enum ShoppingHorizon: Int, Sendable, CaseIterable, Identifiable {
+        case week = 1
+        case fortnight = 2
+        case month = 4
+
+        public var id: Int { rawValue }
+        public var weeks: Int { rawValue }
+        public var days: Int { rawValue * 7 }
+
+        public var label: LocalizedText {
+            switch self {
+            case .week: LocalizedText(fr: "1 semaine", en: "1 week", es: "1 semana")
+            case .fortnight: LocalizedText(fr: "2 semaines", en: "2 weeks", es: "2 semanas")
+            case .month: LocalizedText(fr: "1 mois", en: "1 month", es: "1 mes")
+            }
+        }
+    }
+
     /// La liste de courses d'une série de journées, agrégée par aliment.
-    public static func shoppingList(for days: [DayPlan]) -> [ShoppingLine] {
+    ///
+    /// Au-delà de la semaine, tout n'est pas multiplié : les épinards d'un
+    /// mois pourrissent avant la troisième semaine. Ce qui se garde — riz,
+    /// conserves, huiles — est pris pour toute la période ; le frais reste à
+    /// la quantité d'une semaine et se signale comme étant à reprendre.
+    /// Multiplier aveuglément aurait donné une liste que personne ne peut
+    /// suivre, et une liste qu'on ne suit pas ne sert à rien.
+    public static func shoppingList(
+        for days: [DayPlan],
+        horizon: ShoppingHorizon = .week
+    ) -> [ShoppingLine] {
         var totals: [String: Double] = [:]
         for day in days {
             for meal in day.meals {
@@ -1076,7 +1133,18 @@ enum DishPreference {
             .compactMap { id, grams -> ShoppingLine? in
                 guard let food = FoodCatalog.food(id: id) else { return nil }
                 // Arrondi aux 10 g supérieurs : on achète un paquet, pas une dose.
-                return ShoppingLine(foodID: id, grams: (grams / 10).rounded(.up) * 10, role: food.role)
+                var line = ShoppingLine(
+                    foodID: id,
+                    grams: (grams / 10).rounded(.up) * 10,
+                    role: food.role
+                )
+                guard horizon != .week else { return line }
+                if line.keeps {
+                    line.grams = line.grams * Double(horizon.weeks)
+                } else {
+                    line.repeatsWeekly = true
+                }
+                return line
             }
             .sorted {
                 roleRank($0.role) == roleRank($1.role)

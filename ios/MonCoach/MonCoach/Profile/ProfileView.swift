@@ -27,6 +27,7 @@ struct ProfileView: View {
                         constraintsCard(profile)
                         preferencesCard(profile)
                         runningCard(profile)
+                        refusedFoodsCard
                         gearCard
                         dataCard
                         creditFooter
@@ -129,6 +130,57 @@ struct ProfileView: View {
                     FlowLayout(spacing: 6) {
                         ForEach(Array(profile.limitations).sorted { $0.rawValue < $1.rawValue }, id: \.self) {
                             Pill(text: $0.label[language], tint: Theme.warning)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// Les aliments écartés des repas, et de quoi se dédire.
+    ///
+    /// Le refus se déclare devant l'assiette, là où il naît. Mais se dédire
+    /// depuis l'assiette suppose que l'aliment y revienne — or il n'y revient
+    /// justement plus. Sans cette liste, un refus serait sans retour.
+    @ViewBuilder
+    private var refusedFoodsCard: some View {
+        let refused = (store.profile?.excludedFoods ?? [])
+            .compactMap { FoodCatalog.food(id: $0) }
+            .sorted { $0.name[language] < $1.name[language] }
+        if !refused.isEmpty {
+            Card(
+                title: LocalizedText(
+                    fr: "Ce que tu n'aimes pas",
+                    en: "What you don't like",
+                    es: "Lo que no te gusta"
+                )[language],
+                subtitle: LocalizedText(
+                    fr: "Ces aliments ne sont plus servis ni mis sur ta liste de courses. Les goûts changent : un appui les remet au menu.",
+                    en: "These foods are no longer served or put on your shopping list. Tastes change: one tap puts them back.",
+                    es: "Estos alimentos ya no se sirven ni aparecen en tu lista. Los gustos cambian: un toque los devuelve."
+                )[language]
+            ) {
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach(refused) { food in
+                        HStack(spacing: 10) {
+                            Text(food.name[language])
+                                .font(Theme.bodyFont)
+                                .foregroundStyle(Theme.primaryText)
+                            Spacer()
+                            Button {
+                                store.allowFood(food.id)
+                            } label: {
+                                Text(
+                                    LocalizedText(
+                                        fr: "Remettre",
+                                        en: "Put back",
+                                        es: "Devolver"
+                                    )[language]
+                                )
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(Theme.accent)
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                 }
