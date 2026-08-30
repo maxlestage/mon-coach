@@ -145,6 +145,45 @@ public final class CoachStore {
         save()
     }
 
+    /// Écarte un aliment des repas à venir, ou le rétablit.
+    ///
+    /// Ne passe pas par `updateProfile`, et c'est le point important : celui-là
+    /// reconstruit le mésocycle, ce qui effacerait les séances déjà planifiées
+    /// et les charges déjà atteintes. Un dégoût alimentaire n'a aucune raison
+    /// de coûter un bloc d'entraînement. Le plan de repas, lui, se recalcule à
+    /// chaque lecture depuis le profil : écrire le profil suffit.
+    ///
+    /// Rend `false` quand le refus est écarté parce qu'il viderait le rôle —
+    /// l'écran doit le dire plutôt que laisser une journée impossible à
+    /// construire.
+    @discardableResult
+    public func refuseFood(_ foodID: String) -> Bool {
+        guard var profile else { return false }
+        var refused = profile.dislikedFoodIDs ?? []
+        guard !refused.contains(foodID) else { return true }
+        guard FoodSubstitutions.canRefuse(
+            foodID,
+            diet: profile.dietPreference,
+            alreadyExcluded: refused
+        ) else { return false }
+        refused.insert(foodID)
+        profile.dislikedFoodIDs = refused
+        self.profile = profile
+        save()
+        return true
+    }
+
+    /// Rétablit un aliment refusé. Le goût change, et se dédire doit coûter
+    /// un seul geste.
+    public func allowFood(_ foodID: String) {
+        guard var profile, var refused = profile.dislikedFoodIDs, refused.contains(foodID)
+        else { return }
+        refused.remove(foodID)
+        profile.dislikedFoodIDs = refused
+        self.profile = profile
+        save()
+    }
+
     public func recordReadiness(_ check: ReadinessCheck) {
         history.readiness.removeAll { Calendar.current.isDate($0.date, inSameDayAs: check.date) }
         history.readiness.append(check)

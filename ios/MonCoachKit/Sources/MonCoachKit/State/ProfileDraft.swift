@@ -41,6 +41,20 @@ public struct ProfileDraft: Sendable {
     /// Known 1RMs, in kg, for the four lifts worth asking about.
     public var oneRepMax: [String: Double] = [:]
 
+    /// Le profil dont ce brouillon est parti, quand il en vient d'un.
+    ///
+    /// Le formulaire ne demande pas tout ce que le profil porte : les
+    /// aliments refusés se déclarent devant une assiette, les exercices
+    /// douloureux après une série, le profil de course a son propre écran,
+    /// et le nombre de repas, les cartes et la langue vivent dans les
+    /// préférences. Sans mémoire de l'original, `makeProfile` reconstruisait
+    /// un profil neuf où tout cela valait sa valeur par défaut : ouvrir son
+    /// profil pour corriger son poids effaçait le profil de course entier.
+    ///
+    /// Le brouillon garde donc l'original et lui rend ce qu'il ne sait pas
+    /// éditer. Un brouillon vierge — l'inscription — n'a rien à rendre.
+    private var original: UserProfile?
+
     public var experience: ExperienceLevel {
         experienceOverride ?? .inferred(fromTrainingMonths: trainingMonths)
     }
@@ -58,6 +72,7 @@ public struct ProfileDraft: Sendable {
 
     public func makeProfile() -> UserProfile {
         UserProfile(
+            id: original?.id ?? UUID(),
             firstName: firstName.trimmingCharacters(in: .whitespaces),
             birthDate: birthDate,
             sex: sex,
@@ -75,12 +90,18 @@ public struct ProfileDraft: Sendable {
             equipment: equipment,
             loadIncrement: loadIncrement,
             limitations: limitations,
+            dislikedExerciseIDs: original?.dislikedExerciseIDs ?? [],
             activityLevel: activityLevel,
             averageSleepHours: sleepHours,
             stressLevel: stressLevel,
             dietPreference: dietPreference,
             knownOneRepMax: oneRepMax.filter { $0.value > 0 },
-            unit: unit
+            mealsPerDay: original?.mealsPerDay,
+            dislikedFoodIDs: original?.dislikedFoodIDs,
+            running: original?.running,
+            mapTiles: original?.mapTiles,
+            unit: unit,
+            language: original?.language
         )
     }
 
@@ -114,5 +135,6 @@ public struct ProfileDraft: Sendable {
         stressLevel = profile.stressLevel
         dietPreference = profile.dietPreference
         oneRepMax = profile.knownOneRepMax
+        original = profile
     }
 }
