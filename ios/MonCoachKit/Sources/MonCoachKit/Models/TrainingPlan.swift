@@ -160,9 +160,9 @@ public enum SplitTemplate: String, Codable, CaseIterable, Sendable {
             )
         case .pushPullLegsUpperLower:
             LocalizedText(
-                fr: "Cinq séances : trois PPL pour le volume, deux haut/bas pour ramener la fréquence à deux fois par semaine partout.",
-                en: "Five sessions: three PPL for volume, two upper/lower to bring frequency back to twice a week everywhere.",
-                es: "Cinco sesiones: tres PPL para el volumen y dos superior/inferior para devolver la frecuencia a dos veces por semana en todo."
+                fr: "Trois jours PPL pour le volume, complétés par des haut/bas pour garder au moins deux passages par semaine sur chaque muscle.",
+                en: "Three PPL days for volume, completed by upper/lower days to keep every muscle trained at least twice a week.",
+                es: "Tres días PPL para el volumen, completados con superior/inferior para mantener cada músculo entrenado al menos dos veces por semana."
             )
         case .arnold:
             LocalizedText(

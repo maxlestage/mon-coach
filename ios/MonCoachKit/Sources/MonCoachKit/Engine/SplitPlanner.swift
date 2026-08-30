@@ -19,8 +19,19 @@ public enum SplitPlanner {
             return .upperLower
         case 5:
             return .pushPullLegsUpperLower
-        default:
+        case 6:
             return profile.experience == .advanced ? .arnold : .pushPullLegs
+        default:
+            // Seven days. A three-template rotation stops working here:
+            // cycled over seven, it puts the same session type on the last
+            // day of one week and the first day of the next — chest two days
+            // in a row, every single week. The five-template rotation never
+            // lands on itself at the boundary.
+            //
+            // Training every day does not multiply the volume: the weekly
+            // set budget stays the same, spread over more sessions — each
+            // one shorter, and that is where recovery lives.
+            return .pushPullLegsUpperLower
         }
     }
 
@@ -106,16 +117,21 @@ public enum SplitPlanner {
         guard !templates.isEmpty, count > 0 else { return [] }
         return (0..<count).map { index in
             let base = templates[index % templates.count]
-            // Second pass through the rotation gets a suffix so the week reads clearly.
-            guard index >= templates.count else { return base }
-            return DayTemplate(title: base.title + .constant(" B"), muscles: base.muscles)
+            // Each pass through the rotation after the first gets its own
+            // suffix — "B", then "C" — so two days of the same type never
+            // share a name within the week.
+            let pass = index / templates.count
+            guard pass > 0 else { return base }
+            let suffix = letter(pass)
+            return DayTemplate(title: base.title + .constant(" \(suffix)"), muscles: base.muscles)
         }
     }
 
     private static func letter(_ index: Int) -> String {
-        let letters = ["A", "B", "C", "D", "E", "F"]
+        let letters = ["A", "B", "C", "D", "E", "F", "G"]
         return letters[index % letters.count]
     }
+
 
     /// Splits the weekly volume budget across the days that own each muscle.
     ///
