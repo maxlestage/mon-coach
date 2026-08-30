@@ -122,7 +122,7 @@ struct ProfileEditorView: View {
     private var availabilitySection: some View {
         Card(title: "Disponibilité") {
             Picker("Séances par semaine", selection: $draft.daysPerWeek) {
-                ForEach(2...6, id: \.self) { Text("\($0)").tag($0) }
+                ForEach(2...7, id: \.self) { Text("\($0)").tag($0) }
             }
             .pickerStyle(.segmented)
             SliderRow(

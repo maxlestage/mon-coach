@@ -175,7 +175,7 @@ struct SplitTests {
 
     @Test("Le nombre de jours correspond toujours à la disponibilité")
     func dayCountMatches() {
-        for days in 2...6 {
+        for days in 2...7 {
             let profile = Fixtures.intermediate(daysPerWeek: days)
             let split = SplitPlanner.split(for: profile)
             #expect(SplitPlanner.days(for: split, daysPerWeek: days).count == days)
@@ -202,7 +202,7 @@ struct SplitTests {
 
     @Test("Aucun jour ne se retrouve avec une seule série sur un muscle")
     func noOrphanSets() {
-        for days in 2...6 {
+        for days in 2...7 {
             let profile = Fixtures.intermediate(daysPerWeek: days)
             let volume = VolumeEngine.prescription(for: profile)
             let templates = SplitPlanner.days(for: SplitPlanner.split(for: profile), daysPerWeek: days)

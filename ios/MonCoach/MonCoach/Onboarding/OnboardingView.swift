@@ -352,7 +352,7 @@ struct OnboardingView: View {
                 subtitle: "Réponds avec ce que tu tiendras un mois de suite, pas avec ce que tu voudrais tenir."
             ) {
                 Picker("", selection: $draft.daysPerWeek) {
-                    ForEach(2...6, id: \.self) { Text("\($0)").tag($0) }
+                    ForEach(2...7, id: \.self) { Text("\($0)").tag($0) }
                 }
                 .pickerStyle(.segmented)
 

@@ -31,7 +31,7 @@ public struct UserProfile: Codable, Sendable, Equatable, Identifiable {
     public var deadline: Date?
 
     // MARK: Availability
-    /// Sessions per week the athlete commits to, 2–6.
+    /// Sessions per week the athlete commits to, 2–7.
     public var daysPerWeek: Int
     /// Minutes available per session, warm-up included.
     public var sessionMinutes: Int
@@ -132,7 +132,7 @@ public struct UserProfile: Codable, Sendable, Equatable, Identifiable {
         self.goal = goal
         self.targetWeightKg = targetWeightKg
         self.deadline = deadline
-        self.daysPerWeek = daysPerWeek.clamped(to: 2...6)
+        self.daysPerWeek = daysPerWeek.clamped(to: 2...7)
         self.sessionMinutes = sessionMinutes.clamped(to: 20...150)
         self.equipment = equipment.isEmpty ? [.bodyweight] : equipment
         self.loadIncrement = loadIncrement

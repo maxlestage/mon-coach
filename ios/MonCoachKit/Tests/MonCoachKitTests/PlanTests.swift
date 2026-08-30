@@ -7,7 +7,7 @@ struct PlanBuilderTests {
 
     @Test("Chaque semaine contient le nombre de séances promis")
     func sessionCount() {
-        for days in 2...6 {
+        for days in 2...7 {
             let plan = PlanBuilder.build(
                 for: Fixtures.intermediate(daysPerWeek: days),
                 startingOn: Fixtures.start,
@@ -16,6 +16,24 @@ struct PlanBuilderTests {
             for week in plan.weeks {
                 #expect(week.sessions.count == days, "semaine \(week.index) : \(week.sessions.count) séances pour \(days) prévues")
             }
+        }
+    }
+
+    @Test("Sept jours : deux séances du même type ne se suivent jamais, frontière de semaine comprise")
+    func sevenDaysNeverRepeatAcrossTheWeekBoundary() {
+        // Une rotation de trois gabarits cyclée sur sept jours remettrait le
+        // même type de séance au dernier jour d'une semaine et au premier de
+        // la suivante — les pectoraux deux jours de suite, chaque semaine.
+        // La comparaison inclut donc le retour au jour zéro.
+        let split = SplitPlanner.split(for: Fixtures.intermediate(daysPerWeek: 7))
+        let days = SplitPlanner.days(for: split, daysPerWeek: 7)
+        #expect(days.count == 7)
+        for index in days.indices {
+            let next = days[(index + 1) % days.count]
+            #expect(
+                days[index].muscles != next.muscles,
+                "jour \(index) et le suivant entraînent les mêmes muscles"
+            )
         }
     }
 
@@ -83,7 +101,7 @@ struct PlanBuilderTests {
     @Test("Une séance contient toujours au moins trois exercices")
     func sessionsAreNotEmpty() {
         for minutes in [30, 45, 90] {
-            for days in 2...6 {
+            for days in 2...7 {
                 let profile = Fixtures.intermediate(daysPerWeek: days, sessionMinutes: minutes)
                 let plan = PlanBuilder.build(for: profile, startingOn: Fixtures.start, calendar: Fixtures.calendar)
                 for week in plan.weeks {
@@ -137,7 +155,7 @@ struct PlanBuilderTests {
 
     @Test("Un même exercice n'apparaît pas deux fois dans la même séance")
     func noDuplicatesWithinASession() {
-        for days in 2...6 {
+        for days in 2...7 {
             let plan = PlanBuilder.build(
                 for: Fixtures.intermediate(daysPerWeek: days),
                 startingOn: Fixtures.start,
