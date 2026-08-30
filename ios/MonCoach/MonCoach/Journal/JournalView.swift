@@ -134,17 +134,18 @@ struct JournalView: View {
     // MARK: - Carte de chaleur
 
     private var heatmapCard: some View {
-        Group {
-            if let grid = Heatmap.grid(of: store.history.activities) {
+        let traced = store.history.activities.filter { !$0.points.isEmpty }
+        return Group {
+            if !traced.isEmpty {
                 Card(
                     title: LocalizedText(fr: "Tes parcours", en: "Your routes", es: "Tus recorridos")[language],
                     subtitle: LocalizedText(
-                        fr: "Calculée sur l'appareil — cette image ne part nulle part.",
-                        en: "Computed on the device — this image goes nowhere.",
-                        es: "Calculada en el dispositivo: esta imagen no va a ninguna parte."
+                        fr: "Dessinée sur l'appareil — cette image ne part nulle part.",
+                        en: "Drawn on the device — this image goes nowhere.",
+                        es: "Dibujada en el dispositivo: esta imagen no va a ninguna parte."
                     )[language]
                 ) {
-                    HeatmapCanvas(grid: grid)
+                    RoutesCanvas(activities: traced)
                         .frame(height: 220)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
@@ -329,31 +330,100 @@ struct JournalView: View {
 }
 
 /// La carte de chaleur dessinée, case par case.
-struct HeatmapCanvas: View {
-    var grid: Heatmap.Grid
+/// Tous les parcours, dessinés comme des tracés — pas comme des cases.
+///
+/// La première version agrégeait les traces en grille de cases de 75 m :
+/// honnête sur la fréquentation, mais illisible comme carte — des marches
+/// d'escalier là où la route est droite, et des morceaux avalés quand un
+/// bout de parcours tombait entre deux cases. Ici chaque sortie est un
+/// trait continu, du premier point au dernier, projeté à l'échelle. Les
+/// endroits parcourus souvent ressortent tout seuls : les traits
+/// s'empilent, et l'empilement éclaircit.
+struct RoutesCanvas: View {
+    var activities: [ActivityLog]
+
+    /// Assez de points pour que chaque virage existe, assez peu pour que
+    /// vingt sorties se dessinent sans faire chauffer l'écran. Le dernier
+    /// point est toujours gardé : un parcours qui s'arrête avant la fin
+    /// est exactement ce qu'on répare ici.
+    private static let maxPointsPerRoute = 400
 
     var body: some View {
         Canvas { context, size in
             context.fill(Path(CGRect(origin: .zero, size: size)), with: .color(Theme.surfaceRaised))
-            // La grille garde ses proportions géographiques : un carré de
-            // rues doit rester un carré à l'écran.
-            let scale = min(size.width / CGFloat(grid.columns), size.height / CGFloat(grid.rows))
-            let offsetX = (size.width - CGFloat(grid.columns) * scale) / 2
-            let offsetY = (size.height - CGFloat(grid.rows) * scale) / 2
-            for cell in grid.cells {
-                let intensity = Double(cell.visits) / Double(max(1, grid.maxVisits))
-                let rect = CGRect(
-                    x: offsetX + CGFloat(cell.column) * scale,
-                    // Les lignes comptent depuis le sud : l'écran, depuis le haut.
-                    y: offsetY + CGFloat(grid.rows - 1 - cell.row) * scale,
-                    width: max(1, scale),
-                    height: max(1, scale)
+
+            let routes = activities.map { Self.thinned($0.points) }
+            let all = routes.flatMap { $0 }
+            guard let minLat = all.map(\.latitude).min(),
+                  let maxLat = all.map(\.latitude).max(),
+                  let minLon = all.map(\.longitude).min(),
+                  let maxLon = all.map(\.longitude).max()
+            else { return }
+
+            // La longitude est resserrée par le cosinus de la latitude,
+            // comme sur toutes les cartes de l'application : sans ça, un
+            // aller-retour est-ouest paraît 1,5 fois trop long.
+            let midLatRadians = (minLat + maxLat) / 2 * .pi / 180
+            let spanX = max(0.000001, (maxLon - minLon) * cos(midLatRadians))
+            let spanY = max(0.000001, maxLat - minLat)
+            let inset: CGFloat = 14
+            let scale = min((size.width - inset * 2) / spanX, (size.height - inset * 2) / spanY)
+            let offsetX = (size.width - spanX * scale) / 2
+            let offsetY = (size.height - spanY * scale) / 2
+
+            func project(_ point: GPSPoint) -> CGPoint {
+                CGPoint(
+                    x: offsetX + (point.longitude - minLon) * cos(midLatRadians) * scale,
+                    y: offsetY + (maxLat - point.latitude) * scale
                 )
-                context.fill(
-                    Path(rect),
-                    with: .color(Theme.accent.opacity(0.25 + 0.75 * intensity))
+            }
+
+            // Chaque trait est translucide : là où les sorties repassent,
+            // ils s'empilent et brillent — la carte de chaleur sans les cases.
+            let style = StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round)
+            for route in routes where route.count >= 2 {
+                context.stroke(
+                    Self.smoothPath(route.map(project)),
+                    with: .color(Theme.accent.opacity(0.5)),
+                    style: style
                 )
             }
         }
+    }
+
+    /// Réduit une trace sans jamais perdre ses extrémités.
+    static func thinned(_ points: [GPSPoint]) -> [GPSPoint] {
+        guard points.count > maxPointsPerRoute else { return points }
+        let stride = points.count / maxPointsPerRoute + 1
+        var kept = points.indices.filter { $0 % stride == 0 }.map { points[$0] }
+        if let last = points.last, kept.last != last {
+            kept.append(last)
+        }
+        return kept
+    }
+
+    /// Un chemin qui passe par les points en arrondissant les angles.
+    ///
+    /// Chaque segment est tiré vers le milieu du suivant par une courbe
+    /// quadratique : les lignes droites restent droites — trois points
+    /// alignés donnent une courbe plate — et les virages s'arrondissent au
+    /// lieu de casser. C'est ce qu'un trait de GPS mérite : la route était
+    /// lisse, c'est l'échantillonnage qui ne l'était pas.
+    static func smoothPath(_ points: [CGPoint]) -> Path {
+        var path = Path()
+        guard let first = points.first else { return path }
+        path.move(to: first)
+        guard points.count > 2 else {
+            for point in points.dropFirst() { path.addLine(to: point) }
+            return path
+        }
+        for index in 1..<(points.count - 1) {
+            let current = points[index]
+            let next = points[index + 1]
+            let middle = CGPoint(x: (current.x + next.x) / 2, y: (current.y + next.y) / 2)
+            path.addQuadCurve(to: middle, control: current)
+        }
+        path.addLine(to: points[points.count - 1])
+        return path
     }
 }
