@@ -1,5 +1,6 @@
 import SwiftUI
 import MonCoachKit
+import UniformTypeIdentifiers
 
 /// L'écran d'une sortie en cours.
 ///
@@ -26,6 +27,9 @@ struct RunTrackerView: View {
     /// figée à l'initialisation afficherait un bouton pour rien — ou le
     /// cacherait quand il faudrait.
     @State private var hasStrayActivity = false
+    @State private var showsImporter = false
+    @State private var importError = false
+    @State private var importedCount = 0
 
     private var unit: UnitSystem { store.profile?.unit ?? .metric }
     private var loadsTiles: Bool { store.profile?.loadsMapTiles ?? true }
@@ -88,6 +92,46 @@ struct RunTrackerView: View {
                     finishedRun = nil
                     dismiss()
                 }
+            }
+            .fileImporter(
+                isPresented: $showsImporter,
+                allowedContentTypes: [UTType(filenameExtension: "gpx") ?? .xml, .xml],
+                allowsMultipleSelection: true
+            ) { result in
+                importedCount = 0
+                guard case .success(let urls) = result else { return }
+                for url in urls {
+                    // L'accès sécurisé est requis pour un fichier venu des
+                    // Fichiers ou d'AirDrop ; sans lui, la lecture échoue en
+                    // silence sur un vrai appareil.
+                    let secured = url.startAccessingSecurityScopedResource()
+                    defer { if secured { url.stopAccessingSecurityScopedResource() } }
+                    guard let text = try? String(contentsOf: url, encoding: .utf8),
+                          (try? store.importGPX(text)) != nil
+                    else {
+                        importError = true
+                        continue
+                    }
+                    importedCount += 1
+                }
+            }
+            .alert(
+                LocalizedText(
+                    fr: "Ce fichier n'a pas pu être lu",
+                    en: "This file could not be read",
+                    es: "No se ha podido leer este archivo"
+                )[language],
+                isPresented: $importError
+            ) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                CoachText(
+                    LocalizedText(
+                        fr: "Le fichier doit être un GPX avec des points horodatés.",
+                        en: "The file must be a GPX with timestamped points.",
+                        es: "El archivo debe ser un GPX con puntos con marca de tiempo."
+                    )
+                )
             }
         }
     }
@@ -231,6 +275,16 @@ struct RunTrackerView: View {
                 )
             }
 
+            // La carte avant le départ : voir le point bleu se poser sur la
+            // bonne rue, c'est voir le GPS se caler — exactement ce que le
+            // conseil en dessous demande d'attendre. Sans fond de carte
+            // autorisé, il n'y a rien à montrer ici : la trace n'existe pas
+            // encore, et un rectangle gris n'aiderait personne.
+            if loadsTiles {
+                RunMapView(points: [], showsCurrentPosition: true, loadsTiles: true)
+                    .frame(height: 220)
+            }
+
             CoachText(
                 LocalizedText(
                     fr: "Le GPS met souvent trente secondes à se caler. Attends que la précision passe au vert avant de partir, sinon les premiers hectomètres seront faux.",
@@ -238,10 +292,72 @@ struct RunTrackerView: View {
                     es: "El GPS suele tardar treinta segundos en asentarse. Espera a que la precisión se ponga en verde antes de salir, o los primeros cientos de metros saldrán mal."
                 )
             )
+
+            tracesCard
         }
         .onAppear {
             if let plannedRun { selectedType = plannedRun.type }
             hasStrayActivity = RunActivityController.hasAny
+        }
+    }
+
+    /// L'entrée et la sortie des traces, à portée de main de l'écran Course.
+    ///
+    /// Les deux existaient déjà — l'import dans le Journal, l'export sur la
+    /// fiche de chaque sortie — mais c'est ici qu'on pense à elles : au
+    /// moment de courir, pas en relisant l'historique. Le même geste, au
+    /// même endroit que le besoin.
+    private var tracesCard: some View {
+        Card(
+            title: LocalizedText(fr: "Tes traces", en: "Your traces", es: "Tus trazas")[language]
+        ) {
+            VStack(alignment: .leading, spacing: 10) {
+                CoachText(
+                    LocalizedText(
+                        fr: "Importe un GPX d'une montre ou d'une autre application : il entre dans l'historique et compte pour tes records. Chaque sortie s'exporte aussi depuis sa fiche du journal.",
+                        en: "Import a GPX from a watch or another app: it joins your history and counts towards your records. Every activity also exports from its journal page.",
+                        es: "Importa un GPX de un reloj o de otra aplicación: entra en tu historial y cuenta para tus récords. Cada salida también se exporta desde su ficha del diario."
+                    )
+                )
+                if importedCount > 0 {
+                    Pill(text: LocalizedText(
+                        fr: "\(importedCount) importée(s)",
+                        en: "\(importedCount) imported",
+                        es: "\(importedCount) importada(s)"
+                    )[language])
+                }
+                GhostButton(
+                    title: LocalizedText(fr: "Importer un GPX", en: "Import a GPX", es: "Importar un GPX")[language],
+                    systemImage: "square.and.arrow.down"
+                ) {
+                    showsImporter = true
+                }
+                if let last = store.history.activities.last {
+                    // Le fichier se fabrique au moment du partage seulement,
+                    // comme sur la fiche : un GPX de sortie longue pèse des
+                    // mégaoctets.
+                    ShareLink(
+                        item: GPXFile(activity: last),
+                        preview: SharePreview(GPX.trackName(for: last))
+                    ) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "square.and.arrow.up")
+                            Text(
+                                LocalizedText(
+                                    fr: "Exporter la dernière sortie",
+                                    en: "Export the latest activity",
+                                    es: "Exportar la última salida"
+                                )[language]
+                            )
+                            .font(.system(size: 15, weight: .medium, design: .rounded))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 13)
+                        .background(Theme.surfaceRaised, in: RoundedRectangle(cornerRadius: 14))
+                        .foregroundStyle(Theme.primaryText)
+                    }
+                }
+            }
         }
     }
 
