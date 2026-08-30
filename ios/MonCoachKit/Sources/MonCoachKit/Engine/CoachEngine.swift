@@ -37,6 +37,11 @@ public struct TodayBriefing: Sendable, Equatable {
     public let recordedRun: ActivityLog?
     /// What to eat today, built around the same macros as `nutrition`.
     public let food: DayPlan
+    /// On a rest day, the session coming next — so the home screen can say
+    /// what is ahead instead of just « rien aujourd'hui ». Nil on training
+    /// days: today's session already lives in `state`, and showing the same
+    /// list twice would only pad the screen.
+    public let nextSession: PlannedSession?
 
     public var session: PlannedSession? {
         if case let .training(session) = state { return session }
@@ -143,7 +148,8 @@ public enum CoachEngine {
                 loadDecisions: [:],
                 plannedRun: nil,
                 recordedRun: history.run(on: date, calendar: calendar),
-                food: dayPlan(for: program, on: date, trains: false, runs: false, calendar: calendar)
+                food: dayPlan(for: program, on: date, trains: false, runs: false, calendar: calendar),
+                nextSession: nil
             )
         }
 
@@ -167,6 +173,12 @@ public enum CoachEngine {
                     trains: false,
                     runs: plannedRun != nil,
                     calendar: calendar
+                ),
+                nextSession: upcomingSession(
+                    in: week,
+                    program: program,
+                    history: history,
+                    calendar: calendar
                 )
             )
         }
@@ -189,7 +201,8 @@ public enum CoachEngine {
             loadDecisions: decisions,
             plannedRun: plannedRun,
             recordedRun: recordedRun,
-            food: dayPlan(for: program, on: date, trains: true, runs: plannedRun != nil, calendar: calendar)
+            food: dayPlan(for: program, on: date, trains: true, runs: plannedRun != nil, calendar: calendar),
+            nextSession: nil
         )
     }
 
@@ -263,6 +276,36 @@ public enum CoachEngine {
         return remaining.count >= daysLeft || shouldTrain(daysElapsed: daysElapsed, sessionsPerWeek: week.sessions.count)
             ? remaining.first
             : nil
+    }
+
+    /// The next session the athlete has not done yet — what a rest day can
+    /// announce. Today's gates (already trained, spacing across the week) are
+    /// deliberately ignored: the question is not « should you train today? »
+    /// but « what is coming? ». When the week is exhausted, the first session
+    /// of the next week answers it.
+    ///
+    /// The loads are not prescribed here, and the screen must not show any:
+    /// they are decided the day itself, from that morning's check-in.
+    static func upcomingSession(
+        in week: PlannedWeek,
+        program: CoachingProgram,
+        history: TrainingHistory,
+        calendar: Calendar
+    ) -> PlannedSession? {
+        let weekStart = calendar.date(
+            byAdding: .day,
+            value: (week.index - 1) * 7,
+            to: program.plan.startDate
+        ) ?? program.plan.startDate
+        guard let weekEnd = calendar.date(byAdding: .day, value: 7, to: weekStart) else { return nil }
+        let logged = history.sessions(in: DateInterval(start: weekStart, end: weekEnd))
+        let completedIDs = Set(
+            logged.filter { !$0.skipped }.compactMap(\.plannedSessionID)
+        )
+        if let next = week.sessions.first(where: { !completedIDs.contains($0.id) }) {
+            return next
+        }
+        return program.plan.week(at: week.index + 1)?.sessions.first
     }
 
     /// The run prescribed for a given day, if the athlete runs.

@@ -203,6 +203,17 @@ struct TodayView: View {
                     .font(Theme.bodyFont)
                     .foregroundStyle(Theme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
+
+                // Ce qui attend, exercices compris — un jour de repos n'est
+                // pas un écran vide. Sans les charges : elles se décident le
+                // jour même, à partir du check-in de ce matin-là.
+                if let next = briefing.nextSession {
+                    Divider().overlay(Theme.separator)
+                    Text("Ta prochaine séance : \(next.title[language])")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Theme.primaryText)
+                    SessionSummary(session: next, unit: unit, showsLoads: false)
+                }
             }
 
         case .blockFinished:
