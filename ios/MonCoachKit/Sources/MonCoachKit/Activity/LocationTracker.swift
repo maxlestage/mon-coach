@@ -38,6 +38,9 @@ public final class LocationTracker: NSObject {
     /// point n'est arrivé — c'est ce que l'écran affiche pour dire « je
     /// cherche le signal ».
     public private(set) var currentAccuracy: Double = -1
+    /// Vitesse instantanée du dernier point, en m/s. Négative quand le GPS
+    /// ne sait pas la donner.
+    public private(set) var currentSpeed: Double = -1
 
     public var type: RunType = .easy
     /// Le sport en cours. Fixé au départ : c'est lui qui décide des seuils.
@@ -117,6 +120,17 @@ public final class LocationTracker: NSObject {
 
     public var isActive: Bool { state == .running || state == .paused }
 
+    /// L'athlète est-il à l'arrêt, feu rouge ou lacet à refaire ?
+    ///
+    /// Le chrono le sait déjà : le temps en mouvement exclut les arrêts par
+    /// construction. Mais un chrono qui se fige sans un mot ressemble à un
+    /// bug — cette lecture existe pour que l'écran puisse dire « à l'arrêt,
+    /// le chrono attend » pendant que ça arrive. Le seuil est celui d'un pas
+    /// très lent : en dessous, on ne se déplace pas, on piétine.
+    public var isStationary: Bool {
+        state == .running && currentSpeed >= 0 && currentSpeed < 0.5
+    }
+
     // MARK: - Commandes
 
     public func start(sport: Sport = .run, type: RunType) {
@@ -168,6 +182,7 @@ public final class LocationTracker: NSObject {
         trace = nil
         startedAt = nil
         currentAccuracy = -1
+        currentSpeed = -1
     }
 
     /// L'application déclare-t-elle le mode d'arrière-plan « location » ?
@@ -207,6 +222,7 @@ public final class LocationTracker: NSObject {
         guard state == .running else { return }
         for location in locations {
             currentAccuracy = location.horizontalAccuracy
+            currentSpeed = location.speed
             points.append(
                 GPSPoint(
                     timestamp: location.timestamp,

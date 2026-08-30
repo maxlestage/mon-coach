@@ -28,6 +28,13 @@ struct RunTrackerView: View {
     /// cacherait quand il faudrait.
     @State private var hasStrayActivity = false
     @State private var showsImporter = false
+    /// La voix des kilomètres. Créée une fois : le synthétiseur garde une
+    /// file de phrases, en recréer un par annonce la viderait.
+    @State private var announcer = VoiceAnnouncer()
+    /// Annonces vocales au passage de chaque kilomètre. C'est une habitude
+    /// d'écouteurs, pas un réglage de séance : elle se garde d'une sortie à
+    /// l'autre.
+    @AppStorage("annonces-vocales") private var speaksKilometres = true
     @State private var importError = false
     @State private var importedCount = 0
 
@@ -293,6 +300,32 @@ struct RunTrackerView: View {
                 )
             )
 
+            Card {
+                Toggle(isOn: $speaksKilometres) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(
+                            LocalizedText(
+                                fr: "Annonces vocales",
+                                en: "Voice announcements",
+                                es: "Avisos de voz"
+                            )[language]
+                        )
+                        .font(Theme.bodyFont)
+                        .foregroundStyle(Theme.primaryText)
+                        Text(
+                            LocalizedText(
+                                fr: "À chaque kilomètre : le numéro, l'allure, le temps total. La voix baisse la musique, elle ne la coupe pas.",
+                                en: "At every kilometer: the number, the pace, the total time. The voice ducks your music, it never stops it.",
+                                es: "En cada kilómetro: el número, el ritmo, el tiempo total. La voz baja la música, no la corta."
+                            )[language]
+                        )
+                        .font(Theme.captionFont)
+                        .foregroundStyle(Theme.secondaryText)
+                    }
+                }
+                .tint(Theme.accent)
+            }
+
             tracesCard
         }
         .onAppear {
@@ -420,6 +453,19 @@ struct RunTrackerView: View {
                 Card(title: UI.splits[language]) {
                     SplitList(splits: tracker.splits, unit: unit)
                 }
+                .onChange(of: tracker.splits.count) { previous, current in
+                    // Un kilomètre vient de se boucler. Le dernier segment de
+                    // la liste est souvent entamé, pas fini : celui qu'on
+                    // annonce est le dernier complet.
+                    guard speaksKilometres, current > previous,
+                          let done = tracker.splits.last(where: { $0.meters >= 950 })
+                    else { return }
+                    announcer.announce(
+                        split: done,
+                        totalSeconds: tracker.movingDuration,
+                        language: language
+                    )
+                }
             }
 
             HStack(spacing: 12) {
@@ -464,6 +510,17 @@ struct RunTrackerView: View {
             Spacer()
             if tracker.state == .paused {
                 Pill(text: UI.pause[language], tint: Theme.warning)
+            } else if tracker.isStationary {
+                // Le chrono exclut déjà les arrêts ; sans ce mot, il a l'air
+                // figé par un bug alors qu'il attend, comme promis.
+                Pill(
+                    text: LocalizedText(
+                        fr: "À l'arrêt — le chrono attend",
+                        en: "Stopped — the clock is waiting",
+                        es: "Parado — el crono espera"
+                    )[language],
+                    tint: Theme.secondaryText
+                )
             }
         }
     }
