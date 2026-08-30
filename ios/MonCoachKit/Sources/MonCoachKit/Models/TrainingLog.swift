@@ -140,6 +140,8 @@ public struct TrainingHistory: Codable, Sendable, Equatable {
     public var readiness: [ReadinessCheck]
     /// Toutes les activités enregistrées, tous sports confondus.
     public var activities: [ActivityLog]
+    /// Le parc de matériel — chaussures, vélos — retraités compris.
+    public var gear: [Gear]
 
     /// Le champ s'appelait `runs` quand il n'y avait que la course. Les
     /// fichiers déjà écrits portent ce nom : le renommer sans le dire ici
@@ -149,18 +151,32 @@ public struct TrainingHistory: Codable, Sendable, Equatable {
         case bodyLogs
         case readiness
         case activities = "runs"
+        case gear
     }
 
     public init(
         sessions: [SessionLog] = [],
         bodyLogs: [BodyLog] = [],
         readiness: [ReadinessCheck] = [],
-        activities: [ActivityLog] = []
+        activities: [ActivityLog] = [],
+        gear: [Gear] = []
     ) {
         self.sessions = sessions
         self.bodyLogs = bodyLogs
         self.readiness = readiness
         self.activities = activities
+        self.gear = gear
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        sessions = try container.decode([SessionLog].self, forKey: .sessions)
+        bodyLogs = try container.decode([BodyLog].self, forKey: .bodyLogs)
+        readiness = try container.decode([ReadinessCheck].self, forKey: .readiness)
+        activities = try container.decode([ActivityLog].self, forKey: .activities)
+        // Toléré absent : les historiques écrits avant le matériel n'ont pas
+        // la clé, et un historique illisible est un athlète qui perd tout.
+        gear = try container.decodeIfPresent([Gear].self, forKey: .gear) ?? []
     }
 
     public static let empty = TrainingHistory()

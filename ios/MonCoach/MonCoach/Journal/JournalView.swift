@@ -1,3 +1,4 @@
+import Charts
 import SwiftUI
 import MonCoachKit
 import UniformTypeIdentifiers
@@ -24,6 +25,7 @@ struct JournalView: View {
                     emptyCard
                 } else {
                     streakCard
+                    fitnessCard
                     heatmapCard
                     recordsCard
                     weeksCard
@@ -231,6 +233,64 @@ struct JournalView: View {
                         }
                     }
                     .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    // MARK: - Forme et fatigue
+
+    /// La courbe de charge : la condition qui se construit sur six semaines,
+    /// la fatigue qui monte et retombe en une, et leur solde — la forme.
+    @ViewBuilder
+    private var fitnessCard: some View {
+        let series = TrainingLoadEngine.series(
+            activities: store.history.activities,
+            maximumBpm: maximumBpm
+        )
+        if let today = series.last, series.count >= 7 {
+            Card(
+                title: LocalizedText(fr: "Forme et fatigue", en: "Fitness and fatigue", es: "Forma y fatiga")[language],
+                subtitle: LocalizedText(
+                    fr: "Ce que tes sorties font ensemble : la condition se construit en six semaines, la fatigue s'efface en une.",
+                    en: "What your activities do together: fitness builds over six weeks, fatigue clears in one.",
+                    es: "Lo que tus salidas hacen juntas: la condición se construye en seis semanas, la fatiga se disipa en una."
+                )[language]
+            ) {
+                let conditionLabel = LocalizedText(fr: "Condition", en: "Fitness", es: "Condición")[language]
+                let fatigueLabel = LocalizedText(fr: "Fatigue", en: "Fatigue", es: "Fatiga")[language]
+                Chart(series) { point in
+                    LineMark(
+                        x: .value("Date", point.date),
+                        y: .value("Charge", point.fitness),
+                        series: .value("Courbe", conditionLabel)
+                    )
+                    .foregroundStyle(by: .value("Courbe", conditionLabel))
+
+                    LineMark(
+                        x: .value("Date", point.date),
+                        y: .value("Charge", point.fatigue),
+                        series: .value("Courbe", fatigueLabel)
+                    )
+                    .foregroundStyle(by: .value("Courbe", fatigueLabel))
+                }
+                .chartForegroundStyleScale([
+                    conditionLabel: Theme.accent,
+                    fatigueLabel: Theme.warning
+                ])
+                .frame(height: 170)
+
+                HStack {
+                    Text(LocalizedText(fr: "Forme aujourd'hui", en: "Form today", es: "Forma hoy")[language])
+                        .font(Theme.captionFont)
+                        .foregroundStyle(Theme.secondaryText)
+                    Spacer()
+                    Text(Format.signed(today.form, decimals: 0))
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .foregroundStyle(today.form >= 0 ? Theme.accent : Theme.warning)
+                }
+                if let verdict = TrainingLoadEngine.verdict(for: today) {
+                    CoachText(verdict)
                 }
             }
         }
