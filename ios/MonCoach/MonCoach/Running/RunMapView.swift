@@ -133,6 +133,13 @@ struct MapLibreRouteMap: UIViewRepresentable {
         mapView.showsUserLocation = showsCurrentPosition
         mapView.isRotateEnabled = false
         mapView.isPitchEnabled = false
+        // Tant qu'il n'y a pas de trace, la carte suit l'athlète : c'est le
+        // cas de l'écran d'avant-départ, où une carte du monde entier ne
+        // renseignerait sur rien. Dès que la trace existe, c'est elle qui
+        // cadre la vue — le suivi est rendu au moment du premier dessin.
+        if showsCurrentPosition && points.count < 2 {
+            mapView.userTrackingMode = .follow
+        }
         return mapView
     }
 
@@ -161,6 +168,10 @@ struct MapLibreRouteMap: UIViewRepresentable {
             // dix nouveaux points, ou à la demande.
             guard force || points.count - drawnPointCount >= 10 else { return }
             drawnPointCount = points.count
+
+            // Le suivi de la position et le cadrage sur la trace se disputent
+            // la caméra ; à partir d'ici, la trace gagne.
+            mapView.userTrackingMode = .none
 
             var coordinates = points.map {
                 CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)
