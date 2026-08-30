@@ -56,6 +56,31 @@ struct CoachEngineTests {
         #expect(after.state == .rest)
     }
 
+    @Test("Un jour de repos annonce la prochaine séance, exercices compris")
+    func restDayAnnouncesTheNextSession() {
+        let program = program()
+        let first = try! #require(
+            CoachEngine.briefing(for: program, history: .empty, on: Fixtures.start, calendar: Fixtures.calendar).session
+        )
+        let history = TrainingHistory(sessions: [Fixtures.perfectSession(first, on: Fixtures.start)])
+
+        // Le même jour, une fois la séance faite : repos — mais pas muet.
+        let after = CoachEngine.briefing(
+            for: program, history: history, on: Fixtures.start, calendar: Fixtures.calendar
+        )
+        #expect(after.state == .rest)
+        let next = try! #require(after.nextSession)
+        #expect(next.id != first.id, "la séance annoncée est celle qu'on vient de faire")
+        #expect(!next.exercises.isEmpty, "une séance annoncée sans exercices n'annonce rien")
+
+        // Un jour d'entraînement, en revanche, n'annonce rien de plus : la
+        // séance du jour est déjà là.
+        let trainingDay = CoachEngine.briefing(
+            for: program, history: .empty, on: Fixtures.start, calendar: Fixtures.calendar
+        )
+        #expect(trainingDay.nextSession == nil)
+    }
+
     @Test("La séance suivante attend le lendemain, pas deux minutes plus tard")
     func nextSessionIsTheNextDay() {
         let program = program()
