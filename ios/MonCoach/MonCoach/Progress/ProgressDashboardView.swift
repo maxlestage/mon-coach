@@ -30,6 +30,7 @@ struct ProgressDashboardView: View {
             ScrollView {
                 VStack(spacing: Theme.stackSpacing) {
                     summaryCard
+                    volumeCard
                     bodyWeightCard
                     strengthCard
                     weeklyReviewCard
@@ -72,6 +73,64 @@ struct ProgressDashboardView: View {
             cursor = weekStart
         }
         return streak
+    }
+
+    // MARK: Volume
+
+    /// Une barre par semaine : les séries réellement faites.
+    ///
+    /// C'est le graphique qui vit dès la première séance, quand les deux
+    /// autres attendent encore leurs données — le poids de corps veut
+    /// plusieurs pesées, la force plusieurs journées. Et c'est la mesure la
+    /// plus honnête du travail : le tonnage ment sur les exercices au poids
+    /// de corps, une série faite est une série faite.
+    private var weeklySets: [TrendPoint] {
+        let calendar = Calendar.current
+        var byWeek: [Date: Int] = [:]
+        for session in history.sessions where !session.skipped {
+            guard let week = calendar.dateInterval(of: .weekOfYear, for: session.date)?.start
+            else { continue }
+            byWeek[week, default: 0] += session.sets.count
+        }
+        return byWeek
+            .map { TrendPoint(date: $0.key, value: Double($0.value)) }
+            .sorted { $0.date < $1.date }
+    }
+
+    @ViewBuilder
+    private var volumeCard: some View {
+        let weeks = weeklySets
+        if !weeks.isEmpty {
+            Card(
+                title: "Volume par semaine",
+                subtitle: "Les séries faites, semaine après semaine. La progression vient de cette charge qui monte doucement — pas d'une séance héroïque."
+            ) {
+                Chart(weeks) { point in
+                    BarMark(
+                        x: .value("Semaine", point.date, unit: .weekOfYear),
+                        y: .value("Séries", point.value)
+                    )
+                    .foregroundStyle(Theme.accent)
+                    .cornerRadius(4)
+                }
+                .frame(height: 150)
+
+                // La dernière barre n'est pas forcément la semaine en cours :
+                // après une semaine sans séance, elle date. Le chiffre du bas
+                // dit la semaine en cours, zéro compris — c'est sa valeur.
+                let thisWeek = Calendar.current.dateInterval(of: .weekOfYear, for: Date())?.start
+                let current = weeks.last.flatMap { $0.date == thisWeek ? Int($0.value) : nil } ?? 0
+                HStack {
+                    Text("Cette semaine")
+                        .font(Theme.captionFont)
+                        .foregroundStyle(Theme.secondaryText)
+                    Spacer()
+                    Text("\(current) séries")
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundStyle(current > 0 ? Theme.accent : Theme.secondaryText)
+                }
+            }
+        }
     }
 
     // MARK: Body weight
