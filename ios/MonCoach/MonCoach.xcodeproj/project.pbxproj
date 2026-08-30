@@ -64,6 +64,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		1A0000000000000000000043 /* Exceptions for "MonCoach" folder in "MonCoach" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 1A0000000000000000000004 /* MonCoach */;
+		};
 		1A0000000000000000000024 /* Exceptions for "MonCoachWidgets" folder in "MonCoachWidgets" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -74,7 +81,7 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		1A0000000000000000000009 /* MonCoach */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = MonCoach; sourceTree = "<group>"; };
+		1A0000000000000000000009 /* MonCoach */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (1A0000000000000000000043 /* Exceptions for "MonCoach" folder in "MonCoach" target */, ); explicitFileTypes = {}; explicitFolders = (); path = MonCoach; sourceTree = "<group>"; };
 		1A0000000000000000000022 /* MonCoachWatch */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = MonCoachWatch; sourceTree = "<group>"; };
 		1A0000000000000000000023 /* MonCoachWidgets */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (1A0000000000000000000024 /* Exceptions for "MonCoachWidgets" folder in "MonCoachWidgets" target */, ); explicitFileTypes = {}; explicitFolders = (); path = MonCoachWidgets; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
