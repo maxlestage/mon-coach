@@ -99,6 +99,9 @@ public struct ActivityLog: Codable, Sendable, Equatable, Identifiable {
     /// Effort ressenti, 1 à 10, saisi après la sortie.
     public var perceivedEffort: Int?
     public var note: String?
+    /// Le matériel de la sortie — chaussures, vélo. Nil pour une sortie
+    /// enregistrée avant que le matériel existe, ou sans matériel déclaré.
+    public var gearID: UUID?
 
     public init(
         id: UUID = UUID(),
@@ -114,7 +117,8 @@ public struct ActivityLog: Codable, Sendable, Equatable, Identifiable {
         bestEfforts: [BestEffort]? = nil,
         heartRate: [HeartRateSample] = [],
         perceivedEffort: Int? = nil,
-        note: String? = nil
+        note: String? = nil,
+        gearID: UUID? = nil
     ) {
         self.id = id
         self.startedAt = startedAt
@@ -130,6 +134,7 @@ public struct ActivityLog: Codable, Sendable, Equatable, Identifiable {
         self.heartRate = heartRate
         self.perceivedEffort = perceivedEffort
         self.note = note
+        self.gearID = gearID
     }
 
     public init(from decoder: Decoder) throws {
@@ -150,6 +155,7 @@ public struct ActivityLog: Codable, Sendable, Equatable, Identifiable {
         heartRate = try container.decodeIfPresent([HeartRateSample].self, forKey: .heartRate) ?? []
         perceivedEffort = try container.decodeIfPresent(Int.self, forKey: .perceivedEffort)
         note = try container.decodeIfPresent(String.self, forKey: .note)
+        gearID = try container.decodeIfPresent(UUID.self, forKey: .gearID)
     }
 
     /// Allure en secondes par kilomètre.

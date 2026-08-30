@@ -44,6 +44,7 @@ struct ActivityDetailView: View {
                     }
                 }
 
+                effortAndGearCard
                 highlightsCard
                 segmentsCard
                 heartCard
@@ -103,6 +104,59 @@ struct ActivityDetailView: View {
     }
 
     /// Ce que cette sortie a valu dans l'histoire de l'athlète.
+    /// L'effort de la sortie, et le matériel qui l'a portée.
+    ///
+    /// L'effort est le chiffre qui alimente la courbe de forme du Journal :
+    /// le montrer ici relie chaque sortie à la courbe qu'elle nourrit. Le
+    /// matériel se corrige d'un menu — la sortie a pris les chaussures du
+    /// moment toute seule, mais « ce jour-là j'avais les autres » arrive.
+    private var effortAndGearCard: some View {
+        let effort = TrainingLoadEngine.effort(for: activity, maximumBpm: maximumBpm)
+        let currentGearID = store.history.activities.first { $0.id == activity.id }?.gearID
+        let currentGear = store.history.gear.first { $0.id == currentGearID }
+        let choices = store.history.gear.filter { !$0.isRetired && $0.suits(activity.sport) }
+
+        return Card {
+            HStack(alignment: .center) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(LocalizedText(fr: "Effort", en: "Effort", es: "Esfuerzo")[language])
+                        .font(Theme.captionFont)
+                        .foregroundStyle(Theme.secondaryText)
+                    Text("\(Int(effort.rounded())) pts")
+                        .font(.system(size: 17, weight: .bold, design: .rounded))
+                        .foregroundStyle(Theme.accent)
+                }
+                Spacer()
+                if !choices.isEmpty || currentGear != nil {
+                    Menu {
+                        ForEach(choices) { gear in
+                            Button(gear.name) {
+                                store.assignGear(gear.id, toActivity: activity.id)
+                            }
+                        }
+                        Button(LocalizedText(fr: "Aucun", en: "None", es: "Ninguno")[language]) {
+                            store.assignGear(nil, toActivity: activity.id)
+                        }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: activity.sport == .ride ? "bicycle" : "shoe.2")
+                                .font(.system(size: 13))
+                            Text(
+                                currentGear?.name
+                                    ?? LocalizedText(fr: "Matériel", en: "Gear", es: "Material")[language]
+                            )
+                            .font(.system(size: 14, weight: .medium))
+                        }
+                        .foregroundStyle(Theme.primaryText)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(Theme.surfaceRaised, in: Capsule())
+                    }
+                }
+            }
+        }
+    }
+
     private var highlightsCard: some View {
         let highlights = store.highlights(for: activity)
         return Group {

@@ -173,6 +173,17 @@ public final class CoachStore {
     /// Une sortie vélo ou une randonnée est archivée comme les autres, mais
     /// `demonstratedThresholdPace` ne la regarde pas.
     public func recordRun(_ run: ActivityLog) {
+        var run = run
+        // Le matériel suit tout seul : la sortie prend le dernier matériel
+        // utilisé pour ce sport, sauf si elle en déclare déjà un. Personne
+        // ne choisit ses chaussures dans un menu après chaque footing.
+        if run.gearID == nil {
+            run.gearID = GearTracker.suggested(
+                for: run.sport,
+                among: history.gear,
+                activities: history.activities
+            )?.id
+        }
         history.activities.removeAll { $0.id == run.id }
         history.activities.append(run)
         history.activities.sort { $0.startedAt < $1.startedAt }
@@ -194,6 +205,34 @@ public final class CoachStore {
     /// trace, a forgotten stop, a ride recorded by mistake.
     public func deleteRun(_ id: UUID) {
         history.activities.removeAll { $0.id == id }
+        save()
+    }
+
+    // MARK: - Matériel
+
+    /// Ajoute un matériel au parc et le rend, prêt à être proposé.
+    @discardableResult
+    public func addGear(name: String, kind: Gear.Kind) -> Gear {
+        let gear = Gear(name: name, kind: kind)
+        history.gear.append(gear)
+        save()
+        return gear
+    }
+
+    /// Met un matériel à la retraite. Son histoire reste : les sorties
+    /// faites avec ne changent pas de chaussures.
+    public func retireGear(_ id: UUID) {
+        guard let index = history.gear.firstIndex(where: { $0.id == id }) else { return }
+        history.gear[index].retiredAt = Date()
+        save()
+    }
+
+    /// Change le matériel d'une sortie déjà enregistrée — ou le retire
+    /// avec nil. C'est le geste de rattrapage : « ah non, ce jour-là
+    /// j'avais les autres ».
+    public func assignGear(_ gearID: UUID?, toActivity activityID: UUID) {
+        guard let index = history.activities.firstIndex(where: { $0.id == activityID }) else { return }
+        history.activities[index].gearID = gearID
         save()
     }
 

@@ -11,6 +11,10 @@ struct ProfileView: View {
     @State private var showingEditor = false
     @State private var showingResetConfirmation = false
     @State private var exportedURL: URL?
+    /// Le type de matériel en cours d'ajout — c'est lui qui ouvre la boîte
+    /// de saisie du nom. Nil quand rien ne s'ajoute.
+    @State private var addingGearKind: Gear.Kind?
+    @State private var newGearName = ""
 
     var body: some View {
         NavigationStack {
@@ -23,6 +27,7 @@ struct ProfileView: View {
                         constraintsCard(profile)
                         preferencesCard(profile)
                         runningCard(profile)
+                        gearCard
                         dataCard
                         creditFooter
                     } else {
@@ -127,6 +132,113 @@ struct ProfileView: View {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    /// Les chaussures et les vélos, avec leur kilométrage vécu.
+    ///
+    /// Le kilométrage n'est stocké nulle part : il se recalcule depuis les
+    /// sorties qui portent le matériel, donc il ne peut pas mentir. Des
+    /// chaussures au-delà de 650 km sont signalées — la mousse rend l'âme
+    /// avant la semelle, et les douleurs arrivent avant qu'on y pense.
+    private var gearCard: some View {
+        Card(
+            title: LocalizedText(fr: "Chaussures et vélos", en: "Shoes and bikes", es: "Zapatillas y bicis")[language],
+            subtitle: LocalizedText(
+                fr: "Chaque sortie prend le dernier matériel utilisé, et se corrige depuis sa fiche.",
+                en: "Every activity takes the last gear used, and can be fixed from its page.",
+                es: "Cada salida toma el último material usado, y se corrige desde su ficha."
+            )[language]
+        ) {
+            VStack(alignment: .leading, spacing: 12) {
+                let active = store.history.gear.filter { !$0.isRetired }
+                if active.isEmpty {
+                    CoachText(
+                        LocalizedText(
+                            fr: "Ajoute tes chaussures : l'application comptera leurs kilomètres et te dira quand les changer.",
+                            en: "Add your shoes: the app will count their kilometres and tell you when to replace them.",
+                            es: "Añade tus zapatillas: la aplicación contará sus kilómetros y te dirá cuándo cambiarlas."
+                        )
+                    )
+                }
+                ForEach(active) { gear in
+                    gearRow(gear)
+                }
+
+                HStack(spacing: 10) {
+                    GhostButton(
+                        title: LocalizedText(fr: "+ Chaussures", en: "+ Shoes", es: "+ Zapatillas")[language]
+                    ) {
+                        newGearName = ""
+                        addingGearKind = .shoes
+                    }
+                    GhostButton(
+                        title: LocalizedText(fr: "+ Vélo", en: "+ Bike", es: "+ Bici")[language]
+                    ) {
+                        newGearName = ""
+                        addingGearKind = .bike
+                    }
+                }
+            }
+        }
+        .alert(
+            LocalizedText(fr: "Un nom pour ce matériel", en: "A name for this gear", es: "Un nombre para este material")[language],
+            isPresented: Binding(
+                get: { addingGearKind != nil },
+                set: { if !$0 { addingGearKind = nil } }
+            )
+        ) {
+            TextField(
+                LocalizedText(fr: "Pegasus 41, Gravel…", en: "Pegasus 41, Gravel…", es: "Pegasus 41, Gravel…")[language],
+                text: $newGearName
+            )
+            Button(LocalizedText(fr: "Ajouter", en: "Add", es: "Añadir")[language]) {
+                let trimmed = newGearName.trimmingCharacters(in: .whitespaces)
+                if let kind = addingGearKind, !trimmed.isEmpty {
+                    store.addGear(name: trimmed, kind: kind)
+                }
+                addingGearKind = nil
+            }
+            Button(UI.cancel[language], role: .cancel) { addingGearKind = nil }
+        }
+    }
+
+    private func gearRow(_ gear: Gear) -> some View {
+        let meters = GearTracker.meters(for: gear.id, in: store.history.activities)
+        let worn = GearTracker.isWorn(gear, in: store.history.activities)
+        return HStack(alignment: .center, spacing: 12) {
+            Image(systemName: gear.kind == .bike ? "bicycle" : "shoe.2")
+                .font(.system(size: 15))
+                .foregroundStyle(worn ? Theme.warning : Theme.accent)
+                .frame(width: 24)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(gear.name)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Theme.primaryText)
+                Text(
+                    worn
+                        ? LocalizedText(
+                            fr: "\(Format.distance(meters: meters, unit: store.profile?.unit ?? .metric, language: language)) — usées, pense à les remplacer",
+                            en: "\(Format.distance(meters: meters, unit: store.profile?.unit ?? .metric, language: language)) — worn out, think about replacing them",
+                            es: "\(Format.distance(meters: meters, unit: store.profile?.unit ?? .metric, language: language)) — gastadas, piensa en cambiarlas"
+                        )[language]
+                        : Format.distance(meters: meters, unit: store.profile?.unit ?? .metric, language: language)
+                )
+                .font(Theme.captionFont)
+                .foregroundStyle(worn ? Theme.warning : Theme.secondaryText)
+            }
+            Spacer()
+            Menu {
+                Button(
+                    LocalizedText(fr: "Mettre à la retraite", en: "Retire", es: "Retirar")[language],
+                    role: .destructive
+                ) {
+                    store.retireGear(gear.id)
+                }
+            } label: {
+                Image(systemName: "ellipsis.circle")
+                    .foregroundStyle(Theme.secondaryText)
             }
         }
     }
