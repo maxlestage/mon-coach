@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Le complément de l'Info.plist engendré par Xcode. Les clés simples restent
+  des réglages de build (INFOPLIST_KEY_…) ; ici ne vivent que celles qu'un
+  réglage ne sait pas écrire correctement, ou pas écrire du tout.
+
+  UIBackgroundModes d'abord. La déclaration doit être un tableau, et le
+  réglage INFOPLIST_KEY_UIBackgroundModes en produisait une chaîne : iOS ne
+  lisait alors aucun mode, le suivi GPS écran éteint restait muet, et poser
+  allowsBackgroundLocationUpdates aurait tué l'application au départ d'une
+  sortie. C'est le défaut exact que la garde du tracker soupçonnait ; le
+  tableau écrit ici en clair le corrige à la source.
+
+  LSSupportsGameMode ensuite. Sur un build TestFlight, Metal affiche un
+  avertissement par-dessus la carte tant que la clé manque — il dit
+  lui-même qu'elle deviendra obligatoire. La déclarer à « non » dit ce qui
+  est vrai : cette application n'est pas un jeu.
+
+  MetalHudEnabled enfin : le HUD de diagnostic graphique n'a rien à faire
+  au-dessus de la carte d'un athlète, on le refuse explicitement.
+-->
+<plist version="1.0">
+<dict>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
+	<key>LSSupportsGameMode</key>
+	<false/>
+	<key>MetalHudEnabled</key>
+	<false/>
+</dict>
+</plist>
