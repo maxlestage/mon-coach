@@ -59,32 +59,33 @@ struct WatchTodayView: View {
             .frame(width: 44, height: 44)
         }
 
+        // Ce qui est prévu s'affiche ; ce qu'on fait se choisit. Les cartes
+        // disent le plan du jour, et toutes mènent au même endroit : la
+        // liste des activités, où la séance, la course, le vélo et la marche
+        // se choisissent à la couronne. Une seule porte — deux boutons
+        // « Démarrer » côte à côte obligeaient à savoir lequel menait où.
         if let session = store.todaySession {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(session.title[language])
-                    .font(.system(.body, design: .rounded, weight: .semibold))
-                Text(
-                    WatchUI.sessionSummary(
-                        exercises: session.exercises.count,
-                        sets: session.totalSets,
-                        minutes: session.estimatedMinutes
-                    )[language]
-                )
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            }
-            .padding(10)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.green.opacity(0.15), in: RoundedRectangle(cornerRadius: 12))
-
             Button {
-                store.startSession()
+                showsRun = true
             } label: {
-                Label(WatchUI.start[language], systemImage: "play.fill")
-                    .frame(maxWidth: .infinity)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(session.title[language])
+                        .font(.system(.body, design: .rounded, weight: .semibold))
+                    Text(
+                        WatchUI.sessionSummary(
+                            exercises: session.exercises.count,
+                            sets: session.totalSets,
+                            minutes: session.estimatedMinutes
+                        )[language]
+                    )
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(.green.opacity(0.15), in: RoundedRectangle(cornerRadius: 12))
             }
-            .buttonStyle(.borderedProminent)
-            .tint(.green)
+            .buttonStyle(.plain)
         } else {
             VStack(alignment: .leading, spacing: 6) {
                 Label(WatchUI.rest[language], systemImage: "moon.zzz.fill")
@@ -96,60 +97,47 @@ struct WatchTodayView: View {
         }
 
         if let run = store.todayRun {
-            VStack(alignment: .leading, spacing: 6) {
-                Label(run.type.label[language], systemImage: "figure.run")
-                    .font(.system(.body, design: .rounded, weight: .semibold))
-                if let meters = run.targetMeters, meters > 0 {
-                    Text(Format.distance(meters: meters, unit: store.unit, language: language))
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+            Button {
+                showsRun = true
+            } label: {
+                VStack(alignment: .leading, spacing: 6) {
+                    Label(run.type.label[language], systemImage: "figure.run")
+                        .font(.system(.body, design: .rounded, weight: .semibold))
+                    if let meters = run.targetMeters, meters > 0 {
+                        Text(Format.distance(meters: meters, unit: store.unit, language: language))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
                 }
-                Button {
-                    showsRun = true
-                } label: {
-                    Label(WatchUI.start[language], systemImage: "location.fill")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
-                .tint(.green)
+                .padding(10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(.green.opacity(0.10), in: RoundedRectangle(cornerRadius: 12))
             }
-            .padding(10)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.green.opacity(0.10), in: RoundedRectangle(cornerRadius: 12))
-        } else {
-            // La porte du menu, pour tout le monde.
-            //
-            // Elle était réservée aux athlètes déclarés coureurs, et c'était
-            // une erreur : quelqu'un qui s'entraîne en salle va marcher, fait
-            // du vélo, part en randonnée. Il n'y avait alors aucun moyen
-            // d'atteindre le menu, donc aucun moyen de choisir — et choisir
-            // ce qu'on va faire ne se mérite pas.
-            //
-            // Elle ne s'affiche que faute de sortie prévue : quand il y en a
-            // une, la carte au-dessus mène déjà au même menu, et deux portes
-            // côte à côte vers le même écran ne sont qu'un écran plus long.
-            VStack(alignment: .leading, spacing: 6) {
-                if store.runDone {
-                    Label(WatchUI.runAgain[language], systemImage: "checkmark.circle.fill")
-                        .font(.caption2)
-                        .foregroundStyle(.green)
-                } else {
-                    Text(WatchUI.activityMenuDetail[language])
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-                Button {
-                    showsRun = true
-                } label: {
-                    Label(WatchUI.startActivity[language], systemImage: "figure.run")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
-                .tint(.green)
+            .buttonStyle(.plain)
+        }
+
+        VStack(alignment: .leading, spacing: 6) {
+            if store.runDone {
+                Label(WatchUI.runAgain[language], systemImage: "checkmark.circle.fill")
+                    .font(.caption2)
+                    .foregroundStyle(.green)
+            } else {
+                Text(
+                    (store.todaySession != nil
+                        ? WatchUI.activityMenuDetailWithSession
+                        : WatchUI.activityMenuDetail)[language]
+                )
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
             }
-            .padding(10)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.green.opacity(0.10), in: RoundedRectangle(cornerRadius: 12))
+            Button {
+                showsRun = true
+            } label: {
+                Label(WatchUI.startActivity[language], systemImage: "figure.run")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.green)
         }
 
         // L'alimentation au poignet tient en deux nombres : le reste se lit

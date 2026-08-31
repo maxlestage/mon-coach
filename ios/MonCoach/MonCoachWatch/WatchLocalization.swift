@@ -62,6 +62,15 @@ enum WatchUI {
         en: "Run, ride, walk, hike",
         es: "Correr, bici, caminar, ruta"
     )
+    /// La même porte quand la séance du jour attend dedans : elle est citée
+    /// en premier, pour dire qu'elle se démarre là aussi.
+    static let activityMenuDetailWithSession = LocalizedText(
+        fr: "Séance, course, vélo, marche…",
+        en: "Session, run, ride, walk…",
+        es: "Sesión, correr, bici, caminar…"
+    )
+    /// Le titre de la liste des activités, avant qu'une sortie ne parte.
+    static let activity = LocalizedText(fr: "Activité", en: "Activity", es: "Actividad")
     /// Le menu de départ : c'est l'athlète qui décide, pas le plan.
     static let chooseActivity = LocalizedText(
         fr: "Tu fais quoi ?",

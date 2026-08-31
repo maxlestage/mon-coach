@@ -9,6 +9,7 @@ struct FoodView: View {
 
     @State private var tab: Tab = .today
     @State private var showsShoppingList = false
+    @State private var showsExclusions = false
 
     enum Tab: Hashable { case today, guide }
 
@@ -33,6 +34,15 @@ struct FoodView: View {
             .screenBackground()
             .navigationTitle(UI.food[language])
             .toolbar {
+                // Les refus à côté du panier : les deux se consultent
+                // « quand on veut », pas quand un repas les fait apparaître.
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        showsExclusions = true
+                    } label: {
+                        Image(systemName: "hand.raised")
+                    }
+                }
                 ToolbarItem(placement: .primaryAction) {
                     Button {
                         showsShoppingList = true
@@ -43,6 +53,9 @@ struct FoodView: View {
             }
             .sheet(isPresented: $showsShoppingList) {
                 ShoppingListView()
+            }
+            .sheet(isPresented: $showsExclusions) {
+                ExcludedFoodsView()
             }
         }
     }
@@ -68,6 +81,8 @@ struct FoodView: View {
                 MealCard(meal: meal)
             }
 
+            exclusionsCard
+
             ForEach(day.notes, id: \.self) { note in
                 Card { CoachText(note, color: Theme.primaryText) }
             }
@@ -85,6 +100,67 @@ struct FoodView: View {
                 en: "The food plan arrives with your first training block.",
                 es: "El plan de alimentación llega con tu primer bloque de entrenamiento."
             )) }
+        }
+    }
+
+    /// Les aliments écartés, en clair sous les repas du jour.
+    ///
+    /// Cette liste ne vivait que dans le profil, et seulement quand elle
+    /// n'était pas vide : quelqu'un d'allergique ne voyait nulle part que
+    /// l'application le savait, ni où le lui dire. Elle s'affiche désormais
+    /// là où on mange, tous les jours, vide ou pleine — et elle mène à
+    /// l'éditeur du catalogue entier, modifiable à tout moment.
+    @ViewBuilder
+    private var exclusionsCard: some View {
+        let refused = (store.profile?.excludedFoods ?? [])
+            .compactMap { FoodCatalog.food(id: $0) }
+            .sorted { $0.name[language] < $1.name[language] }
+        Card(
+            title: LocalizedText(
+                fr: "Ce que tu ne manges pas",
+                en: "What you don't eat",
+                es: "Lo que no comes"
+            )[language],
+            subtitle: (refused.isEmpty
+                ? LocalizedText(
+                    fr: "Allergie, intolérance ou dégoût : écarte un aliment quand tu veux, les repas et les recettes se refont sans lui.",
+                    en: "Allergy, intolerance or dislike: rule out a food whenever you like, meals and recipes rebuild without it.",
+                    es: "Alergia, intolerancia o rechazo: descarta un alimento cuando quieras, las comidas y recetas se rehacen sin él."
+                )
+                : LocalizedText(
+                    fr: "Jamais servis, jamais sur la liste de courses. Les recettes qui en dépendaient sont remplacées par d'autres.",
+                    en: "Never served, never on the shopping list. Recipes that relied on them are replaced by others.",
+                    es: "Nunca servidos, nunca en la lista de la compra. Las recetas que dependían de ellos se sustituyen por otras."
+                ))[language]
+        ) {
+            VStack(alignment: .leading, spacing: 10) {
+                if !refused.isEmpty {
+                    FlowLayout(spacing: 6) {
+                        ForEach(refused) { food in
+                            Pill(text: food.name[language], tint: Theme.danger)
+                        }
+                    }
+                }
+                Button {
+                    showsExclusions = true
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "hand.raised")
+                            .font(.system(size: 12, weight: .semibold))
+                        Text(
+                            LocalizedText(
+                                fr: "Choisir dans tout le catalogue",
+                                en: "Pick from the whole catalogue",
+                                es: "Elegir en todo el catálogo"
+                            )[language]
+                        )
+                        .font(.system(size: 13, weight: .medium))
+                    }
+                    .foregroundStyle(Theme.accent)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
         }
     }
 
