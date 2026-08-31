@@ -75,6 +75,20 @@ final class WatchStore {
         return snapshot.plannedRun
     }
 
+    /// Cet athlète court-il ? — la question que pose le raccourci, et qui
+    /// n'est pas « une sortie est-elle prévue aujourd'hui ».
+    ///
+    /// Sans réponse dans l'instantané — celui d'une version antérieure,
+    /// relu du disque —, on retombe sur l'ancien comportement plutôt que de
+    /// décider à sa place.
+    var athleteRuns: Bool {
+        guard let snapshot else { return false }
+        return snapshot.runs ?? (snapshot.plannedRun != nil)
+    }
+
+    /// La sortie du jour a-t-elle déjà été enregistrée ?
+    var runDone: Bool { snapshot?.runDone ?? false }
+
     // MARK: - Séance
 
     func startSession() {

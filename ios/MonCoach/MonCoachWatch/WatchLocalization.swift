@@ -50,6 +50,30 @@ enum WatchUI {
         es: "Señal débil"
     )
     static let food = LocalizedText(fr: "À manger", en: "To eat", es: "Para comer")
+    /// Le raccourci d'une sortie libre, hors plan.
+    static let freeRun = LocalizedText(fr: "Courir", en: "Go for a run", es: "Salir a correr")
+    static let freeRunDetail = LocalizedText(
+        fr: "Hors plan, sans le téléphone",
+        en: "Off plan, phone left behind",
+        es: "Fuera de plan, sin el teléfono"
+    )
+    /// Le menu de départ : c'est l'athlète qui décide, pas le plan.
+    static let chooseActivity = LocalizedText(
+        fr: "Tu fais quoi ?",
+        en: "What are you doing?",
+        es: "¿Qué vas a hacer?"
+    )
+    static let lastTime = LocalizedText(
+        fr: "La dernière fois",
+        en: "Last time",
+        es: "La última vez"
+    )
+    static let planned = LocalizedText(fr: "Au plan", en: "On plan", es: "En el plan")
+    static let runAgain = LocalizedText(
+        fr: "Sortie du jour enregistrée",
+        en: "Today's run is logged",
+        es: "Rodaje de hoy registrado"
+    )
     static let credit = LocalizedText(
         fr: "Conçu et développé par Maxime Nathan Lestage",
         en: "Designed and developed by Maxime Nathan Lestage",
