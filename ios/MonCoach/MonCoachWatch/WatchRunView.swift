@@ -17,8 +17,28 @@ struct WatchRunView: View {
 
     @State private var tracker = LocationTracker()
     @State private var heart = WatchHeartRate()
-    @State private var selectedSport: Sport = .run
     @State private var page = 0
+
+    /// Le sport de la dernière sortie, gardé d'une fois sur l'autre.
+    ///
+    /// Ce n'est pas un réglage du plan mais une habitude : quelqu'un qui
+    /// pédale tous les jours ne doit pas redescendre la liste chaque matin.
+    /// Le rang brut plutôt que le type : `AppStorage` ne sait garder que des
+    /// valeurs simples, et le catalogue des sports peut s'allonger sans que
+    /// ce qui est déjà écrit sur la montre devienne illisible.
+    @AppStorage("sport-de-la-sortie") private var lastSportID: String = Sport.run.rawValue
+
+    private var lastSport: Sport { Sport(rawValue: lastSportID) ?? .run }
+
+    /// Les sports dans l'ordre du menu : le dernier choisi en tête, les
+    /// autres derrière, dans leur ordre habituel.
+    ///
+    /// Le premier de la liste est celui qu'on atteint sans tourner la
+    /// couronne — c'est le seul rang qui coûte zéro geste, et il revient à
+    /// ce qu'on fait le plus souvent.
+    private var menu: [Sport] {
+        [lastSport] + Sport.allCases.filter { $0 != lastSport }
+    }
 
     private var unit: UnitSystem { store.unit }
 
@@ -40,44 +60,95 @@ struct WatchRunView: View {
         .navigationTitle(WatchUI.run[language])
     }
 
+    /// Le menu de départ.
+    ///
+    /// C'est l'écran entier, et pas un sélecteur caché derrière un second
+    /// écran : au poignet, on tourne la couronne et on appuie. Une ligne
+    /// touchée démarre la sortie — c'est le geste de l'application Exercice
+    /// d'Apple, et c'est celui qu'on fait déjà sans y penser.
+    ///
+    /// Le plan du jour est affiché, jamais imposé : il informe le choix, il
+    /// ne le remplace pas. Un coureur qui décide d'aller marcher a ses
+    /// raisons, et l'application n'a pas à les lui demander.
     private var startScreen: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        List {
             if let planned = store.todayRun {
-                Text(planned.type.label[language])
-                    .font(.system(.body, design: .rounded, weight: .semibold))
-                Text(planned.note[language])
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                if let range = planned.paceRangeSecondsPerKm {
-                    Text(
-                        Format.pace(secondsPerKm: range.lowerBound, unit: unit)
-                            + " – " + Format.pace(secondsPerKm: range.upperBound, unit: unit)
-                    )
-                    .font(.caption)
-                    .foregroundStyle(.green)
-                }
-            }
-            if store.todayRun == nil {
-                Picker(selection: $selectedSport) {
-                    ForEach(Sport.allCases) { sport in
-                        Label(sport.label[language], systemImage: sport.symbolName).tag(sport)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(planned.type.label[language])
+                        .font(.system(.body, design: .rounded, weight: .semibold))
+                    Text(planned.note[language])
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    if let range = planned.paceRangeSecondsPerKm {
+                        Text(
+                            Format.pace(secondsPerKm: range.lowerBound, unit: unit)
+                                + " – " + Format.pace(secondsPerKm: range.upperBound, unit: unit)
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.green)
                     }
-                } label: {
-                    EmptyView()
                 }
-                .pickerStyle(.navigationLink)
+                .listRowBackground(
+                    RoundedRectangle(cornerRadius: 12).fill(.green.opacity(0.15))
+                )
             }
-            Button {
-                let sport = store.todayRun == nil ? selectedSport : .run
-                tracker.start(sport: sport, type: store.todayRun?.type ?? .easy)
-                heart.start()
-            } label: {
-                Label(WatchUI.start[language], systemImage: selectedSport.symbolName)
-                    .frame(maxWidth: .infinity)
+
+            Section {
+                ForEach(menu) { sport in
+                    Button {
+                        start(sport)
+                    } label: {
+                        row(for: sport)
+                    }
+                }
+            } header: {
+                Text(WatchUI.chooseActivity[language])
+                    .font(.caption2)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(.green)
         }
+    }
+
+    private func row(for sport: Sport) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: sport.symbolName)
+                .font(.system(size: 15))
+                .foregroundStyle(.green)
+                .frame(width: 22)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(sport.label[language])
+                    .font(.system(.body, design: .rounded, weight: .medium))
+                if let note = note(for: sport) {
+                    Text(note[language])
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Spacer()
+        }
+    }
+
+    /// Ce qui distingue une ligne des autres, quand quelque chose la
+    /// distingue. Rien à dire sur les autres : une mention par ligne ferait
+    /// une liste illisible en courant.
+    private func note(for sport: Sport) -> LocalizedText? {
+        if store.todayRun != nil && sport == .run { return WatchUI.planned }
+        if sport == lastSport { return WatchUI.lastTime }
+        return nil
+    }
+
+    /// Lance la sortie, et retient le choix pour la prochaine fois.
+    ///
+    /// L'intention de séance suit le plan quand c'est bien la course prévue
+    /// qu'on va faire, et vaut « endurance » sinon : un tempo prescrit n'a
+    /// aucun sens appliqué à une randonnée.
+    private func start(_ sport: Sport) {
+        lastSportID = sport.rawValue
+        let planned = store.todayRun
+        tracker.start(
+            sport: sport,
+            type: sport == .run ? (planned?.type ?? .easy) : .easy
+        )
+        heart.start()
     }
 
     private var deniedScreen: some View {

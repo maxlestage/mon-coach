@@ -57,6 +57,18 @@ enum WatchUI {
         en: "Off plan, phone left behind",
         es: "Fuera de plan, sin el teléfono"
     )
+    /// Le menu de départ : c'est l'athlète qui décide, pas le plan.
+    static let chooseActivity = LocalizedText(
+        fr: "Tu fais quoi ?",
+        en: "What are you doing?",
+        es: "¿Qué vas a hacer?"
+    )
+    static let lastTime = LocalizedText(
+        fr: "La dernière fois",
+        en: "Last time",
+        es: "La última vez"
+    )
+    static let planned = LocalizedText(fr: "Au plan", en: "On plan", es: "En el plan")
     static let runAgain = LocalizedText(
         fr: "Sortie du jour enregistrée",
         en: "Today's run is logged",
