@@ -42,6 +42,8 @@ struct RunTrackerView: View {
     @AppStorage("annonces-vocales") private var speaksKilometres = true
     @State private var importError = false
     @State private var importedCount = 0
+    /// Les fichiers dont la sortie était déjà dans le journal.
+    @State private var alreadyKnownCount = 0
     /// Le parcours que l'athlète a choisi de suivre, s'il en a choisi un.
     @State private var followedRoute: PlannedRoute?
     /// L'écran de dessin, ouvert sur un parcours neuf ou sur un existant.
@@ -148,6 +150,7 @@ struct RunTrackerView: View {
                 allowsMultipleSelection: true
             ) { result in
                 importedCount = 0
+                alreadyKnownCount = 0
                 guard case .success(let urls) = result else { return }
                 for url in urls {
                     // L'accès sécurisé est requis pour un fichier venu des
@@ -156,12 +159,17 @@ struct RunTrackerView: View {
                     let secured = url.startAccessingSecurityScopedResource()
                     defer { if secured { url.stopAccessingSecurityScopedResource() } }
                     guard let text = try? String(contentsOf: url, encoding: .utf8),
-                          (try? store.importGPX(text)) != nil
+                          let outcome = try? store.importGPX(text)
                     else {
                         importError = true
                         continue
                     }
-                    importedCount += 1
+                    // Un fichier déjà rentré n'est pas une erreur, et n'est
+                    // pas non plus une sortie de plus : il se compte à part.
+                    switch outcome {
+                    case .imported: importedCount += 1
+                    case .alreadyKnown: alreadyKnownCount += 1
+                    }
                 }
             }
             .alert(

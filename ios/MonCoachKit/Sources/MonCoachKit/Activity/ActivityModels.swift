@@ -181,4 +181,46 @@ public struct ActivityLog: Codable, Sendable, Equatable, Identifiable {
 
     /// Vrai si cette activité doit nourrir le plan de course.
     public var feedsRunningPlan: Bool { sport.feedsRunningPlan }
+
+    /// Ces deux enregistrements décrivent-ils la même sortie ?
+    ///
+    /// Pourquoi cette question se pose
+    /// -------------------------------
+    /// L'identifiant ne suffit pas. Un même fichier GPX importé deux fois
+    /// produit deux identifiants — l'analyse en fabrique un neuf à chaque
+    /// lecture — et le journal affiche alors la sortie en double, avec ses
+    /// kilomètres comptés deux fois dans le volume de la semaine et dans la
+    /// charge. Le même problème se pose quand le téléphone et la montre ont
+    /// mesuré la sortie tous les deux.
+    ///
+    /// On compare donc ce qui identifie vraiment une sortie : le sport,
+    /// l'heure de départ et la distance. Les tolérances sont serrées à
+    /// dessein — deux minutes et cinq pour cent — parce que l'erreur
+    /// inverse est bien pire : deux séries de côtes espacées d'un quart
+    /// d'heure sont deux vraies sorties, et en effacer une serait effacer
+    /// du travail réellement fait.
+    public func describesSameOuting(as other: ActivityLog) -> Bool {
+        guard sport == other.sport else { return false }
+        guard abs(startedAt.timeIntervalSince(other.startedAt)) <= 120 else { return false }
+        // Pour ce qui ne se déplace pas, la distance n'est pas une mesure :
+        // c'est un chiffre recopié depuis l'écran d'une machine, présent
+        // d'un côté et absent de l'autre selon l'appareil qui a enregistré.
+        // La comparer ferait de la même séance de tapis deux séances dès
+        // que la montre l'a remontée sans distance. L'heure suffit — deux
+        // vrais cours de yoga ne commencent pas à deux minutes d'écart.
+        guard sport.tracksLocation else { return true }
+        guard meters > 0 || other.meters > 0 else { return true }
+        let biggest = Swift.max(meters, other.meters)
+        return abs(meters - other.meters) / biggest <= 0.05
+    }
+
+    /// Ce que cet enregistrement a de plus que l'autre.
+    ///
+    /// Sert à choisir lequel garder quand les deux décrivent la même
+    /// sortie : celui qui porte le plus de mesures. Une trace de montre
+    /// avec cardio vaut mieux qu'un import GPX sans battements, et
+    /// l'inverse est vrai si c'est l'import qui porte la trace complète.
+    public var measurementRichness: Int {
+        points.count + heartRate.count * 2 + (bestEfforts?.count ?? 0)
+    }
 }

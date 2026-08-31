@@ -137,7 +137,7 @@ struct GPXStoreTests {
         let store = CoachStore(storage: storage)
 
         let document = GPX.document(for: sampleActivity())
-        let imported = try store.importGPX(document)
+        let imported = try store.importGPX(document).activity
 
         #expect(store.history.activities.count == 1)
         #expect(imported.meters > 1_500)
