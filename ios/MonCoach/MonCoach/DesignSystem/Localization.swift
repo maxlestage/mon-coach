@@ -54,6 +54,10 @@ enum UI {
     static let progress = LocalizedText(fr: "Progression", en: "Progress", es: "Progreso")
     static let profile = LocalizedText(fr: "Profil", en: "Profile", es: "Perfil")
     static let running = LocalizedText(fr: "Course", en: "Running", es: "Carrera")
+    /// Le titre de l'onglet, depuis qu'il porte quarante-huit sports :
+    /// « Course » y était devenu faux pour tous ceux qui ne courent pas.
+    static let activities = LocalizedText(fr: "Activités", en: "Activities", es: "Actividades")
+    static let stats = LocalizedText(fr: "Stats", en: "Stats", es: "Datos")
     static let food = LocalizedText(fr: "Alimentation", en: "Food", es: "Alimentación")
 
     static let start = LocalizedText(fr: "Démarrer", en: "Start", es: "Empezar")

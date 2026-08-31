@@ -182,19 +182,33 @@ struct JournalView: View {
 
     private var heatmapCard: some View {
         let traced = store.history.activities.filter { !$0.points.isEmpty }
+        let frequent = FrequentRoutes.find(in: store.history.activities)
         return Group {
             if !traced.isEmpty {
                 Card(
                     title: LocalizedText(fr: "Tes parcours", en: "Your routes", es: "Tus recorridos")[language],
-                    subtitle: LocalizedText(
-                        fr: "Dessinée sur l'appareil — cette image ne part nulle part.",
-                        en: "Drawn on the device — this image goes nowhere.",
-                        es: "Dibujada en el dispositivo: esta imagen no va a ninguna parte."
-                    )[language]
+                    subtitle: frequent.isEmpty
+                        ? LocalizedText(
+                            fr: "Dessinée sur l'appareil — cette image ne part nulle part.",
+                            en: "Drawn on the device — this image goes nowhere.",
+                            es: "Dibujada en el dispositivo: esta imagen no va a ninguna parte."
+                        )[language]
+                        : LocalizedText(
+                            fr: "En vert, le trajet que tu prends le plus ; en orange, les suivants. Tout est calculé sur l'appareil : la liste des chemins que tu répètes, ce sont tes horaires et ton adresse.",
+                            en: "In green, the route you take most; in orange, the next ones. All computed on the device: the list of paths you repeat is your schedule and your address.",
+                            es: "En verde, la ruta que más tomas; en naranja, las siguientes. Todo se calcula en el dispositivo: la lista de caminos que repites son tus horarios y tu dirección."
+                        )[language]
                 ) {
-                    RoutesCanvas(activities: traced)
-                        .frame(height: 220)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    RoutesCanvas(
+                        activities: traced,
+                        highlights: frequent.prefix(3).map(\.points)
+                    )
+                    .frame(height: 220)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+
+                if !frequent.isEmpty {
+                    FrequentRoutesCard(routes: frequent)
                 }
             }
         }
@@ -388,6 +402,13 @@ struct JournalView: View {
 /// s'empilent, et l'empilement éclaircit.
 struct RoutesCanvas: View {
     var activities: [ActivityLog]
+    /// Les trajets à faire ressortir, dessinés par-dessus les autres.
+    ///
+    /// Sans eux, toutes les traces se valent et la carte ne répond pas à la
+    /// question qu'on lui pose : « lequel je prends le plus ? ». Le fond
+    /// reste visible — c'est lui qui donne le relief de l'ensemble — mais
+    /// il passe derrière, en sourdine.
+    var highlights: [[GPSPoint]] = []
 
     /// Assez de points pour que chaque virage existe, assez peu pour que
     /// vingt sorties se dessinent sans faire chauffer l'écran. Le dernier
@@ -400,7 +421,8 @@ struct RoutesCanvas: View {
             context.fill(Path(CGRect(origin: .zero, size: size)), with: .color(Theme.surfaceRaised))
 
             let routes = activities.map { Self.thinned($0.points) }
-            let all = routes.flatMap { $0 }
+            let featured = highlights.map { Self.thinned($0) }
+            let all = routes.flatMap { $0 } + featured.flatMap { $0 }
             guard let minLat = all.map(\.latitude).min(),
                   let maxLat = all.map(\.latitude).max(),
                   let minLon = all.map(\.longitude).min(),
@@ -428,11 +450,32 @@ struct RoutesCanvas: View {
             // Chaque trait est translucide : là où les sorties repassent,
             // ils s'empilent et brillent — la carte de chaleur sans les cases.
             let style = StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round)
+            let dimmed = highlights.isEmpty ? 0.5 : 0.18
             for route in routes where route.count >= 2 {
                 context.stroke(
                     Self.smoothPath(route.map(project)),
-                    with: .color(Theme.accent.opacity(0.5)),
+                    with: .color(Theme.accent.opacity(dimmed)),
                     style: style
+                )
+            }
+
+            // Les trajets habituels par-dessus, dans l'ordre inverse : le
+            // plus fréquent est dessiné en dernier, donc au-dessus de tous
+            // les autres. C'est celui qu'on cherche du regard.
+            let featuredStyle = StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round)
+            for (index, route) in featured.enumerated().reversed() where route.count >= 2 {
+                let path = Self.smoothPath(route.map(project))
+                // Un liseré sombre sous le trait : sur un fond de traces, un
+                // trait clair seul se confond avec l'empilement.
+                context.stroke(
+                    path,
+                    with: .color(Theme.background.opacity(0.85)),
+                    style: StrokeStyle(lineWidth: 7, lineCap: .round, lineJoin: .round)
+                )
+                context.stroke(
+                    path,
+                    with: .color(index == 0 ? Theme.accent : Theme.warning.opacity(0.9)),
+                    style: featuredStyle
                 )
             }
         }
