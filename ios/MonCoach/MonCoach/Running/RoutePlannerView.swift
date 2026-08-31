@@ -200,12 +200,36 @@ struct RoutePlannerView: View {
             .padding(12)
             .background(Theme.surfaceRaised, in: RoundedRectangle(cornerRadius: 12))
 
-            Picker("", selection: $sport) {
-                ForEach(Sport.allCases) { sport in
-                    Text(sport.label[language]).tag(sport)
+            // Un menu, plus des segments : quarante-huit sports ne tiennent
+            // pas sur une ligne, et seuls ceux qui laissent une trace ont un
+            // parcours à dessiner.
+            Menu {
+                ForEach(SportFamily.allCases) { family in
+                    Section(family.label[language]) {
+                        ForEach(family.sports.filter(\.tracksLocation)) { choice in
+                            Button {
+                                sport = choice
+                            } label: {
+                                Label(choice.label[language], systemImage: choice.symbolName)
+                            }
+                        }
+                    }
                 }
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: sport.symbolName)
+                        .foregroundStyle(Theme.accent)
+                    Text(sport.label[language])
+                        .font(Theme.bodyFont)
+                        .foregroundStyle(Theme.primaryText)
+                    Spacer()
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Theme.secondaryText)
+                }
+                .padding(12)
+                .background(Theme.surfaceRaised, in: RoundedRectangle(cornerRadius: 12))
             }
-            .pickerStyle(.segmented)
         }
         .padding(16)
         .background(Theme.surface)

@@ -76,19 +76,22 @@ public enum TrainingLoadEngine {
     /// la condition affichée, et une condition flatteuse est une condition
     /// qui ment le jour où on s'appuie dessus.
     static func intensityWeight(for activity: ActivityLog) -> Double {
-        switch activity.sport {
-        case .walk: return 2
-        case .hike: return 4
-        case .ride: return 5
-        case .run, .trail:
-            switch activity.type {
-            case .recovery: return 3
-            case .easy: return 4
-            case .long: return 5
-            case .tempo: return 6
-            case .intervals: return 8
-            case .race: return 9
-            }
+        // La course porte une intention — récupération, tempo, fractionné —
+        // et deux heures de course ne coûtent pas la même chose selon
+        // laquelle. Les autres sports n'ont pas cette intention déclarée :
+        // leur poids vient du sport lui-même, dérivé de sa dépense
+        // métabolique. C'est plus prudent qu'un chiffre écrit à la main, et
+        // surtout c'est vrai des quarante-huit sans en oublier un.
+        guard activity.sport.feedsRunningPlan else {
+            return activity.sport.defaultIntensity
+        }
+        switch activity.type {
+        case .recovery: return 3
+        case .easy: return 4
+        case .long: return 5
+        case .tempo: return 6
+        case .intervals: return 8
+        case .race: return 9
         }
     }
 

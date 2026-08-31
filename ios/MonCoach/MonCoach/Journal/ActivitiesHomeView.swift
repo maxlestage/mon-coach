@@ -9,34 +9,44 @@ struct ActivitiesHomeView: View {
     @Environment(CoachStore.self) private var store
     @Environment(\.language) private var language
 
-    private enum Pane: Hashable { case plan, journal }
+    private enum Pane: Hashable { case plan, journal, stats }
     @State private var pane: Pane = .plan
+
+    /// Le plan de course n'existe que pour qui court : un cycliste n'a pas
+    /// à glisser devant un onglet vide pour atteindre ses courbes.
+    private var runs: Bool { store.profile?.runs == true }
 
     var body: some View {
         NavigationStack {
-            Group {
-                if store.profile?.runs == true {
-                    VStack(spacing: 0) {
-                        Picker("", selection: $pane) {
-                            Text(LocalizedText(fr: "Plan", en: "Plan", es: "Plan")[language]).tag(Pane.plan)
-                            Text(LocalizedText(fr: "Journal", en: "Journal", es: "Diario")[language]).tag(Pane.journal)
-                        }
-                        .pickerStyle(.segmented)
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 4)
-                        if pane == .plan {
-                            RunPlanView(embedded: true)
-                        } else {
-                            JournalView()
-                        }
+            VStack(spacing: 0) {
+                Picker("", selection: $pane) {
+                    if runs {
+                        Text(LocalizedText(fr: "Plan", en: "Plan", es: "Plan")[language]).tag(Pane.plan)
                     }
-                    .screenBackground()
-                } else {
+                    Text(LocalizedText(fr: "Journal", en: "Journal", es: "Diario")[language]).tag(Pane.journal)
+                    Text(UI.stats[language]).tag(Pane.stats)
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 4)
+
+                switch pane {
+                case .plan where runs:
+                    RunPlanView(embedded: true)
+                case .stats:
+                    StatsView()
+                default:
                     JournalView()
                 }
             }
-            .navigationTitle(UI.running[language])
+            .screenBackground()
+            .navigationTitle(UI.activities[language])
         }
         .tint(Theme.accent)
+        .onAppear {
+            // Un athlète qui ne court pas ne doit jamais atterrir sur un
+            // onglet que son profil ne montre pas.
+            if !runs, pane == .plan { pane = .journal }
+        }
     }
 }

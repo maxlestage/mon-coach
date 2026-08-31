@@ -69,6 +69,16 @@ enum WatchUI {
         en: "Session, run, ride, walk…",
         es: "Sesión, correr, bici, caminar…"
     )
+    static let allSports = LocalizedText(
+        fr: "Tous les sports",
+        en: "All sports",
+        es: "Todos los deportes"
+    )
+    static let noGPS = LocalizedText(
+        fr: "Chrono, sans GPS",
+        en: "Timer, no GPS",
+        es: "Crono, sin GPS"
+    )
     /// Le titre de la liste des activités, avant qu'une sortie ne parte.
     static let activity = LocalizedText(fr: "Activité", en: "Activity", es: "Actividad")
     /// Le menu de départ : c'est l'athlète qui décide, pas le plan.

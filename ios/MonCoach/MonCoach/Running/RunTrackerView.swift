@@ -16,6 +16,11 @@ struct RunTrackerView: View {
 
     @State private var tracker = LocationTracker()
     @State private var selectedSport: Sport = .run
+    /// Le catalogue des sports, ouvert à la demande.
+    @State private var showsSportPicker = false
+    /// Le dernier sport choisi, gardé d'une sortie à l'autre : on ne
+    /// redemande pas chaque matin à un cycliste s'il fait du vélo.
+    @AppStorage("dernier-sport") private var lastSportRaw: String = Sport.run.rawValue
     @State private var selectedType: RunType = .easy
     @State private var finishedRun: ActivityLog?
     @State private var showsDiscardConfirmation = false
@@ -50,6 +55,22 @@ struct RunTrackerView: View {
 
     private var unit: UnitSystem { store.profile?.unit ?? .metric }
     private var loadsTiles: Bool { store.profile?.loadsMapTiles ?? true }
+
+    /// Les sports réellement pratiqués, du plus récent au plus ancien.
+    ///
+    /// Lus dans l'historique plutôt que déclarés : ce qu'on fait vraiment se
+    /// voit dans les sorties enregistrées, et une liste déclarée à
+    /// l'inscription serait fausse au bout de trois semaines.
+    private var recentSports: [Sport] {
+        var seen: [Sport] = []
+        for activity in store.history.activities.sorted(by: { $0.startedAt > $1.startedAt })
+        where !seen.contains(activity.sport) {
+            seen.append(activity.sport)
+            if seen.count == 4 { break }
+        }
+        if !seen.contains(selectedSport) { seen.insert(selectedSport, at: 0) }
+        return Array(seen.prefix(4))
+    }
 
     var body: some View {
         NavigationStack {
@@ -103,6 +124,17 @@ struct RunTrackerView: View {
                         es: "Se perderá la traza registrada hasta ahora."
                     )
                 )
+            }
+            .sheet(isPresented: $showsSportPicker) {
+                SportPickerView(selection: $selectedSport, recents: recentSports)
+            }
+            .onAppear {
+                if plannedRun == nil, let saved = Sport(rawValue: lastSportRaw) {
+                    selectedSport = saved
+                }
+            }
+            .onChange(of: selectedSport) { _, sport in
+                lastSportRaw = sport.rawValue
             }
             .sheet(item: $finishedRun) { run in
                 RunSummaryView(run: run) {
@@ -275,26 +307,68 @@ struct RunTrackerView: View {
             // course, le choix disparaît.
             if plannedRun == nil {
                 Card(title: LocalizedText(fr: "Sport", en: "Sport", es: "Deporte")[language]) {
-                    FlowLayout(spacing: 8) {
-                        ForEach(Sport.allCases) { sport in
-                            Button {
-                                selectedSport = sport
-                            } label: {
-                                HStack(spacing: 5) {
-                                    Image(systemName: sport.symbolName)
-                                        .font(.system(size: 12))
-                                    Text(sport.label[language])
+                    VStack(alignment: .leading, spacing: 10) {
+                        Button {
+                            showsSportPicker = true
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: selectedSport.symbolName)
+                                    .font(.system(size: 18))
+                                    .foregroundStyle(Theme.accent)
+                                    .frame(width: 28)
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(selectedSport.label[language])
+                                        .font(Theme.headlineFont)
+                                        .foregroundStyle(Theme.primaryText)
+                                    Text(selectedSport.family.label[language])
+                                        .font(.system(size: 11))
+                                        .foregroundStyle(Theme.secondaryText)
                                 }
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundStyle(selectedSport == sport ? Theme.background : Theme.primaryText)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 7)
-                                .background(
-                                    selectedSport == sport ? Theme.accent : Theme.surfaceRaised,
-                                    in: Capsule()
-                                )
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(Theme.secondaryText)
                             }
-                            .buttonStyle(.plain)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+
+                        // Les trois derniers, sous la main : un athlète ne
+                        // fait pas quarante-huit sports, il en fait trois.
+                        if recentSports.count > 1 {
+                            FlowLayout(spacing: 8) {
+                                ForEach(recentSports) { sport in
+                                    Button {
+                                        selectedSport = sport
+                                    } label: {
+                                        HStack(spacing: 5) {
+                                            Image(systemName: sport.symbolName)
+                                                .font(.system(size: 12))
+                                            Text(sport.label[language])
+                                        }
+                                        .font(.system(size: 13, weight: .medium))
+                                        .foregroundStyle(selectedSport == sport ? Theme.background : Theme.primaryText)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 7)
+                                        .background(
+                                            selectedSport == sport ? Theme.accent : Theme.surfaceRaised,
+                                            in: Capsule()
+                                        )
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+
+                        if !selectedSport.tracksLocation {
+                            CoachText(
+                                LocalizedText(
+                                    fr: "Pas de GPS pour ce sport : on compte le temps et le cardio, et la dépense se déduit de la durée. C'est ce qui se mesure honnêtement à l'intérieur.",
+                                    en: "No GPS for this sport: we count time and heart rate, and the energy cost comes from the duration. That is what can honestly be measured indoors.",
+                                    es: "Sin GPS para este deporte: contamos tiempo y pulso, y el gasto se deduce de la duración. Es lo que se puede medir con honestidad en interior."
+                                ),
+                                font: .system(size: 12)
+                            )
                         }
                     }
                 }
@@ -381,7 +455,11 @@ struct RunTrackerView: View {
                 .tint(Theme.accent)
             }
 
-            routesCard
+            // Un parcours ne veut rien dire pour un sport qui ne se
+            // déplace pas : on ne dessine pas l'itinéraire d'un rameur.
+            if selectedSport.tracksLocation || plannedRun != nil {
+                routesCard
+            }
             tracesCard
         }
         .onAppear {
@@ -582,47 +660,66 @@ struct RunTrackerView: View {
         VStack(spacing: Theme.stackSpacing) {
             Card {
                 VStack(spacing: 14) {
-                    Text(Format.distance(meters: tracker.meters, unit: unit, language: language))
-                        .font(Theme.numberFont)
-                        .foregroundStyle(Theme.accent)
-                    HStack(spacing: 12) {
-                        StatTile(
-                            value: Format.stopwatch(seconds: tracker.movingDuration),
-                            label: UI.duration[language]
-                        )
-                        StatTile(
-                            value: Format.speedOrPace(
-                                sport: tracker.sport,
-                                secondsPerKm: tracker.recentPaceSecondsPerKm,
-                                unit: unit,
-                                language: language
-                            ),
-                            label: UI.pace[language]
-                        )
-                        StatTile(
-                            value: "\(Int(tracker.elevationGain)) m",
-                            label: UI.elevation[language]
-                        )
+                    // Le grand chiffre est celui qui bouge : les kilomètres
+                    // quand il y en a, le chronomètre quand il n'y en a pas.
+                    // Un « 0,00 km » en gros pendant une heure de rameur
+                    // serait un mensonge affiché en grand.
+                    if tracker.sport.tracksLocation {
+                        Text(Format.distance(meters: tracker.meters, unit: unit, language: language))
+                            .font(Theme.numberFont)
+                            .foregroundStyle(Theme.accent)
+                        HStack(spacing: 12) {
+                            StatTile(
+                                value: Format.stopwatch(seconds: tracker.movingDuration),
+                                label: UI.duration[language]
+                            )
+                            StatTile(
+                                value: Format.speedOrPace(
+                                    sport: tracker.sport,
+                                    secondsPerKm: tracker.recentPaceSecondsPerKm,
+                                    unit: unit,
+                                    language: language
+                                ),
+                                label: UI.pace[language]
+                            )
+                            StatTile(
+                                value: "\(Int(tracker.elevationGain)) m",
+                                label: UI.elevation[language]
+                            )
+                        }
+                        signalRow
+                    } else {
+                        Text(Format.stopwatch(seconds: tracker.movingDuration))
+                            .font(Theme.numberFont)
+                            .foregroundStyle(Theme.accent)
+                        HStack(spacing: 10) {
+                            Image(systemName: tracker.sport.symbolName)
+                                .foregroundStyle(Theme.secondaryText)
+                            Text(tracker.sport.label[language])
+                                .font(Theme.captionFont)
+                                .foregroundStyle(Theme.secondaryText)
+                        }
                     }
-                    signalRow
                 }
             }
 
-            routeProgressCard
+            if tracker.sport.tracksLocation {
+                routeProgressCard
 
-            RunMapView(
-                points: tracker.points,
-                route: followedRoute?.points ?? [],
-                showsCurrentPosition: true,
-                loadsTiles: loadsTiles
-            )
-            .frame(height: 260)
+                RunMapView(
+                    points: tracker.points,
+                    route: followedRoute?.points ?? [],
+                    showsCurrentPosition: true,
+                    loadsTiles: loadsTiles
+                )
+                .frame(height: 260)
             // Les points arrivent chaque seconde ; le contrôleur limite
             // lui-même la cadence réellement poussée au système, et l'écart
             // au parcours n'est dit qu'aux changements d'état.
-            .onChange(of: tracker.points.count) { _, _ in
-                liveActivity.update(tracker.activitySnapshot(unit: unit, language: language))
-                announceRouteDeviation()
+                .onChange(of: tracker.points.count) { _, _ in
+                    liveActivity.update(tracker.activitySnapshot(unit: unit, language: language))
+                    announceRouteDeviation()
+                }
             }
 
             if !tracker.splits.isEmpty {
