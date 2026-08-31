@@ -388,33 +388,13 @@
           "fr" : "Dips"
         },
         "reason" : {
-          "en" : "Same muscle, same movement. Take the load that gives you the same reps at the same effort: it will not be the one from the original exercise.",
-          "es" : "Mismo músculo, mismo movimiento. Usa la carga que te dé las mismas repeticiones al mismo esfuerzo: no será la del ejercicio original.",
-          "fr" : "Même muscle, même mouvement. Reprends la charge qui te donne le même nombre de répétitions au même effort : elle ne sera pas celle de l'exercice d'origine."
+          "en" : "On parallel bars: your bodyweight is the load. Go down until the shoulder passes below the elbow, and no further.",
+          "es" : "En paralelas: la carga es tu propio peso. Baja hasta que el hombro pase por debajo del codo, no más.",
+          "fr" : "Aux barres parallèles : c'est ton poids de corps qui fait la charge. Descends jusqu'à ce que l'épaule passe sous le coude, pas plus bas."
         }
       },
       {
-        "closeness" : 96,
-        "equipment" : [
-          {
-            "en" : "Bodyweight",
-            "es" : "Peso corporal",
-            "fr" : "Poids du corps"
-          }
-        ],
-        "name" : {
-          "en" : "Push-ups",
-          "es" : "Flexiones",
-          "fr" : "Pompes"
-        },
-        "reason" : {
-          "en" : "Bodyweight: the load is no longer adjustable, the rep count is. Aim for the same effort at the end of the set, not the same number.",
-          "es" : "Con el peso corporal: la carga ya no se regula, sí el número de repeticiones. Busca el mismo esfuerzo al final de la serie, no la misma cifra.",
-          "fr" : "Au poids du corps : la charge n'est plus réglable, c'est le nombre de répétitions qui l'est. Vise le même effort en fin de série, pas le même chiffre."
-        }
-      },
-      {
-        "closeness" : 93,
+        "closeness" : 98,
         "equipment" : [
           {
             "en" : "Machines",
@@ -423,9 +403,9 @@
           }
         ],
         "name" : {
-          "en" : "Machine chest press",
-          "es" : "Press de pecho en máquina",
-          "fr" : "Développé machine"
+          "en" : "Assisted dip",
+          "es" : "Fondos asistidos",
+          "fr" : "Dips assistés"
         },
         "reason" : {
           "en" : "On a machine: the path is guided, so you can go closer to failure safely. The number on the stack has nothing to do with the free-weight load — do not compare them.",
@@ -434,23 +414,43 @@
         }
       },
       {
-        "closeness" : 48,
+        "closeness" : 98,
         "equipment" : [
           {
-            "en" : "Cables",
-            "es" : "Poleas",
-            "fr" : "Poulies"
+            "en" : "Machines",
+            "es" : "Máquinas guiadas",
+            "fr" : "Machines guidées"
           }
         ],
         "name" : {
-          "en" : "Cable fly",
-          "es" : "Aperturas en polea",
-          "fr" : "Écarté à la poulie"
+          "en" : "Incline machine press",
+          "es" : "Press inclinado en máquina",
+          "fr" : "Développé incliné machine"
         },
         "reason" : {
-          "en" : "On the cable: tension stays constant through the whole range, including where the original movement got easy. The load will be lower for the same effort.",
-          "es" : "En polea: la tensión se mantiene constante en todo el recorrido, incluso donde el movimiento original se volvía fácil. La carga será menor para el mismo esfuerzo.",
-          "fr" : "À la poulie : la tension reste constante sur toute l'amplitude, y compris là où le mouvement d'origine devenait facile. La charge sera plus basse pour le même effort."
+          "en" : "On a machine: the path is guided, so you can go closer to failure safely. The number on the stack has nothing to do with the free-weight load — do not compare them.",
+          "es" : "En máquina: la trayectoria está guiada, así que puedes acercarte más al fallo sin riesgo. El número de la placa no tiene nada que ver con el peso libre: no los compares.",
+          "fr" : "Sur machine : la trajectoire est guidée, donc tu peux aller plus près de l'échec sans risque. La charge affichée n'a rien à voir avec celle du poids libre, ne compare pas les deux."
+        }
+      },
+      {
+        "closeness" : 98,
+        "equipment" : [
+          {
+            "en" : "Smith machine",
+            "es" : "Máquina Smith",
+            "fr" : "Smith machine"
+          }
+        ],
+        "name" : {
+          "en" : "Smith incline press",
+          "es" : "Press inclinado en Smith",
+          "fr" : "Développé incliné à la Smith"
+        },
+        "reason" : {
+          "en" : "On the Smith: the bar can only travel vertically, so there is nothing to balance and nobody to ask for a spot. Move your feet until the fixed path lines up.",
+          "es" : "En la Smith: la barra solo se mueve en vertical, así que no hay que equilibrar nada ni pedir ayuda. Mueve los pies hasta que la trayectoria fija te cuadre.",
+          "fr" : "À la Smith : la barre ne peut aller que verticalement, donc rien à équilibrer et personne à qui demander de parer. Recule ou avance les pieds jusqu'à ce que la trajectoire tombe juste."
         }
       }
     ]

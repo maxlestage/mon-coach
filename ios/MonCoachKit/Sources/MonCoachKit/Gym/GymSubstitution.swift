@@ -106,7 +106,28 @@ public enum GymCoach {
                 ? left.exercise.id < right.exercise.id
                 : left.closeness > right.closeness
         }
-        return Array(proposals.prefix(limit))
+        return Array(varied(proposals).prefix(limit))
+    }
+
+    /// Écarte les propositions qui se ressemblent trop pour tenir chacune
+    /// une carte.
+    ///
+    /// Le catalogue contient plusieurs machines par mouvement, et sans cette
+    /// coupe la liste des remplacements du développé couché serait « machine,
+    /// machine incliné, dips assistés » — trois cartes qui disent la même
+    /// chose, prises sur le même appareil, et qui ne laissent aucune place à
+    /// une option vraiment différente. Deux par type de matériel suffisent :
+    /// la troisième n'apporte rien qu'on ne sache déjà.
+    static func varied(_ proposals: [Substitution], perEquipment: Int = 2) -> [Substitution] {
+        var kept: [Substitution] = []
+        var seen: [Set<Equipment>: Int] = [:]
+        for proposal in proposals {
+            let count = seen[proposal.exercise.equipment, default: 0]
+            guard count < perEquipment else { continue }
+            seen[proposal.exercise.equipment] = count + 1
+            kept.append(proposal)
+        }
+        return kept
     }
 
     /// Un candidat n'est retenu que s'il travaille vraiment le même muscle.
@@ -147,7 +168,15 @@ public enum GymCoach {
     /// autres, c'est le matériel : on le dit, parce que c'est ce qui change
     /// la charge à mettre.
     static func reason(replacing exercise: Exercise, with candidate: Exercise) -> LocalizedText {
-        if let switched = equipmentChange(from: exercise, to: candidate) { return switched }
+        if let switched = equipmentChange(from: exercise, to: candidate) {
+            // Deux options prises sur le même matériel reçoivent la même
+            // phrase de matériel : c'est vrai, et insuffisant. Ce qui les
+            // départage — le buste calé, l'isolation, le côté par côté —
+            // est ajouté ici, faute de quoi les deux cartes seraient
+            // indiscernables alors que les exercices ne le sont pas.
+            guard let nuance = nuance(of: candidate, replacing: exercise) else { return switched }
+            return switched + LocalizedText(fr: " ", en: " ", es: " ") + nuance
+        }
 
         if candidate.primaryMuscle == exercise.primaryMuscle && candidate.pattern == exercise.pattern {
             return LocalizedText(
@@ -168,6 +197,44 @@ public enum GymCoach {
             en: "Same movement pattern, with the target muscle assisting. This is the furthest option on the list: take it only if the ones above are busy too.",
             es: "Mismo patrón de movimiento, con el músculo objetivo asistiendo. Es la opción más lejana de la lista: tómala solo si las anteriores también están ocupadas."
         )
+    }
+
+    /// Ce que ce remplacement change en plus du matériel.
+    ///
+    /// Une seule phrase, la plus décisive d'abord : ce qui décharge le dos
+    /// passe avant ce qui isole, qui passe avant un simple changement
+    /// d'angle. Rien n'est rendu quand rien de notable ne change — une
+    /// précision inventée pour remplir la carte serait pire que le silence.
+    static func nuance(of candidate: Exercise, replacing exercise: Exercise) -> LocalizedText? {
+        if exercise.stressedAreas.contains(.lowerBack) && !candidate.stressedAreas.contains(.lowerBack) {
+            return LocalizedText(
+                fr: "Et le bas du dos ne porte plus rien : c'est l'appui qui tient le buste.",
+                en: "And the low back carries nothing any more: the pad holds your torso.",
+                es: "Y la zona lumbar ya no soporta nada: el apoyo sujeta el torso."
+            )
+        }
+        if candidate.isUnilateral && !exercise.isUnilateral {
+            return LocalizedText(
+                fr: "Et un côté à la fois : le côté faible ne peut plus se cacher derrière l'autre.",
+                en: "And one side at a time: the weaker side can no longer hide behind the other.",
+                es: "Y un lado cada vez: el lado débil ya no puede esconderse detrás del otro."
+            )
+        }
+        if exercise.isCompound && !candidate.isCompound {
+            return LocalizedText(
+                fr: "C'est un mouvement d'isolation : moins de charge, mais toute la tension au bon endroit.",
+                en: "This is an isolation movement: less load, but all the tension in the right place.",
+                es: "Es un movimiento de aislamiento: menos carga, pero toda la tensión en el sitio correcto."
+            )
+        }
+        if candidate.pattern != exercise.pattern {
+            return LocalizedText(
+                fr: "L'angle du mouvement change aussi : la sensation ne sera pas la même, et c'est normal.",
+                en: "The angle of the movement changes too: the feel will not be the same, and that is fine.",
+                es: "El ángulo del movimiento también cambia: la sensación no será la misma, y es normal."
+            )
+        }
+        return nil
     }
 
     /// Ce que le changement de matériel implique pour la charge.
@@ -204,6 +271,20 @@ public enum GymCoach {
                 fr: "Aux haltères : chaque bras fait son propre travail, ce qui révèle les asymétries. Compte environ 40 % de la charge de la barre, par haltère.",
                 en: "Dumbbells: each arm does its own work, which exposes asymmetries. Reckon on about 40 % of the barbell load, per dumbbell.",
                 es: "Con mancuernas: cada brazo hace su trabajo, lo que revela las asimetrías. Cuenta con un 40 % de la carga de la barra, por mancuerna."
+            )
+        }
+        if now.contains(.smithMachine) && !was.contains(.smithMachine) {
+            return LocalizedText(
+                fr: "À la Smith : la barre ne peut aller que verticalement, donc rien à équilibrer et personne à qui demander de parer. Recule ou avance les pieds jusqu'à ce que la trajectoire tombe juste.",
+                en: "On the Smith: the bar can only travel vertically, so there is nothing to balance and nobody to ask for a spot. Move your feet until the fixed path lines up.",
+                es: "En la Smith: la barra solo se mueve en vertical, así que no hay que equilibrar nada ni pedir ayuda. Mueve los pies hasta que la trayectoria fija te cuadre."
+            )
+        }
+        if now.contains(.dipStation) && !was.contains(.dipStation) {
+            return LocalizedText(
+                fr: "Aux barres parallèles : c'est ton poids de corps qui fait la charge. Descends jusqu'à ce que l'épaule passe sous le coude, pas plus bas.",
+                en: "On parallel bars: your bodyweight is the load. Go down until the shoulder passes below the elbow, and no further.",
+                es: "En paralelas: la carga es tu propio peso. Baja hasta que el hombro pase por debajo del codo, no más."
             )
         }
         if now.contains(.cable) && !was.contains(.cable) {
