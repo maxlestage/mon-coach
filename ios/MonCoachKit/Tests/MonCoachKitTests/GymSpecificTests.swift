@@ -135,16 +135,18 @@ struct GymSpecificTests {
     @Test("Un vivier plus petit qu'une journée ne plante pas")
     func tinyPoolIsHandled() {
         let two = Array(GymSpecific.all.prefix(2))
-        let picks = GymSpecific.selection(from: two, dayIndex: 7, count: 4)
+        let picks = DailyRotation.selection(from: two, dayIndex: 7, count: 4, seed: GymSpecific.seed)
         #expect(picks.count == 2)
         #expect(Set(picks.map(\.id)).count == 2, "le même exercice est servi deux fois")
-        #expect(GymSpecific.selection(from: [], dayIndex: 3, count: 4).isEmpty)
+        #expect(
+            DailyRotation.selection(from: [], dayIndex: 3, count: 4, seed: GymSpecific.seed).isEmpty
+        )
     }
 
     @Test("Le mélange est le même partout, et à chaque appel")
     func shuffleIsReproducible() {
-        let once = GymSpecific.shuffled(GymSpecific.all, seed: 42).map(\.id)
-        let twice = GymSpecific.shuffled(GymSpecific.all, seed: 42).map(\.id)
+        let once = DailyRotation.shuffled(GymSpecific.all, seed: 42).map(\.id)
+        let twice = DailyRotation.shuffled(GymSpecific.all, seed: 42).map(\.id)
         #expect(once == twice)
         #expect(once != GymSpecific.all.map(\.id), "le mélange n'a rien mélangé")
         #expect(Set(once) == Set(GymSpecific.all.map(\.id)), "le mélange a perdu ou inventé un exercice")

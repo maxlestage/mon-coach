@@ -42,6 +42,13 @@ public struct TodayBriefing: Sendable, Equatable {
     /// days: today's session already lives in `state`, and showing the same
     /// list twice would only pad the screen.
     public let nextSession: PlannedSession?
+    /// Des mouvements à faire un jour creux, sans qu'ils comptent nulle part.
+    ///
+    /// Vides les jours de séance — il y a déjà quelque chose à faire — et
+    /// vides le dernier jour de la semaine, qui est le vrai repos. Un écran
+    /// qui propose quelque chose sept jours sur sept ne défend plus la
+    /// récupération.
+    public let extras: [Exercise]
 
     public var session: PlannedSession? {
         if case let .training(session) = state { return session }
@@ -149,7 +156,8 @@ public enum CoachEngine {
                 plannedRun: nil,
                 recordedRun: history.run(on: date, calendar: calendar),
                 food: dayPlan(for: program, on: date, trains: false, runs: false, calendar: calendar),
-                nextSession: nil
+                nextSession: nil,
+                extras: []
             )
         }
 
@@ -179,7 +187,12 @@ public enum CoachEngine {
                     program: program,
                     history: history,
                     calendar: calendar
-                )
+                ),
+                // Le dernier jour de la semaine ne reçoit rien : c'est le
+                // vrai repos, et il faut qu'il en reste un.
+                extras: dayIndexInWeek(for: program, weekIndex: weekIndex, on: date, calendar: calendar) == 6
+                    ? []
+                    : DailyExtras.ofTheDay(on: date, profile: program.profile, calendar: calendar)
             )
         }
 
@@ -202,8 +215,33 @@ public enum CoachEngine {
             plannedRun: plannedRun,
             recordedRun: recordedRun,
             food: dayPlan(for: program, on: date, trains: true, runs: plannedRun != nil, calendar: calendar),
-            nextSession: nil
+            nextSession: nil,
+            extras: []
         )
+    }
+
+    /// Le rang du jour dans la semaine du plan, de 0 à 6.
+    ///
+    /// La semaine comptée est celle du bloc, pas celle du calendrier : c'est
+    /// « Semaine 1 » telle que l'athlète la lit à l'écran, et elle commence
+    /// le jour où il a commencé.
+    static func dayIndexInWeek(
+        for program: CoachingProgram,
+        weekIndex: Int,
+        on date: Date,
+        calendar: Calendar
+    ) -> Int {
+        let weekStart = calendar.date(
+            byAdding: .day,
+            value: (weekIndex - 1) * 7,
+            to: program.plan.startDate
+        ) ?? program.plan.startDate
+        let elapsed = calendar.dateComponents(
+            [.day],
+            from: calendar.startOfDay(for: weekStart),
+            to: calendar.startOfDay(for: date)
+        ).day ?? 0
+        return ((elapsed % 7) + 7) % 7
     }
 
     /// The food plan for a given day.
@@ -335,13 +373,25 @@ public enum CoachEngine {
         return block.weeks[weekIndex - 1].runs.first { $0.dayIndex == dayIndex }
     }
 
-    /// Evenly spaced training days across the week.
+    /// Les jours d'entraînement occupent le début de la semaine.
+    ///
+    /// Les séances étaient réparties à intervalle régulier sur les sept
+    /// jours : quatre séances donnaient à s'entraîner les jours 0, 2, 4 et 5,
+    /// donc des jours creux au milieu de la semaine et un dimanche
+    /// d'entraînement. Vu de l'accueil, ça donnait « repos » un mardi sans
+    /// que rien ne l'explique.
+    ///
+    /// Elles se suivent désormais depuis le premier jour, et le repos tombe
+    /// à la fin — là où tout le monde le place, et là où il se voit venir.
+    /// Six séances font donc six jours pleins et un jour off, ce que fait
+    /// n'importe quel programme poussée/tirage/jambes.
+    ///
+    /// Rien n'est perdu à rater un jour : la règle de rattrapage juste
+    /// au-dessus rend la séance dès qu'il reste autant de séances que de
+    /// jours.
     static func shouldTrain(daysElapsed: Int, sessionsPerWeek: Int) -> Bool {
         guard sessionsPerWeek > 0 else { return false }
-        let spacing = 7.0 / Double(sessionsPerWeek)
-        let slot = Int(Double(daysElapsed) / spacing)
-        let slotStart = Int((Double(slot) * spacing).rounded())
-        return slotStart == daysElapsed
+        return daysElapsed < sessionsPerWeek
     }
 
     // MARK: - Loads

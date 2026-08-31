@@ -10,6 +10,8 @@ struct TodayView: View {
     @State private var showingWeighIn = false
     @State private var now = Date()
     @State private var showingRunTracker = false
+    /// La fiche d'un mouvement proposé un jour creux.
+    @State private var openedExtra: Exercise?
 
     private var briefing: TodayBriefing? { store.briefing(on: now) }
     private var unit: UnitSystem { store.profile?.unit ?? .metric }
@@ -59,6 +61,9 @@ struct TodayView: View {
             }
             .sheet(isPresented: $showingRunTracker) {
                 RunTrackerView(plannedRun: briefing?.plannedRun)
+            }
+            .sheet(item: $openedExtra) { exercise in
+                GuidedTechniqueView(exercise: exercise)
             }
             .sheet(isPresented: $showingWeighIn) {
                 WeighInSheet(unit: unit, currentKg: store.profile?.weightKg ?? 70) { log in
@@ -198,11 +203,30 @@ struct TodayView: View {
             }
 
         case .rest:
-            Card(title: "Repos", subtitle: "Semaine \(briefing.weekIndex ?? 0)") {
-                Text("Rien de prévu aujourd'hui. La récupération est la moitié du travail : mange tes protéines, dors, et reviens en forme.")
-                    .font(Theme.bodyFont)
-                    .foregroundStyle(Theme.secondaryText)
-                    .fixedSize(horizontal: false, vertical: true)
+            // Deux jours très différents portent le même état. Le dernier de
+            // la semaine est le vrai repos, et il le dit. Un jour creux au
+            // milieu, lui, ne mérite pas « rien de prévu » : le moteur y pose
+            // des mouvements à faire, et l'écran les propose.
+            Card(
+                title: briefing.extras.isEmpty ? "Repos" : "Rien d'imposé aujourd'hui",
+                subtitle: "Semaine \(briefing.weekIndex ?? 0)"
+            ) {
+                CoachText(
+                    briefing.extras.isEmpty ? DailyExtras.realRest : DailyExtras.invitation
+                )
+
+                if !briefing.extras.isEmpty {
+                    VStack(spacing: 8) {
+                        ForEach(briefing.extras) { exercise in
+                            Button {
+                                openedExtra = exercise
+                            } label: {
+                                extraRow(exercise)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
 
                 // Ce qui attend, exercices compris — un jour de repos n'est
                 // pas un écran vide. Sans les charges : elles se décident le
@@ -227,6 +251,37 @@ struct TodayView: View {
                 }
             }
         }
+    }
+
+    /// Un mouvement proposé un jour creux : ce qu'il travaille, et la fiche
+    /// derrière. Pas de charge ni de série imposée — ce n'est pas une séance,
+    /// et l'afficher comme une séance en ferait une dette de plus.
+    private func extraRow(_ exercise: Exercise) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: "figure.strengthtraining.traditional")
+                .font(.system(size: 14))
+                .foregroundStyle(Theme.accent)
+                .frame(width: 22)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(exercise.name[language])
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Theme.primaryText)
+                Text(
+                    exercise.primaryMuscle.label[language]
+                    + " · \(exercise.viableRepRange.lowerBound)–\(exercise.viableRepRange.upperBound)"
+                )
+                .font(.system(size: 12))
+                .foregroundStyle(Theme.secondaryText)
+            }
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(.system(size: 12))
+                .foregroundStyle(Theme.secondaryText)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.surfaceRaised, in: RoundedRectangle(cornerRadius: 12))
+        .contentShape(Rectangle())
     }
 
     private func nutritionCard(_ target: NutritionTarget) -> some View {

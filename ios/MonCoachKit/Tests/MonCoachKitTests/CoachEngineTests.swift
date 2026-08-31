@@ -303,3 +303,169 @@ struct AdaptationTests {
         #expect(review.insights.isEmpty)
     }
 }
+
+@Suite("La semaine se remplit par le début")
+struct WeekShapeTests {
+
+    private func program(daysPerWeek: Int) -> CoachingProgram {
+        CoachEngine.buildProgram(
+            for: Fixtures.intermediate(daysPerWeek: daysPerWeek),
+            startingOn: Fixtures.start,
+            calendar: Fixtures.calendar
+        )
+    }
+
+    private func day(_ offset: Int) -> Date {
+        Fixtures.calendar.date(byAdding: .day, value: offset, to: Fixtures.start)!
+    }
+
+    /// L'historique d'un athlète qui a fait ses séances, une par jour depuis
+    /// le début de la semaine.
+    ///
+    /// Sans lui, la règle de rattrapage rend une séance tous les jours — et
+    /// elle a raison : quelqu'un qui n'a rien fait de la semaine est en
+    /// retard, pas au repos.
+    private func weekDone(_ program: CoachingProgram, count: Int) -> TrainingHistory {
+        var history = TrainingHistory.empty
+        let sessions = program.plan.week(at: 1)?.sessions ?? []
+        for (offset, session) in sessions.prefix(count).enumerated() {
+            history.sessions.append(
+                SessionLog(plannedSessionID: session.id, date: day(offset), durationMinutes: 45)
+            )
+        }
+        return history
+    }
+
+    @Test("Six séances font six jours pleins, et le repos tombe le dernier")
+    func restLandsOnTheLastDay() {
+        let program = program(daysPerWeek: 6)
+        var history = TrainingHistory.empty
+        let sessions = program.plan.week(at: 1)?.sessions ?? []
+        #expect(sessions.count == 6)
+
+        // Chaque jour propose une séance, et on la fait avant de passer au
+        // suivant : c'est la semaine telle qu'elle est vécue.
+        for offset in 0..<6 {
+            let briefing = CoachEngine.briefing(
+                for: program, history: history, on: day(offset), calendar: Fixtures.calendar
+            )
+            let session = try! #require(
+                briefing.session, Comment(rawValue: "jour \(offset) sans séance")
+            )
+            history.sessions.append(
+                SessionLog(plannedSessionID: session.id, date: day(offset), durationMinutes: 45)
+            )
+        }
+
+        let last = CoachEngine.briefing(
+            for: program, history: history, on: day(6), calendar: Fixtures.calendar
+        )
+        #expect(last.state == .rest, "le septième jour doit être le repos")
+        #expect(last.extras.isEmpty, "le vrai repos ne propose rien")
+    }
+
+    @Test("Les jours d'entraînement se suivent, sans trou au milieu")
+    func trainingDaysAreConsecutive() {
+        for daysPerWeek in 2...7 {
+            let program = program(daysPerWeek: daysPerWeek)
+            let sessions = program.plan.week(at: 1)?.sessions.count ?? 0
+            let trains = (0..<7).map {
+                CoachEngine.shouldTrain(daysElapsed: $0, sessionsPerWeek: sessions)
+            }
+            // Un seul basculement : vrai tant qu'on s'entraîne, faux ensuite.
+            let flips = zip(trains, trains.dropFirst()).filter { $0 != $1 }.count
+            #expect(flips <= 1, Comment(rawValue: "\(daysPerWeek) j/sem : \(trains)"))
+            #expect(trains.first == true, "la semaine commence toujours par une séance")
+        }
+    }
+
+    @Test("Un jour creux propose des exercices ; le dernier jour, non")
+    func hollowDaysGetSomethingToDo() {
+        // Quatre séances faites du lundi au jeudi : les jours 4 et 5 sont
+        // creux, le 6 est le repos.
+        let program = program(daysPerWeek: 4)
+        let history = weekDone(program, count: 4)
+
+        let hollow = CoachEngine.briefing(
+            for: program, history: history, on: day(4), calendar: Fixtures.calendar
+        )
+        #expect(hollow.state == .rest)
+        #expect(!hollow.extras.isEmpty, "un jour creux ne doit pas rester vide")
+        #expect(hollow.extras.count == DailyExtras.dailyCount)
+
+        let last = CoachEngine.briefing(
+            for: program, history: history, on: day(6), calendar: Fixtures.calendar
+        )
+        #expect(last.state == .rest)
+        #expect(last.extras.isEmpty, "le vrai repos ne propose rien")
+    }
+
+    @Test("Un jour de séance ne propose rien en plus")
+    func trainingDaysCarryNoExtras() {
+        let briefing = CoachEngine.briefing(
+            for: program(daysPerWeek: 4), history: .empty,
+            on: Fixtures.start, calendar: Fixtures.calendar
+        )
+        #expect(briefing.session != nil)
+        #expect(briefing.extras.isEmpty)
+    }
+}
+
+@Suite("Les exercices d'un jour creux")
+struct DailyExtrasTests {
+
+    private var calendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        return calendar
+    }
+
+    private func day(_ offset: Int) -> Date {
+        calendar.date(byAdding: .day, value: offset, to: Fixtures.start)!
+    }
+
+    @Test("Ils changent tous les jours, et jamais deux fois de suite les mêmes")
+    func theyChangeEveryDay() {
+        let profile = Fixtures.intermediate()
+        var previous = Set<String>()
+        for offset in 0..<45 {
+            let today = Set(
+                DailyExtras.ofTheDay(on: day(offset), profile: profile, calendar: calendar).map(\.id)
+            )
+            #expect(today.count == DailyExtras.dailyCount)
+            #expect(
+                today.isDisjoint(with: previous),
+                Comment(rawValue: "jour \(offset) répète \(today.intersection(previous))")
+            )
+            previous = today
+        }
+    }
+
+    @Test("On ne propose que ce que l'athlète peut faire")
+    func onlyWhatTheAthleteCanDo() {
+        var profile = Fixtures.intermediate()
+        // Un salon : poids du corps et une paire d'haltères.
+        profile.equipment = [.bodyweight, .dumbbell]
+        profile.limitations = [.knee]
+        for offset in 0..<30 {
+            for exercise in DailyExtras.ofTheDay(on: day(offset), profile: profile, calendar: calendar) {
+                #expect(exercise.isAvailable(with: profile.equipment), Comment(rawValue: exercise.id))
+                #expect(!exercise.conflicts(with: profile.limitations), Comment(rawValue: exercise.id))
+            }
+        }
+    }
+
+    @Test("Un athlète sans rien du tout ne reçoit pas une liste vide")
+    func bodyweightIsAlwaysEnough() {
+        var profile = Fixtures.intermediate()
+        profile.equipment = [.bodyweight]
+        let picks = DailyExtras.ofTheDay(on: day(3), profile: profile, calendar: calendar)
+        #expect(!picks.isEmpty, "il reste toujours des mouvements au poids du corps")
+    }
+
+    @Test("Les deux textes existent dans les trois langues")
+    func textsAreTranslated() {
+        #expect(DailyExtras.invitation.isComplete)
+        #expect(DailyExtras.realRest.isComplete)
+    }
+}
