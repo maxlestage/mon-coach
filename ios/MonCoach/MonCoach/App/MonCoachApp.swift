@@ -29,6 +29,12 @@ struct MonCoachApp: App {
                     // l'état et celle du disque — laisse des images que plus
                     // aucune sortie ne réclame et que rien ne peut plus
                     // atteindre. Le lancement en fait le ménage.
+                    // Les doublons d'abord : un journal constitué avant
+                    // que la règle existe en porte, et ils comptent leurs
+                    // kilomètres deux fois dans le volume de la semaine.
+                    // Avant le ménage des photos, parce que la fusion
+                    // reprend celles des deux enregistrements.
+                    store.mergeDuplicateActivities()
                     store.prunePhotos()
                 }
         }

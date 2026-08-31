@@ -12,6 +12,8 @@ struct JournalView: View {
     @State private var showsImporter = false
     @State private var importError = false
     @State private var importedCount = 0
+    /// Les fichiers dont la sortie était déjà dans le journal.
+    @State private var alreadyKnownCount = 0
 
     private var unit: UnitSystem { store.profile?.unit ?? .metric }
     private var maximumBpm: Double {
@@ -42,6 +44,7 @@ struct JournalView: View {
             allowsMultipleSelection: true
         ) { result in
             importedCount = 0
+            alreadyKnownCount = 0
             guard case .success(let urls) = result else { return }
             for url in urls {
                 // L'accès sécurisé est requis pour un fichier venu des
@@ -50,12 +53,17 @@ struct JournalView: View {
                 let secured = url.startAccessingSecurityScopedResource()
                 defer { if secured { url.stopAccessingSecurityScopedResource() } }
                 guard let text = try? String(contentsOf: url, encoding: .utf8),
-                      (try? store.importGPX(text)) != nil
+                      let outcome = try? store.importGPX(text)
                 else {
                     importError = true
                     continue
                 }
-                importedCount += 1
+                // Un fichier déjà rentré n'est pas une erreur, et n'est pas
+                // non plus une sortie de plus : il se compte à part.
+                switch outcome {
+                case .imported: importedCount += 1
+                case .alreadyKnown: alreadyKnownCount += 1
+                }
             }
         }
         .alert(
@@ -372,12 +380,30 @@ struct JournalView: View {
                         es: "Importa archivos GPX: de un reloj, de otra aplicación, de donde sea. Entran en tu historial y cuentan para tus récords. Y cada salida se exporta en GPX desde su ficha."
                     )
                 )
-                if importedCount > 0 {
-                    Pill(text: LocalizedText(
-                        fr: "\(importedCount) importée(s)",
-                        en: "\(importedCount) imported",
-                        es: "\(importedCount) importada(s)"
-                    )[language])
+                if importedCount > 0 || alreadyKnownCount > 0 {
+                    FlowLayout(spacing: 6) {
+                        if importedCount > 0 {
+                            Pill(text: LocalizedText(
+                                fr: "\(importedCount) importée(s)",
+                                en: "\(importedCount) imported",
+                                es: "\(importedCount) importada(s)"
+                            )[language])
+                        }
+                        // Dit plutôt que tu : réimporter le même fichier est
+                        // naturel quand on ne se souvient plus de ce qu'on a
+                        // déjà rentré, et le silence laisserait croire à une
+                        // sortie perdue.
+                        if alreadyKnownCount > 0 {
+                            Pill(
+                                text: LocalizedText(
+                                    fr: "\(alreadyKnownCount) déjà dans ton journal",
+                                    en: "\(alreadyKnownCount) already in your journal",
+                                    es: "\(alreadyKnownCount) ya en tu diario"
+                                )[language],
+                                tint: Theme.warning
+                            )
+                        }
+                    }
                 }
                 PrimaryButton(
                     title: LocalizedText(fr: "Importer un GPX", en: "Import a GPX", es: "Importar un GPX")[language],

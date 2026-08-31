@@ -225,6 +225,62 @@ public final class CoachStore {
     /// pace — otherwise every prescribed pace would stay wrong all block.
     /// Une sortie vélo ou une randonnée est archivée comme les autres, mais
     /// `demonstratedThresholdPace` ne la regarde pas.
+    /// Fusionne les doublons déjà enregistrés, et rend combien ont disparu.
+    ///
+    /// Appelé au lancement. La règle est celle de l'enregistrement, appliquée
+    /// à ce qui est déjà là : un journal constitué avant qu'elle existe porte
+    /// les doublons qu'elle empêche désormais — et ces doublons-là comptent
+    /// leurs kilomètres deux fois dans le volume de la semaine et dans la
+    /// charge, donc ils faussent le plan, pas seulement l'affichage.
+    ///
+    /// Rien ne se perd : la fusion garde la mesure la plus riche et reprend
+    /// sur elle ce que l'autre portait — note, ressenti, photos, matériel.
+    @discardableResult
+    public func mergeDuplicateActivities() -> Int {
+        let sorted = history.activities.sorted { $0.startedAt < $1.startedAt }
+        var kept: [ActivityLog] = []
+        var merged = 0
+        for activity in sorted {
+            if let index = kept.firstIndex(where: { $0.describesSameOuting(as: activity) }) {
+                let winner = kept[index].measurementRichness >= activity.measurementRichness
+                    ? Self.merged(keeping: kept[index], from: activity)
+                    : Self.merged(keeping: activity, from: kept[index])
+                kept[index] = winner
+                merged += 1
+            } else {
+                kept.append(activity)
+            }
+        }
+        guard merged > 0 else { return 0 }
+        history.activities = kept
+        save()
+        return merged
+    }
+
+    /// Reprend, sur l'enregistrement gardé, ce que le doublon portait en
+    /// plus. Rien n'est écrasé : ce qui est déjà renseigné gagne.
+    static func merged(keeping kept: ActivityLog, from other: ActivityLog) -> ActivityLog {
+        var result = kept
+        if result.note == nil { result.note = other.note }
+        if result.perceivedEffort == nil { result.perceivedEffort = other.perceivedEffort }
+        if result.gearID == nil { result.gearID = other.gearID }
+        if result.heartRate.isEmpty { result.heartRate = other.heartRate }
+        if result.bestEfforts == nil { result.bestEfforts = other.bestEfforts }
+        // Les photos des deux, sans doublon : elles sont sur le disque, et
+        // en perdre une la rendrait introuvable pour toujours.
+        for photoID in other.photoIDs where !result.photoIDs.contains(photoID) {
+            result.photoIDs.append(photoID)
+        }
+        // Une distance mesurée l'emporte sur une absence de distance : une
+        // séance de tapis remontée sans distance ne doit pas effacer celle
+        // que l'athlète avait recopiée.
+        if result.meters == 0, other.meters > 0 {
+            result.meters = other.meters
+            result.duration = Swift.max(result.duration, other.duration)
+        }
+        return result
+    }
+
     public func recordRun(_ run: ActivityLog) {
         var run = run
         // Le matériel suit tout seul : la sortie prend le dernier matériel
@@ -237,7 +293,24 @@ public final class CoachStore {
                 activities: history.activities
             )?.id
         }
-        history.activities.removeAll { $0.id == run.id }
+        // La même sortie ne rentre pas deux fois.
+        //
+        // L'identifiant ne suffisait pas : un GPX réimporté en reçoit un
+        // neuf, et le journal affichait la sortie en double — kilomètres
+        // comptés deux fois dans le volume de la semaine, et dans la charge.
+        // On écarte donc aussi ce qui décrit la même sortie, en gardant
+        // l'enregistrement le mieux mesuré des deux et ce que l'autre
+        // portait en plus : une note, un ressenti, des photos se perdraient
+        // sans ça.
+        let twins = history.activities.filter { $0.id != run.id && $0.describesSameOuting(as: run) }
+        if let best = twins.max(by: { $0.measurementRichness < $1.measurementRichness }),
+           best.measurementRichness > run.measurementRichness {
+            run = Self.merged(keeping: best, from: run)
+        } else {
+            for twin in twins { run = Self.merged(keeping: run, from: twin) }
+        }
+        let twinIDs = Set(twins.map(\.id))
+        history.activities.removeAll { $0.id == run.id || twinIDs.contains($0.id) }
         history.activities.append(run)
         history.activities.sort { $0.startedAt < $1.startedAt }
 
@@ -453,6 +526,23 @@ public final class CoachStore {
 
     // MARK: - Import et export
 
+    /// Ce qu'un import a donné.
+    ///
+    /// Deux issues et non une : réimporter le même fichier n'est pas une
+    /// erreur — c'est même naturel quand on ne se souvient plus de ce qu'on
+    /// a déjà rentré — mais l'annoncer comme une sortie de plus serait un
+    /// mensonge, et laisserait croire à un doublon perdu.
+    public enum ImportOutcome: Sendable {
+        case imported(ActivityLog)
+        case alreadyKnown(ActivityLog)
+
+        public var activity: ActivityLog {
+            switch self {
+            case .imported(let log), .alreadyKnown(let log): log
+            }
+        }
+    }
+
     /// Importe un fichier GPX dans l'historique.
     ///
     /// Le sport vient du fichier quand il en déclare un, du choix de
@@ -460,14 +550,18 @@ public final class CoachStore {
     /// ici : mêmes filtres, mêmes records — un 5 km couru l'an dernier
     /// ailleurs compte dans l'histoire, c'est le but de l'import.
     @discardableResult
-    public func importGPX(_ text: String, fallbackSport: Sport = .run) throws -> ActivityLog {
+    public func importGPX(_ text: String, fallbackSport: Sport = .run) throws -> ImportOutcome {
         let imported = try GPX.read(text)
         let sport = imported.sport ?? fallbackSport
         var log = TraceAnalysis.summarise(rawPoints: imported.points, sport: sport, type: .easy)
         log.heartRate = imported.heartRate
         log.note = imported.name
+        let known = history.activities.contains { $0.describesSameOuting(as: log) }
         recordRun(log)
-        return log
+        // La sortie gardée après fusion, pas celle qu'on vient de lire : ce
+        // sont ses photos et son ressenti que l'écran doit montrer.
+        let stored = history.activities.first { $0.describesSameOuting(as: log) } ?? log
+        return known ? .alreadyKnown(stored) : .imported(stored)
     }
 
     /// L'activité au format GPX, prête à partir.
