@@ -16,6 +16,10 @@ public enum ExerciseCatalog {
         + shoulderIsolation
         + legIsolation
         + coreWork
+        // Les mouvements qui n'existent qu'en salle vivent dans leur propre
+        // fichier : ils sont nombreux, et c'est là que la sélection du jour
+        // du coach de salle va les chercher.
+        + gymOnly
 
     private static let byID: [String: Exercise] = Dictionary(
         uniqueKeysWithValues: all.map { ($0.id, $0) }

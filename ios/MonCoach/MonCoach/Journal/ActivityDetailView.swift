@@ -10,10 +10,21 @@ struct ActivityDetailView: View {
     @Environment(\.language) private var language
 
     @State private var showsDeleteConfirmation = false
+    @State private var routeName = ""
+    @State private var asksRouteName = false
+    @State private var savedAsRoute = false
 
     private var unit: UnitSystem { store.profile?.unit ?? .metric }
     private var maximumBpm: Double {
         HeartRateAnalysis.estimatedMaximum(age: store.profile?.age() ?? 30)
+    }
+    /// La sortie telle qu'elle est dans le magasin en ce moment.
+    ///
+    /// La vue en reçoit une copie à sa création ; les photos ajoutées depuis
+    /// n'y sont pas. Lire le magasin fait apparaître la photo dès qu'elle est
+    /// rangée, sans refermer la fiche.
+    private var current: ActivityLog {
+        store.history.activities.first { $0.id == activity.id } ?? activity
     }
 
     var body: some View {
@@ -45,6 +56,7 @@ struct ActivityDetailView: View {
                 }
 
                 effortAndGearCard
+                photosCard
                 highlightsCard
                 segmentsCard
                 heartCard
@@ -54,6 +66,8 @@ struct ActivityDetailView: View {
                         SplitList(splits: activity.splits, unit: unit)
                     }
                 }
+
+                reuseAsRouteCard
 
                 // L'export : le fichier se fabrique à la demande, pas à
                 // l'affichage — un GPX d'une longue sortie pèse des mégaoctets.
@@ -100,6 +114,73 @@ struct ActivityDetailView: View {
                 dismiss()
             }
             Button(UI.cancel[language], role: .cancel) {}
+        }
+        .alert(
+            LocalizedText(
+                fr: "Le nom de ce parcours",
+                en: "The name of this route",
+                es: "El nombre de este recorrido"
+            )[language],
+            isPresented: $asksRouteName
+        ) {
+            TextField("", text: $routeName)
+            Button(UI.save[language]) {
+                guard let route = RoutePlanner.route(from: activity, named: routeName) else { return }
+                savedAsRoute = store.saveRoute(route)
+            }
+            Button(UI.cancel[language], role: .cancel) {}
+        }
+    }
+
+    /// Les photos de la sortie.
+    private var photosCard: some View {
+        PhotoStripView(
+            photoIDs: current.photoIDs,
+            onAdd: { _ = store.addPhoto($0, to: activity.id) },
+            onDelete: { store.removePhoto($0, from: activity.id) }
+        )
+    }
+
+    /// Refaire ce parcours : le geste le plus courant devant une sortie
+    /// qu'on a aimée.
+    ///
+    /// La trace devient un parcours à suivre, amincie au passage — un
+    /// parcours n'a pas besoin des dix mille points d'une heure de course.
+    @ViewBuilder
+    private var reuseAsRouteCard: some View {
+        if !activity.points.isEmpty {
+            Card {
+                VStack(alignment: .leading, spacing: 10) {
+                    if savedAsRoute {
+                        HStack(spacing: 8) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(Theme.accent)
+                            CoachText(
+                                LocalizedText(
+                                    fr: "Parcours enregistré. Tu le retrouveras avant de partir, sur l'écran Course.",
+                                    en: "Route saved. You will find it before you set off, on the Running screen.",
+                                    es: "Recorrido guardado. Lo encontrarás antes de salir, en la pantalla Carrera."
+                                ),
+                                color: Theme.primaryText
+                            )
+                        }
+                    } else {
+                        GhostButton(
+                            title: LocalizedText(
+                                fr: "En faire un parcours à refaire",
+                                en: "Turn this into a route",
+                                es: "Convertirlo en un recorrido"
+                            )[language],
+                            systemImage: "map"
+                        ) {
+                            routeName = activity.note?.isEmpty == false
+                                ? activity.note!
+                                : activity.startedAt.formatted(.dateTime.day().month())
+                            asksRouteName = true
+                        }
+                    }
+                }
+            }
         }
     }
 

@@ -63,6 +63,34 @@ public enum GPX {
         return lines.joined(separator: "\n")
     }
 
+    /// Un parcours préparé au format GPX 1.1.
+    ///
+    /// Écrit comme une route (`<rte>`) et non comme une trace (`<trk>`) :
+    /// une trace porte des horodatages, un parcours prévu n'en a pas. Le
+    /// déclarer comme une trace obligerait à inventer des heures de passage,
+    /// et tout outil qui le relirait afficherait une sortie qui n'a jamais
+    /// eu lieu. C'est aussi ce qu'attendent les montres, qui savent suivre
+    /// une route et pas rejouer une trace.
+    public static func document(for route: PlannedRoute) -> String {
+        var lines: [String] = []
+        lines.append(#"<?xml version="1.0" encoding="UTF-8"?>"#)
+        lines.append(
+            #"<gpx version="1.1" creator="Stride" xmlns="http://www.topografix.com/GPX/1/1">"#
+        )
+        lines.append("  <metadata><time>\(DateCoding.string(from: route.createdAt))</time></metadata>")
+        lines.append("  <rte>")
+        lines.append("    <name>\(escape(route.name))</name>")
+        lines.append("    <type>\(route.sport.rawValue)</type>")
+        for point in route.points {
+            lines.append(
+                "    <rtept lat=\"\(coordinate(point.latitude))\" lon=\"\(coordinate(point.longitude))\"></rtept>"
+            )
+        }
+        lines.append("  </rte>")
+        lines.append("</gpx>")
+        return lines.joined(separator: "\n")
+    }
+
     public static func trackName(for activity: ActivityLog) -> String {
         activity.note?.isEmpty == false
             ? activity.note!
@@ -150,27 +178,62 @@ public enum GPX {
         guard points.count >= 2 else { throw ImportError.noUsablePoints }
 
         let name = element("name", in: text)
-        let declaredType = element("type", in: text)?.lowercased()
-        let sport = declaredType.flatMap { declared in
-            Sport(rawValue: declared) ?? {
-                // Les dialectes des autres exportateurs : « running » plutôt
-                // que « run », « cycling » plutôt que « ride ». On reconnaît
-                // sans exiger.
-                switch declared {
-                case "running", "run", "trail_running": Sport.run
-                case "cycling", "biking", "ride": Sport.ride
-                case "walking": Sport.walk
-                case "hiking": Sport.hike
-                default: nil
-                }
-            }()
-        }
         return Imported(
             points: points.sorted { $0.timestamp < $1.timestamp },
             heartRate: heart,
             name: name,
-            sport: sport
+            sport: declaredSport(in: text)
         )
+    }
+
+    /// Lit un parcours : les points d'une route, ou à défaut ceux d'une
+    /// trace.
+    ///
+    /// Le repli sur la trace n'est pas une commodité, c'est le cas le plus
+    /// courant : un parcours téléchargé ailleurs arrive presque toujours en
+    /// `<trkpt>`. `read` ne peut pas le lire — elle exige des horodatages,
+    /// à raison, puisqu'elle fabrique une activité. Ici les temps ne servent
+    /// à rien : seule la géographie compte.
+    public static func readRoute(_ text: String) throws -> (points: [RoutePoint], name: String?, sport: Sport?) {
+        guard text.contains("<gpx") else { throw ImportError.notGPX }
+        var points = coordinates(in: text, tag: "rtept")
+        if points.count < 2 { points = coordinates(in: text, tag: "trkpt") }
+        guard points.count >= 2 else { throw ImportError.noUsablePoints }
+        return (points, element("name", in: text), declaredSport(in: text))
+    }
+
+    private static func coordinates(in text: String, tag: String) -> [RoutePoint] {
+        var result: [RoutePoint] = []
+        for piece in text.components(separatedBy: "<\(tag)").dropFirst() {
+            // La balise se referme d'une façon ou d'une autre ; sans
+            // fermeture trouvée, on lit quand même l'en-tête, où vivent les
+            // deux attributs qui nous intéressent.
+            let header = piece.range(of: ">").map { String(piece[..<$0.lowerBound]) } ?? piece
+            guard let latitude = attribute("lat", in: header),
+                  let longitude = attribute("lon", in: header),
+                  latitude.isFinite, longitude.isFinite,
+                  abs(latitude) <= 90, abs(longitude) <= 180
+            else { continue }
+            result.append(RoutePoint(latitude: latitude, longitude: longitude))
+        }
+        return result
+    }
+
+    /// Le sport déclaré par le fichier, quand il en déclare un de connu.
+    ///
+    /// Les dialectes des autres exportateurs comptent autant que le nôtre :
+    /// « running » plutôt que « run », « cycling » plutôt que « ride ». On
+    /// reconnaît sans exiger.
+    private static func declaredSport(in text: String) -> Sport? {
+        guard let declared = element("type", in: text)?.lowercased() else { return nil }
+        if let known = Sport(rawValue: declared) { return known }
+        switch declared {
+        case "running", "run", "trail_running": return .run
+        case "cycling", "biking", "ride": return .ride
+        case "walking": return .walk
+        case "hiking": return .hike
+        default: return nil
+        }
     }
 
     private static func attribute(_ name: String, in fragment: String) -> Double? {

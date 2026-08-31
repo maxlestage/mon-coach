@@ -102,6 +102,12 @@ public struct ActivityLog: Codable, Sendable, Equatable, Identifiable {
     /// Le matériel de la sortie — chaussures, vélo. Nil pour une sortie
     /// enregistrée avant que le matériel existe, ou sans matériel déclaré.
     public var gearID: UUID?
+    /// Les photos prises pendant la sortie, par identifiant.
+    ///
+    /// Les images elles-mêmes vivent en fichiers à part (`PhotoStore`) :
+    /// l'état est relu et réécrit à chaque geste de l'athlète, et y coller
+    /// des photos le ferait peser cent mégaoctets.
+    public var photoIDs: [String]
 
     public init(
         id: UUID = UUID(),
@@ -118,7 +124,8 @@ public struct ActivityLog: Codable, Sendable, Equatable, Identifiable {
         heartRate: [HeartRateSample] = [],
         perceivedEffort: Int? = nil,
         note: String? = nil,
-        gearID: UUID? = nil
+        gearID: UUID? = nil,
+        photoIDs: [String] = []
     ) {
         self.id = id
         self.startedAt = startedAt
@@ -135,6 +142,7 @@ public struct ActivityLog: Codable, Sendable, Equatable, Identifiable {
         self.perceivedEffort = perceivedEffort
         self.note = note
         self.gearID = gearID
+        self.photoIDs = photoIDs
     }
 
     public init(from decoder: Decoder) throws {
@@ -156,6 +164,7 @@ public struct ActivityLog: Codable, Sendable, Equatable, Identifiable {
         perceivedEffort = try container.decodeIfPresent(Int.self, forKey: .perceivedEffort)
         note = try container.decodeIfPresent(String.self, forKey: .note)
         gearID = try container.decodeIfPresent(UUID.self, forKey: .gearID)
+        photoIDs = try container.decodeIfPresent([String].self, forKey: .photoIDs) ?? []
     }
 
     /// Allure en secondes par kilomètre.

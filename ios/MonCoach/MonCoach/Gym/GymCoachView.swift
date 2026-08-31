@@ -17,6 +17,8 @@ struct GymCoachView: View {
     @Environment(\.language) private var language
 
     @State private var obstacle: GymObstacle = .equipmentBusy
+    /// La fiche guidée ouverte depuis la sélection du jour.
+    @State private var opened: Exercise?
 
     /// Appelé quand l'athlète choisit un remplacement, pour que la séance
     /// en cours le prenne en compte plutôt que de l'obliger à s'en souvenir.
@@ -31,6 +33,11 @@ struct GymCoachView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: Theme.stackSpacing) {
+                    // Ouvert depuis le Plan, sans exercice qui coince, ce
+                    // n'est pas un obstacle qu'on vient chercher : c'est ce
+                    // que la salle permet aujourd'hui. La sélection du jour
+                    // passe alors devant.
+                    if exercise == nil { dailyGymCard }
                     obstaclePicker
 
                     if let answer {
@@ -59,6 +66,7 @@ struct GymCoachView: View {
                         }
                     }
 
+                    if exercise != nil { dailyGymCard }
                     guideCard
                 }
                 .padding(16)
@@ -73,7 +81,91 @@ struct GymCoachView: View {
                     Button(UI.close[language]) { dismiss() }
                 }
             }
+            .sheet(item: $opened) { exercise in
+                GuidedTechniqueView(exercise: exercise)
+            }
         }
+    }
+
+    /// Les mouvements que seule une salle permet, renouvelés chaque jour.
+    ///
+    /// On ouvre cet écran en étant déjà dans la salle, entouré de machines
+    /// qu'on n'a pas chez soi et qu'on n'utilise jamais faute de savoir par
+    /// où commencer. La liste change tous les jours, qu'on ait fait la
+    /// précédente ou non : une liste qui attend d'être cochée devient une
+    /// dette, et une dette qu'on ne rembourse pas, on cesse de la regarder.
+    private var dailyGymCard: some View {
+        let picks = GymSpecific.ofTheDay(profile: store.profile)
+        return Group {
+            if !picks.isEmpty {
+                Card(
+                    title: LocalizedText(
+                        fr: "Les exercices de salle du jour",
+                        en: "Today's gym-only moves",
+                        es: "Los ejercicios de sala de hoy"
+                    )[language],
+                    subtitle: Date().formatted(.dateTime.weekday(.wide).day().month(.wide).locale(language.locale))
+                ) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        CoachText(GymSpecific.howToUse)
+                        ForEach(picks) { exercise in
+                            Button {
+                                opened = exercise
+                            } label: {
+                                dailyRow(exercise)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        CoachText(
+                            LocalizedText(
+                                fr: "Demain, ce sera quatre autres : rien à rattraper, rien à cocher.",
+                                en: "Tomorrow it will be four different ones: nothing to catch up on, nothing to tick off.",
+                                es: "Mañana serán otros cuatro: nada que recuperar, nada que marcar."
+                            ),
+                            font: .system(size: 12)
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private func dailyRow(_ exercise: Exercise) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(exercise.name[language])
+                    .font(Theme.headlineFont)
+                    .foregroundStyle(Theme.primaryText)
+                Spacer()
+                Text("\(exercise.viableRepRange.lowerBound)–\(exercise.viableRepRange.upperBound)")
+                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                    .foregroundStyle(Theme.accent)
+            }
+            Text(
+                exercise.equipment.map { $0.label[language] }.sorted().joined(separator: " + ")
+                + " · " + exercise.primaryMuscle.label[language]
+            )
+            .font(.system(size: 11))
+            .foregroundStyle(Theme.secondaryText)
+            CoachText(GymSpecific.reason(for: exercise), font: .system(size: 12))
+            HStack(spacing: 4) {
+                Image(systemName: "book")
+                    .font(.system(size: 10))
+                Text(
+                    LocalizedText(
+                        fr: "Voir la fiche",
+                        en: "See the technique",
+                        es: "Ver la ficha"
+                    )[language]
+                )
+                .font(.system(size: 11, weight: .semibold))
+            }
+            .foregroundStyle(Theme.accent)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(Theme.surfaceRaised, in: RoundedRectangle(cornerRadius: 12))
+        .contentShape(Rectangle())
     }
 
     private var obstaclePicker: some View {

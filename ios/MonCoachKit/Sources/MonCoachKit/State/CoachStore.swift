@@ -13,17 +13,21 @@ public struct PersistedState: Codable, Sendable {
     public var history: TrainingHistory
     /// Les segments découpés par l'athlète.
     public var segments: [Segment]
+    /// Les parcours préparés à l'avance.
+    public var routes: [PlannedRoute]
 
     public init(
         profile: UserProfile?,
         plan: Mesocycle?,
         history: TrainingHistory,
-        segments: [Segment] = []
+        segments: [Segment] = [],
+        routes: [PlannedRoute] = []
     ) {
         self.profile = profile
         self.plan = plan
         self.history = history
         self.segments = segments
+        self.routes = routes
     }
 
     /// Les segments sont arrivés après coup : un fichier écrit avant eux
@@ -35,6 +39,7 @@ public struct PersistedState: Codable, Sendable {
         plan = try container.decodeIfPresent(Mesocycle.self, forKey: .plan)
         history = try container.decode(TrainingHistory.self, forKey: .history)
         segments = try container.decodeIfPresent([Segment].self, forKey: .segments) ?? []
+        routes = try container.decodeIfPresent([PlannedRoute].self, forKey: .routes) ?? []
     }
 
     public static let empty = PersistedState(profile: nil, plan: nil, history: .empty)
@@ -54,6 +59,8 @@ public final class CoachStore {
     public private(set) var history: TrainingHistory = .empty
     /// Les segments que l'athlète a découpés, du plus récent au plus ancien.
     public private(set) var segments: [Segment] = []
+    /// Les parcours préparés, du plus récent au plus ancien.
+    public private(set) var routes: [PlannedRoute] = []
 
     /// The session the athlete is currently performing, if any.
     public var activeSession: ActiveSession?
@@ -63,14 +70,21 @@ public final class CoachStore {
     public private(set) var saveError: LocalizedText?
 
     private let storage: StateStorage
+    /// Les photos des sorties, en fichiers à côté de l'état.
+    public let photos: PhotoStore
 
-    public init(storage: StateStorage = .applicationSupport()) {
+    public init(
+        storage: StateStorage = .applicationSupport(),
+        photos: PhotoStore = .applicationSupport()
+    ) {
         self.storage = storage
+        self.photos = photos
         let state = storage.load()
         profile = state.profile
         plan = state.plan
         history = state.history
         segments = state.segments
+        routes = state.routes
     }
 
     // MARK: - Derived state
@@ -243,6 +257,12 @@ public final class CoachStore {
     /// Removes an activity the athlete decided was not theirs — a phantom
     /// trace, a forgotten stop, a ride recorded by mistake.
     public func deleteRun(_ id: UUID) {
+        // Les photos partent avec la sortie : elles n'ont plus rien à
+        // désigner, et personne ne pourrait plus les atteindre pour les
+        // effacer.
+        for photoID in history.activities.first(where: { $0.id == id })?.photoIDs ?? [] {
+            photos.delete(photoID)
+        }
         history.activities.removeAll { $0.id == id }
         save()
     }
@@ -273,6 +293,109 @@ public final class CoachStore {
         guard let index = history.activities.firstIndex(where: { $0.id == activityID }) else { return }
         history.activities[index].gearID = gearID
         save()
+    }
+
+    // MARK: - Photos
+
+    /// Attache une photo à une sortie et rend son identifiant.
+    ///
+    /// Les octets arrivent déjà compressés : la compression a besoin
+    /// d'UIKit, qui n'a rien à faire dans le moteur. L'ordre compte —
+    /// le fichier est écrit avant que l'identifiant entre dans l'état, faute
+    /// de quoi un échec d'écriture laisserait une sortie qui réclame une
+    /// photo introuvable.
+    @discardableResult
+    public func addPhoto(_ data: Data, to activityID: UUID) -> String? {
+        guard let index = history.activities.firstIndex(where: { $0.id == activityID }),
+              let photoID = try? photos.save(data)
+        else { return nil }
+        history.activities[index].photoIDs.append(photoID)
+        save()
+        return photoID
+    }
+
+    /// Retire une photo d'une sortie, et l'efface du disque.
+    public func removePhoto(_ photoID: String, from activityID: UUID) {
+        guard let index = history.activities.firstIndex(where: { $0.id == activityID })
+        else { return }
+        history.activities[index].photoIDs.removeAll { $0 == photoID }
+        photos.delete(photoID)
+        save()
+    }
+
+    /// Efface les fichiers d'image que plus aucune sortie ne réclame.
+    ///
+    /// Appelé au lancement : une suppression interrompue — l'application
+    /// tuée entre l'écriture de l'état et celle du disque — laisserait
+    /// sinon des images orphelines que rien ne pourrait plus atteindre.
+    @discardableResult
+    public func prunePhotos() -> Int {
+        photos.prune(keeping: Set(history.activities.flatMap(\.photoIDs)))
+    }
+
+    // MARK: - Parcours
+
+    /// Garde un parcours préparé.
+    ///
+    /// Rend `false` quand le tracé est trop court pour être un parcours :
+    /// l'écran doit le dire plutôt que de faire semblant d'avoir enregistré
+    /// deux points posés par erreur.
+    @discardableResult
+    public func saveRoute(_ route: PlannedRoute) -> Bool {
+        guard route.meters >= RoutePlanner.minimumMeters else { return false }
+        if let index = routes.firstIndex(where: { $0.id == route.id }) {
+            routes[index] = route
+        } else {
+            routes.insert(route, at: 0)
+        }
+        save()
+        return true
+    }
+
+    public func deleteRoute(_ id: UUID) {
+        routes.removeAll { $0.id == id }
+        save()
+    }
+
+    public func renameRoute(_ id: UUID, to name: String) {
+        guard let index = routes.firstIndex(where: { $0.id == id }), !name.isEmpty else { return }
+        routes[index].name = name
+        save()
+    }
+
+    /// Les parcours utilisables pour un sport donné.
+    ///
+    /// Un tour de vélo de soixante kilomètres proposé avant un footing
+    /// serait au mieux du bruit ; à pied, en revanche, tout ce qui se marche
+    /// se court, donc course, trail, marche et randonnée se partagent leurs
+    /// parcours.
+    public func routes(for sport: Sport) -> [PlannedRoute] {
+        routes.filter { $0.sport == sport || (sport != .ride && $0.sport != .ride) }
+    }
+
+    /// Importe un fichier GPX comme parcours à suivre, pas comme sortie
+    /// faite.
+    ///
+    /// C'est la différence avec `importGPX` : celui-là fabrique une activité
+    /// et exige des horodatages. Un parcours téléchargé n'en a pas — il n'a
+    /// jamais été couru.
+    @discardableResult
+    public func importRouteGPX(
+        _ text: String,
+        named fallbackName: String,
+        fallbackSport: Sport = .run
+    ) throws -> PlannedRoute? {
+        let read = try GPX.readRoute(text)
+        let route = PlannedRoute(
+            name: read.name?.isEmpty == false ? read.name! : fallbackName,
+            sport: read.sport ?? fallbackSport,
+            points: RoutePlanner.thinned(read.points)
+        )
+        return saveRoute(route) ? route : nil
+    }
+
+    public func exportRouteGPX(_ route: PlannedRoute) -> String {
+        GPX.document(for: route)
     }
 
     // MARK: - Import et export
@@ -394,14 +517,19 @@ public final class CoachStore {
         profile = nil
         plan = nil
         history = .empty
+        segments = []
+        routes = []
         activeSession = nil
+        photos.prune(keeping: [])
         save()
     }
 
     // MARK: - Persistence
 
     private func save() {
-        let state = PersistedState(profile: profile, plan: plan, history: history, segments: segments)
+        let state = PersistedState(
+            profile: profile, plan: plan, history: history, segments: segments, routes: routes
+        )
         do {
             try storage.save(state)
             saveError = nil
@@ -417,7 +545,9 @@ public final class CoachStore {
     /// Everything the athlete has entered, as JSON, for export.
     public func exportJSON() throws -> Data {
         try StateStorage.encoder.encode(
-            PersistedState(profile: profile, plan: plan, history: history, segments: segments)
+            PersistedState(
+                profile: profile, plan: plan, history: history, segments: segments, routes: routes
+            )
         )
     }
 }

@@ -25,6 +25,14 @@ public enum Language: String, Codable, CaseIterable, Sendable, Identifiable, Has
     /// Le code BCP 47 utilisé par le système et par le site.
     public var code: String { rawValue }
 
+    /// La locale de cette langue, pour tout ce que le système sait déjà
+    /// écrire : noms de mois, de jours, formats de date.
+    ///
+    /// La langue du coach et celle du système peuvent différer — c'est tout
+    /// l'intérêt du réglage. Sans cette locale, un athlète qui lit
+    /// l'application en espagnol verrait ses mois en français.
+    public var locale: Locale { Locale(identifier: rawValue) }
+
     /// La langue par défaut quand rien n'est connu de l'utilisateur.
     public static let fallback: Language = .english
 
