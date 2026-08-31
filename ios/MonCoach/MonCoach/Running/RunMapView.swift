@@ -204,8 +204,7 @@ struct MapLibreRouteMap: UIViewRepresentable {
         mapView.showsUserLocation = showsCurrentPosition
         context.coordinator.onTapCoordinate = onTapCoordinate
         context.coordinator.isPlanning = onTapCoordinate != nil
-        context.coordinator.drawRoute(route, on: mapView)
-        context.coordinator.draw(points, on: mapView)
+        context.coordinator.update(points: points, route: route, on: mapView)
     }
 
     func makeCoordinator() -> Coordinator { Coordinator() }
@@ -217,23 +216,27 @@ struct MapLibreRouteMap: UIViewRepresentable {
         /// arrêt là d'où il vient.
         var isPlanning = false
 
+        /// Seules des valeurs sont gardées ici, jamais une annotation.
+        ///
+        /// Ce n'est pas un détail de style : la carte est isolée au fil
+        /// principal, et Swift refuse qu'on lui confie un objet que ce
+        /// coordinateur détient encore — deux fils pourraient le modifier en
+        /// même temps. Une annotation fabriquée sur place et remise à la
+        /// carte dans la foulée n'appartient plus à personne d'autre, et
+        /// c'est pour ça qu'elle passe.
         private var drawnPointCount = 0
         private var pendingPoints: [GPSPoint] = []
         private var plannedRoute: [RoutePoint] = []
         private var isStyleLoaded = false
         private var hasFramedRoute = false
-        private var tracePolyline: MLNPolyline?
-        private var routePolyline: MLNPolyline?
-        private var routeMarkers: [MLNPointAnnotation] = []
 
         /// Le titre sert d'étiquette : c'est par lui que les rappels de
         /// style savent lequel des deux tracés ils sont en train de peindre.
         private static let routeTitle = "parcours"
 
         /// Marqué au fil principal, contrairement au reste de ce
-        /// coordinateur : `UIGestureRecognizer` et `UIView` sont isolés au
-        /// fil principal par UIKit, et Swift 6 refuse d'y toucher ailleurs.
-        /// Les rappels de MapLibre, eux, restent tels qu'ils étaient.
+        /// coordinateur : `UIGestureRecognizer` et `UIView` y sont isolés
+        /// par UIKit, et Swift 6 refuse qu'on y touche ailleurs.
         @MainActor
         func attachTap(to mapView: MLNMapView) {
             let tap = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
@@ -257,86 +260,88 @@ struct MapLibreRouteMap: UIViewRepresentable {
 
         func mapView(_ mapView: MLNMapView, didFinishLoading style: MLNStyle) {
             isStyleLoaded = true
-            drawRoute(plannedRoute, on: mapView, force: true)
-            draw(pendingPoints, on: mapView, force: true)
+            redraw(on: mapView, animated: false)
         }
 
-        // MARK: - Le parcours prévu
-
-        func drawRoute(_ route: [RoutePoint], on mapView: MLNMapView, force: Bool = false) {
-            let changed = route != plannedRoute
+        /// Retient ce qu'il y a à montrer, et ne redessine que s'il le faut.
+        func update(points: [GPSPoint], route: [RoutePoint], on mapView: MLNMapView) {
+            let routeChanged = route != plannedRoute
+            pendingPoints = points
             plannedRoute = route
-            guard isStyleLoaded, changed || force else { return }
+            guard isStyleLoaded else { return }
+            // Redessiner à chaque point reçu, une fois par seconde, ferait
+            // clignoter la carte pour rien : on ne redessine qu'au-delà de
+            // dix nouveaux points de trace, ou quand le parcours change.
+            guard routeChanged || points.count - drawnPointCount >= 10 else { return }
+            redraw(on: mapView, animated: !routeChanged)
+        }
 
-            if let existing = routePolyline { mapView.removeAnnotation(existing) }
-            routePolyline = nil
-            if !routeMarkers.isEmpty { mapView.removeAnnotations(routeMarkers) }
-            routeMarkers = []
-            guard !route.isEmpty else { return }
+        /// Repose les deux tracés d'un coup.
+        ///
+        /// Tout est retiré puis refait, plutôt que corrigé pièce par pièce :
+        /// pour retirer une annotation précise, il faudrait la détenir, et
+        /// une annotation détenue ne peut plus être confiée à la carte. Le
+        /// coût est un redessin toutes les dix secondes de course.
+        func redraw(on mapView: MLNMapView, animated: Bool) {
+            guard isStyleLoaded else { return }
+            drawnPointCount = pendingPoints.count
+            if let existing = mapView.annotations { mapView.removeAnnotations(existing) }
+            drawPlannedRoute(on: mapView)
+            drawTrace(on: mapView, animated: animated)
+        }
+
+        private func drawPlannedRoute(on mapView: MLNMapView) {
+            guard !plannedRoute.isEmpty else { return }
 
             // Un point posé seul ne fait pas de ligne : sans ces pastilles,
             // le premier appui du dessin ne montrerait rien du tout.
-            routeMarkers = route.map { point in
+            mapView.addAnnotations(plannedRoute.map { point in
                 let marker = MLNPointAnnotation()
                 marker.coordinate = CLLocationCoordinate2D(
                     latitude: point.latitude, longitude: point.longitude
                 )
                 marker.title = Self.routeTitle
                 return marker
-            }
-            mapView.addAnnotations(routeMarkers)
+            })
 
-            guard route.count >= 2 else { return }
-            var coordinates = route.map {
+            guard plannedRoute.count >= 2 else { return }
+            var coordinates = plannedRoute.map {
                 CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)
             }
             let polyline = MLNPolyline(coordinates: &coordinates, count: UInt(coordinates.count))
             polyline.title = Self.routeTitle
-            routePolyline = polyline
             mapView.addAnnotation(polyline)
 
             // Un parcours qu'on vient d'ouvrir se montre en entier, une fois.
             // En mode dessin, jamais : la caméra est à l'athlète.
-            if !isPlanning && !hasFramedRoute && pendingPoints.count < 2 {
-                hasFramedRoute = true
-                mapView.userTrackingMode = .none
-                mapView.setVisibleCoordinates(
-                    &coordinates,
-                    count: UInt(coordinates.count),
-                    edgePadding: UIEdgeInsets(top: 40, left: 30, bottom: 40, right: 30),
-                    animated: false
-                )
-            }
-        }
-
-        // MARK: - La trace
-
-        func draw(_ points: [GPSPoint], on mapView: MLNMapView, force: Bool = false) {
-            pendingPoints = points
-            guard isStyleLoaded, points.count >= 2 else { return }
-            // Redessiner à chaque point reçu, une fois par seconde, ferait
-            // clignoter la carte pour rien : on ne redessine qu'au-delà de
-            // dix nouveaux points, ou à la demande.
-            guard force || points.count - drawnPointCount >= 10 else { return }
-            drawnPointCount = points.count
-
-            // Le suivi de la position et le cadrage sur la trace se disputent
-            // la caméra ; à partir d'ici, la trace gagne.
+            guard !isPlanning, !hasFramedRoute, pendingPoints.count < 2 else { return }
+            hasFramedRoute = true
             mapView.userTrackingMode = .none
-
-            var coordinates = points.map {
-                CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)
-            }
-            let polyline = MLNPolyline(coordinates: &coordinates, count: UInt(coordinates.count))
-
-            if let existing = tracePolyline { mapView.removeAnnotation(existing) }
-            tracePolyline = polyline
-            mapView.addAnnotation(polyline)
             mapView.setVisibleCoordinates(
                 &coordinates,
                 count: UInt(coordinates.count),
                 edgePadding: UIEdgeInsets(top: 40, left: 30, bottom: 40, right: 30),
-                animated: !force
+                animated: false
+            )
+        }
+
+        private func drawTrace(on mapView: MLNMapView, animated: Bool) {
+            guard pendingPoints.count >= 2 else { return }
+            // Le suivi de la position et le cadrage sur la trace se disputent
+            // la caméra ; à partir d'ici, la trace gagne.
+            mapView.userTrackingMode = .none
+
+            var coordinates = pendingPoints.map {
+                CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)
+            }
+            mapView.addAnnotation(
+                MLNPolyline(coordinates: &coordinates, count: UInt(coordinates.count))
+            )
+            mapView.setVisibleCoordinates(
+                &coordinates,
+                count: UInt(coordinates.count),
+                edgePadding: UIEdgeInsets(top: 40, left: 30, bottom: 40, right: 30),
+                animated: animated
             )
         }
 
@@ -357,26 +362,30 @@ struct MapLibreRouteMap: UIViewRepresentable {
             annotation.title == Self.routeTitle ? 0.75 : 1
         }
 
-        /// La pastille d'un point de parcours, dessinée une fois et
-        /// réutilisée — MapLibre garde les images en cache par identifiant.
+        /// La pastille d'un point de parcours.
+        ///
+        /// Le cache d'images de la carte n'est pas consulté, à dessein :
+        /// l'interroger reviendrait à rapporter ici un objet qui appartient
+        /// au fil principal. Redessiner douze pixels coûte moins cher que
+        /// cette gymnastique.
         func mapView(_ mapView: MLNMapView, imageFor annotation: MLNAnnotation) -> MLNAnnotationImage? {
-            // La position de l'athlète passe aussi par ici : lui donner
+            // La position de l'athlète passe aussi par ce rappel : lui donner
             // cette pastille remplacerait le point bleu du système par un
             // rond orange, et on ne saurait plus où l'on est.
             guard annotation is MLNPointAnnotation else { return nil }
-            let name = "point-de-parcours"
-            if let cached = mapView.dequeueReusableAnnotationImage(withIdentifier: name) {
-                return cached
-            }
+            return MLNAnnotationImage(image: Self.dot, reuseIdentifier: "point-de-parcours")
+        }
+
+        private static var dot: UIImage {
             let size = CGSize(width: 12, height: 12)
-            let image = UIGraphicsImageRenderer(size: size).image { context in
+            return UIGraphicsImageRenderer(size: size).image { context in
+                let circle = CGRect(origin: .zero, size: size).insetBy(dx: 1, dy: 1)
                 context.cgContext.setFillColor(UIColor(Theme.warning).cgColor)
-                context.cgContext.fillEllipse(in: CGRect(origin: .zero, size: size).insetBy(dx: 1, dy: 1))
+                context.cgContext.fillEllipse(in: circle)
                 context.cgContext.setStrokeColor(UIColor(Theme.background).cgColor)
                 context.cgContext.setLineWidth(2)
-                context.cgContext.strokeEllipse(in: CGRect(origin: .zero, size: size).insetBy(dx: 1, dy: 1))
+                context.cgContext.strokeEllipse(in: circle)
             }
-            return MLNAnnotationImage(image: image, reuseIdentifier: name)
         }
     }
 }
