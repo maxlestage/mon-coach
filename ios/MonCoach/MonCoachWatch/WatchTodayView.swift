@@ -116,10 +116,37 @@ struct WatchTodayView: View {
             .padding(10)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(.green.opacity(0.10), in: RoundedRectangle(cornerRadius: 12))
-        } else if snapshot.plannedRun != nil {
-            Label(WatchUI.done[language], systemImage: "checkmark.circle.fill")
-                .font(.caption)
-                .foregroundStyle(.green)
+        } else if store.athleteRuns {
+            // Le raccourci du coureur.
+            //
+            // Jusqu'ici, la seule porte vers la course était la sortie
+            // prescrite du jour : un jour sans sortie au plan, ou une fois
+            // celle-ci faite, l'écran ne proposait plus que la salle. Or
+            // « je sors courir » ne demande la permission d'aucun plan, et
+            // c'est précisément l'usage qui fait laisser le téléphone à la
+            // maison.
+            VStack(alignment: .leading, spacing: 6) {
+                if store.runDone {
+                    Label(WatchUI.runAgain[language], systemImage: "checkmark.circle.fill")
+                        .font(.caption2)
+                        .foregroundStyle(.green)
+                } else {
+                    Text(WatchUI.freeRunDetail[language])
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                Button {
+                    showsRun = true
+                } label: {
+                    Label(WatchUI.freeRun[language], systemImage: "figure.run")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .tint(.green)
+            }
+            .padding(10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.green.opacity(0.10), in: RoundedRectangle(cornerRadius: 12))
         }
 
         // L'alimentation au poignet tient en deux nombres : le reste se lit

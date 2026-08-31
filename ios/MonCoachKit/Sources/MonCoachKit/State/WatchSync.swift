@@ -31,6 +31,18 @@ public struct WatchSnapshot: Codable, Sendable, Equatable {
     public var plannedRun: PlannedRun?
     /// Vrai si la sortie du jour a déjà été enregistrée côté téléphone.
     public var runDone: Bool
+    /// Vrai si cet athlète court, indépendamment du plan du jour.
+    ///
+    /// `plannedRun` ne répond pas à cette question : il dit ce que le plan
+    /// prévoit aujourd'hui, et il est nil un jour sur deux. Un coureur qui
+    /// veut simplement sortir un dimanche n'a rien à voir avec le plan.
+    ///
+    /// Optionnel parce que la montre garde le dernier instantané sur disque :
+    /// celui écrit par une version antérieure n'a pas la clé, et l'exiger
+    /// rendrait cet instantané illisible — la montre repartirait sur « en
+    /// attente du téléphone ». Nil vaut alors l'ancien comportement : on ne
+    /// propose de courir que si une sortie est prévue.
+    public var runs: Bool?
 
     public init(
         generatedAt: Date,
@@ -47,7 +59,8 @@ public struct WatchSnapshot: Codable, Sendable, Equatable {
         calories: Int,
         proteinG: Int,
         plannedRun: PlannedRun? = nil,
-        runDone: Bool = false
+        runDone: Bool = false,
+        runs: Bool? = nil
     ) {
         self.generatedAt = generatedAt
         self.firstName = firstName
@@ -64,6 +77,7 @@ public struct WatchSnapshot: Codable, Sendable, Equatable {
         self.proteinG = proteinG
         self.plannedRun = plannedRun
         self.runDone = runDone
+        self.runs = runs
     }
 }
 
@@ -147,7 +161,11 @@ extension CoachStore {
             calories: briefing.nutrition.calories,
             proteinG: briefing.nutrition.proteinG,
             plannedRun: briefing.plannedRun,
-            runDone: briefing.recordedRun != nil
+            runDone: briefing.recordedRun != nil,
+            // La même règle que l'onglet Course du téléphone : l'athlète
+            // court s'il l'a déclaré, ou si son historique le prouve. Les
+            // deux appareils doivent répondre pareil à la même question.
+            runs: profile.runs || !history.activities.isEmpty
         )
     }
 
