@@ -57,7 +57,11 @@ struct WatchRunView: View {
                 .tabViewStyle(.verticalPage)
             }
         }
-        .navigationTitle(WatchUI.run[language])
+        .navigationTitle(
+            (tracker.state == .idle || tracker.state == .requestingPermission
+                ? WatchUI.activity
+                : WatchUI.run)[language]
+        )
     }
 
     /// Le menu de départ.
@@ -94,6 +98,38 @@ struct WatchRunView: View {
             }
 
             Section {
+                // La séance du jour ouvre la liste. C'est la réponse à une
+                // liste qui ne couvrait que les sorties : la séance se
+                // démarrait ailleurs, et il fallait savoir où. Tout ce qu'on
+                // peut faire se choisit ici, à la couronne — la séance en
+                // tête parce que c'est le choix le plus probable, jamais
+                // imposée parce que c'est un choix.
+                if let session = store.todaySession {
+                    Button {
+                        store.startSession()
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "dumbbell.fill")
+                                .font(.system(size: 15))
+                                .foregroundStyle(.green)
+                                .frame(width: 22)
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(session.title[language])
+                                    .font(.system(.body, design: .rounded, weight: .medium))
+                                Text(
+                                    WatchUI.sessionSummary(
+                                        exercises: session.exercises.count,
+                                        sets: session.totalSets,
+                                        minutes: session.estimatedMinutes
+                                    )[language]
+                                )
+                                .font(.system(size: 10))
+                                .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                        }
+                    }
+                }
                 ForEach(menu) { sport in
                     Button {
                         start(sport)
