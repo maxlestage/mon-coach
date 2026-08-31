@@ -25,6 +25,7 @@ struct JournalView: View {
                     emptyCard
                 } else {
                     streakCard
+                    yearReviewLink
                     fitnessCard
                     heatmapCard
                     recordsCard
@@ -129,6 +130,52 @@ struct JournalView: View {
                 }
             }
         }
+    }
+
+    /// La porte du bilan annuel.
+    ///
+    /// Le journal montre la semaine, et le total de l'année juste au-dessus ;
+    /// ce que ni l'un ni l'autre ne donne, c'est la forme de l'année — les
+    /// mois creux, le mois record, la plus longue sortie. Un écran à part
+    /// plutôt qu'une carte de plus : on ne lit pas son année en passant.
+    private var yearReviewLink: some View {
+        NavigationLink {
+            YearReviewView()
+        } label: {
+            Card {
+                HStack(spacing: 12) {
+                    Image(systemName: "calendar.badge.clock")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(Theme.accent)
+                        .frame(width: 28)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(
+                            LocalizedText(
+                                fr: "Ton année sportive",
+                                en: "Your year in sport",
+                                es: "Tu año deportivo"
+                            )[language]
+                        )
+                        .font(Theme.headlineFont)
+                        .foregroundStyle(Theme.primaryText)
+                        Text(
+                            LocalizedText(
+                                fr: "Mois par mois, tes records, ta plus longue sortie.",
+                                en: "Month by month, your records, your longest activity.",
+                                es: "Mes a mes, tus récords, tu salida más larga."
+                            )[language]
+                        )
+                        .font(Theme.captionFont)
+                        .foregroundStyle(Theme.secondaryText)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Theme.secondaryText)
+                }
+            }
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Carte de chaleur
