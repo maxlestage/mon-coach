@@ -50,12 +50,17 @@ enum WatchUI {
         es: "Señal débil"
     )
     static let food = LocalizedText(fr: "À manger", en: "To eat", es: "Para comer")
-    /// Le raccourci d'une sortie libre, hors plan.
-    static let freeRun = LocalizedText(fr: "Courir", en: "Go for a run", es: "Salir a correr")
-    static let freeRunDetail = LocalizedText(
-        fr: "Hors plan, sans le téléphone",
-        en: "Off plan, phone left behind",
-        es: "Fuera de plan, sin el teléfono"
+    /// La porte du menu des activités. Volontairement neutre : un athlète de
+    /// salle qui part marcher n'a pas à passer par un bouton « Courir ».
+    static let startActivity = LocalizedText(
+        fr: "Démarrer une activité",
+        en: "Start an activity",
+        es: "Empezar una actividad"
+    )
+    static let activityMenuDetail = LocalizedText(
+        fr: "Course, vélo, marche, rando",
+        en: "Run, ride, walk, hike",
+        es: "Correr, bici, caminar, ruta"
     )
     /// Le menu de départ : c'est l'athlète qui décide, pas le plan.
     static let chooseActivity = LocalizedText(
