@@ -63,68 +63,22 @@ struct WatchSyncTests {
         #expect(decoded.unit == snapshot.unit)
     }
 
-    @Test("L'instantané dit si l'athlète court, même les jours sans sortie au plan")
-    func snapshotSaysWhoRuns() {
-        // Un athlète de salle pur : rien à proposer au poignet côté course.
-        let gymOnly = makeStorage()
-        defer { cleanUp(gymOnly) }
-        let gymStore = CoachStore(storage: gymOnly)
-        gymStore.completeOnboarding(with: Fixtures.intermediate(), startingOn: today)
-        #expect(gymStore.watchSnapshot(on: today)?.runs == false)
-
-        // Un coureur, lui, doit pouvoir sortir n'importe quel jour — y
-        // compris ceux où le plan ne prévoit rien.
-        let running = makeStorage()
-        defer { cleanUp(running) }
-        var profile = Fixtures.intermediate()
-        profile.running = RunningProfile(goal: .tenK, runsPerWeek: 3, currentWeeklyMeters: 20_000)
-        let runningStore = CoachStore(storage: running)
-        runningStore.completeOnboarding(with: profile, startingOn: today)
-
-        let days = (0..<7).compactMap {
-            Calendar.current.date(byAdding: .day, value: $0, to: today)
-        }
-        for day in days {
-            #expect(
-                runningStore.watchSnapshot(on: day)?.runs == true,
-                Comment(rawValue: "le \(day) ne dit pas que l'athlète court")
-            )
-        }
-        #expect(
-            days.contains { runningStore.watchSnapshot(on: $0)?.plannedRun == nil },
-            "le test ne veut rien dire si toutes les journées portent une sortie prévue"
-        )
-    }
-
-    @Test("Un historique de course suffit, même sans profil de course déclaré")
-    func historyAloneCounts() {
-        let (store, storage) = onboardedStore()
-        defer { cleanUp(storage) }
-        #expect(store.watchSnapshot(on: today)?.runs == false)
-
-        store.recordRun(ActivityLog(
-            startedAt: today, sport: .run, type: .easy,
-            meters: 8_000, duration: 2_400, elevationGain: 30
-        ))
-        #expect(store.watchSnapshot(on: today)?.runs == true)
-    }
-
-    @Test("Un instantané d'avant le raccourci se relit sans se perdre")
-    func olderSnapshotStillDecodes() throws {
+    @Test("Un instantané d'une autre version se relit sans se perdre")
+    func snapshotToleratesAnUnknownShape() throws {
         let (store, storage) = onboardedStore()
         defer { cleanUp(storage) }
 
-        // La montre garde le dernier instantané sur disque. Celui écrit par
-        // une version antérieure n'a pas la clé : l'exiger le rendrait
-        // illisible, et la montre repartirait sur « en attente du téléphone ».
+        // La montre garde le dernier instantané sur disque, et les deux
+        // applications ne se mettent pas à jour en même temps : un champ
+        // ajouté d'un côté ne doit jamais rendre illisible ce qui est déjà
+        // écrit de l'autre.
         let snapshot = try #require(store.watchSnapshot(on: today))
         let data = try WatchSyncCodec.encode(snapshot)
         var json = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
-        json.removeValue(forKey: "runs")
-        let stripped = try JSONSerialization.data(withJSONObject: json)
+        json["unChampQuOnNeConnaitPas"] = "peu importe"
+        let extended = try JSONSerialization.data(withJSONObject: json)
 
-        let decoded = try WatchSyncCodec.decodeSnapshot(stripped)
-        #expect(decoded.runs == nil, "l'absence de réponse doit rester une absence")
+        let decoded = try WatchSyncCodec.decodeSnapshot(extended)
         #expect(decoded.firstName == snapshot.firstName)
         #expect(decoded.calories == snapshot.calories)
     }

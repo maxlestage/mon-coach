@@ -116,29 +116,32 @@ struct WatchTodayView: View {
             .padding(10)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(.green.opacity(0.10), in: RoundedRectangle(cornerRadius: 12))
-        } else if store.athleteRuns {
-            // Le raccourci du coureur.
+        } else {
+            // La porte du menu, pour tout le monde.
             //
-            // Jusqu'ici, la seule porte vers la course était la sortie
-            // prescrite du jour : un jour sans sortie au plan, ou une fois
-            // celle-ci faite, l'écran ne proposait plus que la salle. Or
-            // « je sors courir » ne demande la permission d'aucun plan, et
-            // c'est précisément l'usage qui fait laisser le téléphone à la
-            // maison.
+            // Elle était réservée aux athlètes déclarés coureurs, et c'était
+            // une erreur : quelqu'un qui s'entraîne en salle va marcher, fait
+            // du vélo, part en randonnée. Il n'y avait alors aucun moyen
+            // d'atteindre le menu, donc aucun moyen de choisir — et choisir
+            // ce qu'on va faire ne se mérite pas.
+            //
+            // Elle ne s'affiche que faute de sortie prévue : quand il y en a
+            // une, la carte au-dessus mène déjà au même menu, et deux portes
+            // côte à côte vers le même écran ne sont qu'un écran plus long.
             VStack(alignment: .leading, spacing: 6) {
                 if store.runDone {
                     Label(WatchUI.runAgain[language], systemImage: "checkmark.circle.fill")
                         .font(.caption2)
                         .foregroundStyle(.green)
                 } else {
-                    Text(WatchUI.freeRunDetail[language])
+                    Text(WatchUI.activityMenuDetail[language])
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
                 Button {
                     showsRun = true
                 } label: {
-                    Label(WatchUI.freeRun[language], systemImage: "figure.run")
+                    Label(WatchUI.startActivity[language], systemImage: "figure.run")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)
