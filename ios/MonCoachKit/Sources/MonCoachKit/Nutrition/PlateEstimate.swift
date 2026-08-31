@@ -1,0 +1,323 @@
+import Foundation
+
+/// Une portion dite comme on la dit à table, pas comme on la pèse.
+///
+/// Pourquoi cette échelle existe
+/// -----------------------------
+/// Personne ne sait regarder une assiette et annoncer « 173 grammes ».
+/// Tout le monde sait dire « une paume de poulet » ou « deux poignées de
+/// riz » — ce sont les repères que les diététiciens donnent depuis
+/// toujours, précisément parce qu'ils voyagent avec la main de celui qui
+/// mange. Les grammes qui suivent sont ceux d'un adulte moyen ; ils sont
+/// approximatifs et le disent.
+public enum PortionSize: String, Codable, CaseIterable, Sendable, Identifiable {
+    case small
+    case medium
+    case large
+    case double
+
+    public var id: String { rawValue }
+
+    /// Le facteur appliqué à la portion de référence de l'aliment.
+    public var factor: Double {
+        switch self {
+        case .small: 0.5
+        case .medium: 1.0
+        case .large: 1.5
+        case .double: 2.0
+        }
+    }
+
+    public var label: LocalizedText {
+        switch self {
+        case .small: LocalizedText(fr: "Petite part", en: "Small", es: "Poca")
+        case .medium: LocalizedText(fr: "Normale", en: "Normal", es: "Normal")
+        case .large: LocalizedText(fr: "Grosse part", en: "Large", es: "Mucha")
+        case .double: LocalizedText(fr: "Double", en: "Double", es: "Doble")
+        }
+    }
+
+    /// Le repère visuel correspondant, par rôle : c'est lui qu'on regarde
+    /// en tenant l'assiette.
+    public func hint(for role: FoodRole) -> LocalizedText {
+        switch role {
+        case .protein:
+            switch self {
+            case .small: LocalizedText(fr: "une demi-paume", en: "half a palm", es: "media palma")
+            case .medium: LocalizedText(fr: "une paume", en: "a palm", es: "una palma")
+            case .large: LocalizedText(fr: "une paume et demie", en: "a palm and a half", es: "palma y media")
+            case .double: LocalizedText(fr: "deux paumes", en: "two palms", es: "dos palmas")
+            }
+        case .carb:
+            switch self {
+            case .small: LocalizedText(fr: "un demi-poing", en: "half a fist", es: "medio puño")
+            case .medium: LocalizedText(fr: "un poing", en: "a fist", es: "un puño")
+            case .large: LocalizedText(fr: "un poing et demi", en: "a fist and a half", es: "puño y medio")
+            case .double: LocalizedText(fr: "deux poings", en: "two fists", es: "dos puños")
+            }
+        case .fat:
+            switch self {
+            case .small: LocalizedText(fr: "un demi-pouce", en: "half a thumb", es: "medio pulgar")
+            case .medium: LocalizedText(fr: "un pouce", en: "a thumb", es: "un pulgar")
+            case .large: LocalizedText(fr: "un pouce et demi", en: "a thumb and a half", es: "pulgar y medio")
+            case .double: LocalizedText(fr: "deux pouces", en: "two thumbs", es: "dos pulgares")
+            }
+        default:
+            switch self {
+            case .small: LocalizedText(fr: "une demi-poignée", en: "half a handful", es: "medio puñado")
+            case .medium: LocalizedText(fr: "une poignée", en: "a handful", es: "un puñado")
+            case .large: LocalizedText(fr: "une grosse poignée", en: "a big handful", es: "un buen puñado")
+            case .double: LocalizedText(fr: "deux poignées", en: "two handfuls", es: "dos puñados")
+            }
+        }
+    }
+}
+
+/// Un aliment reconnu dans une assiette, et ce qu'on croit en avoir.
+public struct PlateItem: Codable, Sendable, Equatable, Identifiable, Hashable {
+    public var id: String { foodID }
+    public var foodID: String
+    public var portion: PortionSize
+    /// La confiance de la reconnaissance, de 0 à 1. Nulle quand c'est
+    /// l'athlète qui a ajouté l'aliment lui-même — il n'y a alors rien à
+    /// deviner, donc rien à douter.
+    public var confidence: Double?
+
+    public init(foodID: String, portion: PortionSize = .medium, confidence: Double? = nil) {
+        self.foodID = foodID
+        self.portion = portion
+        self.confidence = confidence
+    }
+
+    public var food: Food? { FoodCatalog.food(id: foodID) }
+
+    /// Les grammes retenus : la portion de référence de l'aliment, mise à
+    /// l'échelle du repère choisi.
+    public var grams: Double {
+        guard let food else { return 0 }
+        return (food.portionG * portion.factor / 5).rounded() * 5
+    }
+
+    public var macros: Macros {
+        food?.macros(grams: grams) ?? .zero
+    }
+}
+
+/// Une assiette photographiée, estimée.
+public struct PlateEstimate: Codable, Sendable, Equatable {
+    public var items: [PlateItem]
+    /// L'identifiant de la photo, quand elle a été gardée.
+    public var photoID: String?
+    public var date: Date
+
+    public init(items: [PlateItem], photoID: String? = nil, date: Date = Date()) {
+        self.items = items
+        self.photoID = photoID
+        self.date = date
+    }
+
+    public var macros: Macros {
+        items.map(\.macros).reduce(Macros.zero, +)
+    }
+
+    public var proteinG: Double { macros.proteinG }
+    public var calories: Double { macros.kcal }
+
+    /// La marge d'erreur honnête de l'estimation, en pourcentage.
+    ///
+    /// Elle n'est pas décorative. Estimer une portion sur une photo est
+    /// imprécis par nature : l'angle, la profondeur de l'assiette et la
+    /// densité de ce qu'on ne voit pas dessous se cumulent. Annoncer
+    /// « 43 g de protéines » sans dire « à dix grammes près » donnerait à
+    /// ce chiffre une autorité qu'aucune photo ne peut lui donner.
+    ///
+    /// Elle se resserre quand l'athlète a confirmé lui-même les aliments :
+    /// ce qui reste incertain est alors la quantité, plus l'identité.
+    public var uncertaintyPercent: Double {
+        guard !items.isEmpty else { return 0 }
+        let guessed = items.filter { ($0.confidence ?? 1) < 1 }.count
+        let share = Double(guessed) / Double(items.count)
+        return 20 + 15 * share
+    }
+
+    /// La fourchette de protéines, arrondie au gramme.
+    public var proteinRangeG: ClosedRange<Int> {
+        let margin = proteinG * uncertaintyPercent / 100
+        return Int((proteinG - margin).rounded())...Int((proteinG + margin).rounded())
+    }
+}
+
+/// Ce que le classificateur de l'appareil peut dire, traduit en aliments.
+///
+/// Pourquoi ce type existe
+/// -----------------------
+/// Le système sait reconnaître des milliers de choses dans une image, mais
+/// il parle sa langue : « cheeseburger », « bell_pepper », « french_fries ».
+/// Le catalogue, lui, parle en aliments pesables. Cette table fait le pont,
+/// et elle vit dans le moteur — donc elle se teste — plutôt que dans la vue
+/// qui appelle le système.
+///
+/// Ce qui n'est pas dans la table n'est pas deviné. Reconnaître « nourriture »
+/// et servir « poulet » au hasard serait pire que ne rien proposer : on
+/// enregistrerait des protéines qui n'ont jamais été mangées.
+public enum PlateVision {
+
+    /// La confiance en dessous de laquelle on ne propose rien.
+    ///
+    /// Un classificateur généraliste rend toujours une liste, du plus
+    /// probable au moins probable, et le bas de cette liste est du bruit.
+    /// Trente pour cent est le seuil sous lequel ses propositions cessent
+    /// d'avoir un rapport avec l'image.
+    public static let minimumConfidence = 0.3
+
+    /// Combien d'aliments au plus on propose pour une assiette. Au-delà,
+    /// c'est le classificateur qui énumère, pas l'assiette qui contient.
+    public static let maximumItems = 5
+
+    /// La correspondance entre ce que voit l'appareil et ce qu'on mange.
+    ///
+    /// Un identifiant peut viser un aliment précis (« salmon » → saumon) ou
+    /// un représentant raisonnable de sa catégorie (« french_fries » →
+    /// pommes de terre, faute de mieux dans un catalogue qui ne fait pas de
+    /// friture). Le second cas est signalé à l'athlète, qui corrige.
+    public static let mapping: [String: String] = [
+        // Protéines animales
+        "chicken": "blanc-de-poulet",
+        "roast_chicken": "poulet-roti",
+        "fried_chicken": "cuisse-de-poulet",
+        "turkey": "dinde",
+        "steak": "steak",
+        "beef": "boeuf-5",
+        "hamburger": "boeuf-15",
+        "cheeseburger": "boeuf-15",
+        "meatball": "boeuf-15",
+        "pork": "porc-filet",
+        "bacon": "jambon-blanc",
+        "ham": "jambon-blanc",
+        "sausage": "saucisse-toulouse",
+        "salmon": "saumon",
+        "sashimi": "saumon",
+        "sushi": "riz-blanc",
+        "tuna": "thon-boite",
+        "fish": "cabillaud",
+        "shrimp": "crevettes",
+        "egg": "oeuf",
+        "fried_egg": "oeuf",
+        "omelette": "oeuf",
+        "scrambled_eggs": "oeuf",
+        // Féculents
+        "rice": "riz-blanc",
+        "fried_rice": "riz-blanc",
+        "risotto": "riz-blanc",
+        "pasta": "pates-completes",
+        "spaghetti": "pates-completes",
+        "lasagna": "pates-completes",
+        "noodle": "pates-blanches",
+        "ramen": "pates-blanches",
+        "pizza": "pates-blanches",
+        "bread": "pain-complet",
+        "sandwich": "pain-complet",
+        "toast": "pain-complet",
+        "bagel": "pain-blanc",
+        "baguette": "pain-blanc",
+        "potato": "pomme-de-terre",
+        "mashed_potato": "pomme-de-terre",
+        "french_fries": "pomme-de-terre",
+        "sweet_potato": "patate-douce",
+        "quinoa": "quinoa",
+        "couscous": "semoule",
+        "oatmeal": "flocons-avoine",
+        "porridge": "flocons-avoine",
+        "cereal": "muesli-nature",
+        "pancake": "pain-blanc",
+        "tortilla": "tortilla-mais",
+        "taco": "tortilla-mais",
+        "burrito": "tortilla-mais",
+        // Légumineuses et végétal
+        "lentil": "lentilles",
+        "chickpea": "pois-chiches",
+        "hummus": "pois-chiches",
+        "bean": "haricots-rouges",
+        "tofu": "tofu",
+        // Légumes
+        "salad": "salade",
+        "lettuce": "salade",
+        "broccoli": "brocoli",
+        "carrot": "carotte",
+        "tomato": "tomate",
+        "cucumber": "concombre",
+        "spinach": "epinards",
+        "pepper": "poivron",
+        "bell_pepper": "poivron",
+        "zucchini": "courgette",
+        "green_bean": "haricots-verts",
+        "mushroom": "champignons",
+        "cauliflower": "chou-fleur",
+        "onion": "oignon",
+        "corn": "mais-doux",
+        "pea": "petits-pois",
+        "eggplant": "aubergine",
+        "cabbage": "chou",
+        "beet": "betterave",
+        "asparagus": "asperge",
+        "avocado": "avocat",
+        // Fruits
+        "banana": "banane",
+        "apple": "pomme",
+        "orange": "orange",
+        "strawberry": "fraises",
+        "blueberry": "myrtilles",
+        "grape": "raisin",
+        "kiwi": "kiwi",
+        "mango": "mangue",
+        "pineapple": "ananas",
+        "watermelon": "pasteque",
+        "peach": "peche",
+        "pear": "poire",
+        // Laitiers
+        "yogurt": "skyr",
+        "cheese": "fromage-blanc",
+        "milk": "lait",
+        "cottage_cheese": "cottage",
+        // Matières grasses
+        "olive_oil": "huile-olive",
+        "butter": "beurre",
+        "almond": "amandes",
+        "peanut": "cacahuetes",
+        "walnut": "noix",
+        "nut": "amandes",
+    ]
+
+    /// Traduit les propositions du système en aliments du catalogue.
+    ///
+    /// L'ordre des propositions est conservé : le classificateur les rend de
+    /// la plus probable à la moins probable, et c'est l'information la plus
+    /// utile qu'il donne. Un même aliment proposé deux fois — « chicken » et
+    /// « roast_chicken » — n'est retenu qu'une fois, à sa meilleure
+    /// confiance.
+    public static func foods(
+        from observations: [(identifier: String, confidence: Double)],
+        excluding excluded: Set<String> = [],
+        limit: Int = maximumItems
+    ) -> [PlateItem] {
+        var seen = Set<String>()
+        var result: [PlateItem] = []
+        for observation in observations
+        where observation.confidence >= minimumConfidence {
+            let key = observation.identifier.lowercased()
+            guard let foodID = mapping[key] ?? mapping[key.replacingOccurrences(of: " ", with: "_")],
+                  FoodCatalog.food(id: foodID) != nil,
+                  // Un aliment écarté du plan — allergie, dégoût — n'a rien à
+                  // faire dans une assiette proposée. S'il y était vraiment,
+                  // l'athlète l'ajoute lui-même, en connaissance de cause.
+                  !excluded.contains(foodID),
+                  seen.insert(foodID).inserted
+            else { continue }
+            result.append(
+                PlateItem(foodID: foodID, portion: .medium, confidence: observation.confidence)
+            )
+            if result.count == limit { break }
+        }
+        return result
+    }
+}

@@ -10,6 +10,7 @@ struct FoodView: View {
     @State private var tab: Tab = .today
     @State private var showsShoppingList = false
     @State private var showsExclusions = false
+    @State private var showsPlateCamera = false
 
     enum Tab: Hashable { case today, guide }
 
@@ -38,6 +39,13 @@ struct FoodView: View {
                 // « quand on veut », pas quand un repas les fait apparaître.
                 ToolbarItem(placement: .primaryAction) {
                     Button {
+                        showsPlateCamera = true
+                    } label: {
+                        Image(systemName: "camera")
+                    }
+                }
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
                         showsExclusions = true
                     } label: {
                         Image(systemName: "hand.raised")
@@ -56,6 +64,9 @@ struct FoodView: View {
             }
             .sheet(isPresented: $showsExclusions) {
                 ExcludedFoodsView()
+            }
+            .sheet(isPresented: $showsPlateCamera) {
+                PlatePhotoView()
             }
         }
     }
@@ -76,6 +87,8 @@ struct FoodView: View {
                     StatTile(value: "\(target.fatG) g", label: LocalizedText(fr: "Lipides", en: "Fat", es: "Grasas")[language])
                 }
             }
+
+            eatenCard(target: target)
 
             ForEach(day.meals) { meal in
                 MealCard(meal: meal)
@@ -100,6 +113,78 @@ struct FoodView: View {
                 en: "The food plan arrives with your first training block.",
                 es: "El plan de alimentación llega con tu primer bloque de entrenamiento."
             )) }
+        }
+    }
+
+    /// Ce qui a réellement été mangé aujourd'hui, d'après les assiettes
+    /// photographiées.
+    ///
+    /// Le plan prescrit, ce bloc constate — et c'est l'écart entre les deux
+    /// qui apprend quelque chose. Il ne s'affiche qu'une fois la première
+    /// photo prise : afficher « 0 g mangé » à quelqu'un qui n'a rien
+    /// photographié serait faux, et surtout décourageant au petit-déjeuner.
+    @ViewBuilder
+    private func eatenCard(target: NutritionTarget) -> some View {
+        let plates = store.plates(on: Date())
+        if !plates.isEmpty {
+            let eaten = plates.map(\.macros).reduce(Macros.zero, +)
+            let remaining = max(0, Double(target.proteinG) - eaten.proteinG)
+            Card(
+                title: LocalizedText(fr: "Ce que tu as mangé", en: "What you have eaten", es: "Lo que has comido")[language],
+                subtitle: LocalizedText(
+                    fr: "\(plates.count) assiette\(plates.count > 1 ? "s" : "") photographiée\(plates.count > 1 ? "s" : "") aujourd'hui. Ce sont des estimations : elles suivent une tendance, elles ne comptent pas au gramme.",
+                    en: "\(plates.count) plate\(plates.count > 1 ? "s" : "") photographed today. These are estimates: they follow a trend, they do not count to the gram.",
+                    es: "\(plates.count) plato\(plates.count > 1 ? "s" : "") fotografiado\(plates.count > 1 ? "s" : "") hoy. Son estimaciones: siguen una tendencia, no cuentan al gramo."
+                )[language]
+            ) {
+                HStack(spacing: 12) {
+                    StatTile(
+                        value: "\(Int(eaten.proteinG)) / \(target.proteinG) g",
+                        label: LocalizedText(fr: "Protéines", en: "Protein", es: "Proteína")[language]
+                    )
+                    StatTile(
+                        value: "\(Int(eaten.kcal)) / \(target.calories)",
+                        label: "kcal",
+                        tint: Theme.secondaryText
+                    )
+                    StatTile(
+                        value: "\(Int(remaining)) g",
+                        label: LocalizedText(fr: "Restant", en: "Left", es: "Restante")[language],
+                        tint: remaining > 0 ? Theme.warning : Theme.accent
+                    )
+                }
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(plates, id: \.date) { plate in
+                        HStack(spacing: 10) {
+                            Text(plate.date.formatted(date: .omitted, time: .shortened))
+                                .font(.system(size: 12, design: .rounded))
+                                .foregroundStyle(Theme.secondaryText)
+                                .frame(width: 46, alignment: .leading)
+                            Text(
+                                plate.items
+                                    .compactMap { $0.food?.name[language] }
+                                    .prefix(3)
+                                    .joined(separator: ", ")
+                            )
+                            .font(.system(size: 13))
+                            .foregroundStyle(Theme.primaryText)
+                            .lineLimit(1)
+                            Spacer()
+                            Text("\(Int(plate.proteinG)) g")
+                                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                                .foregroundStyle(Theme.accent)
+                            Button {
+                                store.deletePlate(at: plate.date)
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 13))
+                                    .foregroundStyle(Theme.secondaryText)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            }
         }
     }
 

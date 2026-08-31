@@ -323,6 +323,49 @@ public final class CoachStore {
         save()
     }
 
+    // MARK: - Les assiettes
+
+    /// Enregistre une assiette estimée, photo comprise.
+    ///
+    /// Le fichier est écrit avant que l'estimation entre dans l'état, pour
+    /// la même raison que les photos de sortie : une estimation qui réclame
+    /// une image introuvable est un écran cassé.
+    @discardableResult
+    public func recordPlate(_ estimate: PlateEstimate, photo: Data? = nil) -> PlateEstimate {
+        var stored = estimate
+        if let photo, let photoID = try? photos.save(photo) {
+            stored.photoID = photoID
+        }
+        history.plates.append(stored)
+        save()
+        return stored
+    }
+
+    /// Oublie une assiette, et efface sa photo.
+    public func deletePlate(at date: Date) {
+        for plate in history.plates where plate.date == date {
+            if let photoID = plate.photoID { photos.delete(photoID) }
+        }
+        history.plates.removeAll { $0.date == date }
+        save()
+    }
+
+    /// Les assiettes d'un jour, de la plus ancienne à la plus récente.
+    public func plates(on day: Date, calendar: Calendar = .current) -> [PlateEstimate] {
+        history.plates
+            .filter { calendar.isDate($0.date, inSameDayAs: day) }
+            .sorted { $0.date < $1.date }
+    }
+
+    /// Ce qu'on a réellement mangé aujourd'hui, d'après les assiettes
+    /// photographiées. Nul quand aucune n'a été prise — et c'est alors
+    /// « rien de mesuré », pas « rien de mangé ».
+    public func eatenToday(on day: Date = Date(), calendar: Calendar = .current) -> Macros? {
+        let today = plates(on: day, calendar: calendar)
+        guard !today.isEmpty else { return nil }
+        return today.map(\.macros).reduce(Macros.zero, +)
+    }
+
     /// Efface les fichiers d'image que plus aucune sortie ne réclame.
     ///
     /// Appelé au lancement : une suppression interrompue — l'application
@@ -330,7 +373,11 @@ public final class CoachStore {
     /// sinon des images orphelines que rien ne pourrait plus atteindre.
     @discardableResult
     public func prunePhotos() -> Int {
-        photos.prune(keeping: Set(history.activities.flatMap(\.photoIDs)))
+        // Les assiettes comptent autant que les sorties : les oublier ici
+        // effacerait leurs photos au lancement suivant, silencieusement.
+        var kept = Set(history.activities.flatMap(\.photoIDs))
+        kept.formUnion(history.plates.compactMap(\.photoID))
+        return photos.prune(keeping: kept)
     }
 
     // MARK: - Parcours
