@@ -29,6 +29,22 @@ struct RunSummaryView: View {
     private var unit: UnitSystem { store.profile?.unit ?? .metric }
     private var weightKg: Double { store.profile?.weightKg ?? 70 }
 
+    /// La distance affichée par la machine, quand l'athlète la recopie.
+    ///
+    /// Un tapis, un rameur et un home trainer affichent tous une distance
+    /// que le téléphone ne peut pas mesurer. Sans ce champ, une séance de
+    /// tapis entrait dans le plan de course avec zéro kilomètre — et le
+    /// plan, croyant la semaine vide, baissait le volume prescrit de
+    /// quelqu'un qui s'était pourtant entraîné.
+    @State private var typedDistance = ""
+
+    /// Les mètres recopiés, quand ce qui est tapé en est.
+    private var typedMeters: Double? {
+        let cleaned = typedDistance.replacingOccurrences(of: ",", with: ".")
+        guard let value = Double(cleaned), value > 0, value < 500 else { return nil }
+        return unit == .metric ? value * 1_000 : value * 1_609.344
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -95,6 +111,7 @@ struct RunSummaryView: View {
                         }
                     }
 
+                    manualDistanceCard
                     highlightsCard
                     photosCard
 
@@ -147,6 +164,7 @@ struct RunSummaryView: View {
                         var saved = run
                         saved.perceivedEffort = effort
                         saved.note = note.isEmpty ? nil : note
+                        if let typedMeters { saved.meters = typedMeters }
                         store.recordRun(saved)
                         // Les photos après la sortie, jamais avant : elles
                         // s'attachent à une sortie qui existe.
@@ -239,6 +257,47 @@ struct RunSummaryView: View {
 
     /// Les distinctions du jour : records battus, segments améliorés,
     /// allure corrigée quand le terrain la justifie.
+    /// La distance de la machine, recopiée à la main.
+    ///
+    /// Facultative, et dite comme telle : personne n'est obligé de la
+    /// saisir, et une séance sans distance reste une séance — elle compte
+    /// déjà par son temps et son intensité.
+    @ViewBuilder
+    private var manualDistanceCard: some View {
+        if !run.sport.tracksLocation {
+            Card(
+                title: LocalizedText(
+                    fr: "La distance de la machine",
+                    en: "The distance on the machine",
+                    es: "La distancia de la máquina"
+                )[language],
+                subtitle: run.sport.feedsRunningPlan
+                    ? LocalizedText(
+                        fr: "Facultatif, mais utile ici : sans elle, ton plan de course croira que tu n'as pas couru cette semaine.",
+                        en: "Optional, but useful here: without it your running plan will believe you did not run this week.",
+                        es: "Opcional, pero útil aquí: sin ella tu plan de carrera creerá que no has corrido esta semana."
+                    )[language]
+                    : LocalizedText(
+                        fr: "Facultatif. Le téléphone ne peut pas la mesurer à l'intérieur ; l'écran de la machine, si.",
+                        en: "Optional. The phone cannot measure it indoors; the machine's display can.",
+                        es: "Opcional. El teléfono no puede medirla en interior; la pantalla de la máquina sí."
+                    )[language]
+            ) {
+                HStack(spacing: 10) {
+                    TextField("0", text: $typedDistance)
+                        .keyboardType(.decimalPad)
+                        .font(Theme.numberFont)
+                        .foregroundStyle(Theme.accent)
+                        .frame(maxWidth: 140)
+                    Text(unit == .metric ? "km" : "mi")
+                        .font(Theme.headlineFont)
+                        .foregroundStyle(Theme.secondaryText)
+                    Spacer()
+                }
+            }
+        }
+    }
+
     private var highlightsCard: some View {
         let highlights = store.highlights(for: run)
         let segmentEfforts = store.segmentEfforts(in: run)

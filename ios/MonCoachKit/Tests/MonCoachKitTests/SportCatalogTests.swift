@@ -150,6 +150,38 @@ struct SportCatalogTests {
         #expect(TrainingLoadEngine.intensityWeight(for: intervals) > easyRun)
     }
 
+    @Test("Un tapis de course compte dans le plan quand sa distance est connue")
+    func treadmillCountsTowardWeeklyVolume() {
+        let day = Date(timeIntervalSince1970: 1_780_000_000)
+        // Le téléphone ne mesure rien sur un tapis : la distance vient de
+        // l'écran de la machine, recopiée à la main. Sans elle, la séance
+        // entre dans le plan à zéro kilomètre — et le plan, croyant la
+        // semaine vide, baisserait le volume de quelqu'un qui s'est
+        // pourtant entraîné.
+        var history = TrainingHistory()
+        history.activities = [
+            ActivityLog(
+                startedAt: day, sport: .treadmill, type: .easy,
+                meters: 8_000, duration: 2_400, elevationGain: 0
+            ),
+            // Le rameur, lui, ne nourrit pas le plan de course : ses mètres
+            // ne sont pas des mètres de course à pied.
+            ActivityLog(
+                startedAt: day, sport: .rowingMachine, type: .easy,
+                meters: 10_000, duration: 2_400, elevationGain: 0
+            ),
+        ]
+        #expect(history.runs.count == 1)
+        #expect(history.weeklyRunMeters(endingOn: day) == 8_000)
+
+        // Et l'allure de seuil ne se lit que sur du dehors mesuré : un
+        // tapis n'a pas de vent, pas de virage et pas de GPS.
+        var indoorTempo = history.activities[0]
+        indoorTempo.type = .tempo
+        history.activities = [indoorTempo]
+        #expect(history.demonstratedThresholdPace() == nil)
+    }
+
     @Test("Le matériel suit le sport, sans liste tenue deux fois")
     func gearFollowsTheSport() {
         #expect(Gear.Kind.shoes.sports.contains(.run))
