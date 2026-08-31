@@ -1,3 +1,4 @@
+import PhotosUI
 import SwiftUI
 import MonCoachKit
 
@@ -15,6 +16,15 @@ struct RunSummaryView: View {
 
     @State private var effort: Int = 5
     @State private var note: String = ""
+    /// Les photos choisies avant l'enregistrement.
+    ///
+    /// La sortie n'existe pas encore dans le magasin quand cet écran
+    /// s'ouvre : rien à quoi les attacher. Elles attendent ici, en mémoire,
+    /// et rejoignent la sortie au moment où elle est enregistrée — c'est
+    /// pourtant maintenant qu'on a envie de les mettre, pas trois jours plus
+    /// tard en relisant le journal.
+    @State private var pendingPhotos: [Data] = []
+    @State private var picked: [PhotosPickerItem] = []
 
     private var unit: UnitSystem { store.profile?.unit ?? .metric }
     private var weightKg: Double { store.profile?.weightKg ?? 70 }
@@ -64,6 +74,7 @@ struct RunSummaryView: View {
                     }
 
                     highlightsCard
+                    photosCard
 
                     if !run.splits.isEmpty {
                         Card(title: UI.splits[language]) {
@@ -115,6 +126,11 @@ struct RunSummaryView: View {
                         saved.perceivedEffort = effort
                         saved.note = note.isEmpty ? nil : note
                         store.recordRun(saved)
+                        // Les photos après la sortie, jamais avant : elles
+                        // s'attachent à une sortie qui existe.
+                        for photo in pendingPhotos {
+                            _ = store.addPhoto(photo, to: saved.id)
+                        }
                         dismiss()
                         onSaved()
                     }
@@ -126,6 +142,76 @@ struct RunSummaryView: View {
                 LocalizedText(fr: "Sortie terminée", en: "Run finished", es: "Rodaje terminado")[language]
             )
             .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+
+    /// Les photos de la sortie, choisies avant même qu'elle soit
+    /// enregistrée.
+    private var photosCard: some View {
+        Card(
+            title: LocalizedText(fr: "Photos", en: "Photos", es: "Fotos")[language],
+            subtitle: LocalizedText(
+                fr: "Elles restent sur ton téléphone : rien n'est téléversé, jamais.",
+                en: "They stay on your phone: nothing is ever uploaded.",
+                es: "Se quedan en tu teléfono: nunca se sube nada."
+            )[language]
+        ) {
+            VStack(alignment: .leading, spacing: 12) {
+                if !pendingPhotos.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(Array(pendingPhotos.enumerated()), id: \.offset) { index, data in
+                                PendingPhotoView(data: data)
+                                    .overlay(alignment: .topTrailing) {
+                                        Button {
+                                            pendingPhotos.remove(at: index)
+                                        } label: {
+                                            Image(systemName: "xmark.circle.fill")
+                                                .font(.system(size: 18))
+                                                .foregroundStyle(Theme.primaryText, Theme.background)
+                                        }
+                                        .buttonStyle(.plain)
+                                        .padding(4)
+                                    }
+                            }
+                        }
+                    }
+                }
+                PhotosPicker(
+                    selection: $picked,
+                    maxSelectionCount: 6,
+                    matching: .images,
+                    photoLibrary: .shared()
+                ) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "photo.badge.plus")
+                        Text(
+                            LocalizedText(
+                                fr: "Ajouter des photos",
+                                en: "Add photos",
+                                es: "Añadir fotos"
+                            )[language]
+                        )
+                        .font(.system(size: 15, weight: .medium, design: .rounded))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 13)
+                    .background(Theme.surfaceRaised, in: RoundedRectangle(cornerRadius: 14))
+                    .foregroundStyle(Theme.primaryText)
+                }
+            }
+        }
+        .onChange(of: picked) { _, items in
+            guard !items.isEmpty else { return }
+            picked = []
+            Task {
+                for item in items {
+                    guard let raw = try? await item.loadTransferable(type: Data.self),
+                          let prepared = PhotoEncoding.prepared(from: raw)
+                    else { continue }
+                    pendingPhotos.append(prepared)
+                }
+            }
         }
     }
 

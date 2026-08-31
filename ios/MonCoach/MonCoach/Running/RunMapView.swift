@@ -15,23 +15,34 @@ import MapLibre
 /// perdu ; un athlète qui voit sa trace sans les rues, non.
 struct RunMapView: View {
     var points: [GPSPoint]
+    /// Le parcours prévu, dessiné sous la trace. Vide la plupart du temps.
+    var route: [RoutePoint] = []
     /// Position courante à mettre en avant, pendant une sortie.
     var showsCurrentPosition: Bool = false
     /// Charger le fond de carte, c'est-à-dire contacter un serveur de tuiles.
     /// L'athlète peut le refuser : il garde alors son tracé, sans les rues et
     /// sans qu'aucune requête ne sorte du téléphone.
     var loadsTiles: Bool = true
+    /// Appelé quand l'athlète touche la carte, en mode dessin de parcours.
+    /// Nil partout ailleurs : une carte qu'on peut modifier par mégarde en
+    /// relisant une sortie serait un piège.
+    var onTapCoordinate: ((RoutePoint) -> Void)?
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
             #if canImport(MapLibre)
             if loadsTiles {
-                MapLibreRouteMap(points: points, showsCurrentPosition: showsCurrentPosition)
+                MapLibreRouteMap(
+                    points: points,
+                    route: route,
+                    showsCurrentPosition: showsCurrentPosition,
+                    onTapCoordinate: onTapCoordinate
+                )
             } else {
-                RouteShapeView(points: points)
+                RouteShapeView(points: points, route: route)
             }
             #else
-            RouteShapeView(points: points)
+            RouteShapeView(points: points, route: route)
             #endif
 
             // L'attribution OpenStreetMap est une obligation de la licence
@@ -58,55 +69,96 @@ struct RunMapView: View {
 /// que ça apporte.
 struct RouteShapeView: View {
     var points: [GPSPoint]
+    /// Un parcours prévu, dessiné avec la trace ou seul.
+    var route: [RoutePoint] = []
     var lineWidth: CGFloat = 3
+
+    /// Les deux tracés ramenés au même type : le dessin ne connaît que des
+    /// couples de coordonnées, et l'un des deux est souvent vide.
+    private var traceCoordinates: [RoutePoint] {
+        points.map { RoutePoint(latitude: $0.latitude, longitude: $0.longitude) }
+    }
 
     var body: some View {
         GeometryReader { geometry in
             ZStack {
                 Theme.surfaceRaised
-                if points.count >= 2 {
-                    routePath(in: geometry.size)
-                        .stroke(
-                            Theme.accent,
-                            style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round)
-                        )
+                let frame = Frame(of: traceCoordinates + route, in: geometry.size)
+                if let frame {
+                    if route.count >= 2 {
+                        // Le parcours prévu passe dessous et en pointillé :
+                        // ce qui est prévu ne doit jamais se confondre avec
+                        // ce qui a été fait.
+                        path(route, in: frame)
+                            .stroke(
+                                Theme.warning.opacity(0.85),
+                                style: StrokeStyle(
+                                    lineWidth: lineWidth - 0.5,
+                                    lineCap: .round,
+                                    lineJoin: .round,
+                                    dash: [7, 5]
+                                )
+                            )
+                    }
+                    if traceCoordinates.count >= 2 {
+                        path(traceCoordinates, in: frame)
+                            .stroke(
+                                Theme.accent,
+                                style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round)
+                            )
+                    }
                 }
             }
         }
     }
 
-    /// Projette la trace dans la vue en gardant les proportions.
+    private func path(_ coordinates: [RoutePoint], in frame: Frame) -> Path {
+        var path = Path()
+        guard let first = coordinates.first else { return path }
+        path.move(to: frame.project(first))
+        for point in coordinates.dropFirst() { path.addLine(to: frame.project(point)) }
+        return path
+    }
+
+    /// L'emprise commune des tracés, et la projection qui les y range.
     ///
     /// La longitude est resserrée par le cosinus de la latitude : sans ça, un
     /// aller-retour est-ouest à Paris paraît 1,5 fois trop long, et le tracé
     /// ne ressemble plus au parcours.
-    private func routePath(in size: CGSize) -> Path {
-        let latitudes = points.map(\.latitude)
-        let longitudes = points.map(\.longitude)
-        guard let minLat = latitudes.min(), let maxLat = latitudes.max(),
-              let minLon = longitudes.min(), let maxLon = longitudes.max()
-        else { return Path() }
+    struct Frame {
+        var minLatitude: Double
+        var maxLatitude: Double
+        var minLongitude: Double
+        var cosinus: Double
+        var scale: CGFloat
+        var offsetX: CGFloat
+        var offsetY: CGFloat
 
-        let midLatRadians = (minLat + maxLat) / 2 * .pi / 180
-        let spanX = max(0.000001, (maxLon - minLon) * cos(midLatRadians))
-        let spanY = max(0.000001, maxLat - minLat)
-        let inset: CGFloat = 12
-        let scale = min((size.width - inset * 2) / spanX, (size.height - inset * 2) / spanY)
-        let offsetX = (size.width - spanX * scale) / 2
-        let offsetY = (size.height - spanY * scale) / 2
+        init?(of coordinates: [RoutePoint], in size: CGSize, inset: CGFloat = 12) {
+            let latitudes = coordinates.map(\.latitude)
+            let longitudes = coordinates.map(\.longitude)
+            guard let minLat = latitudes.min(), let maxLat = latitudes.max(),
+                  let minLon = longitudes.min(), let maxLon = longitudes.max()
+            else { return nil }
 
-        func project(_ point: GPSPoint) -> CGPoint {
-            CGPoint(
-                x: offsetX + (point.longitude - minLon) * cos(midLatRadians) * scale,
-                // L'axe des ordonnées est inversé : le nord est en haut.
-                y: offsetY + (maxLat - point.latitude) * scale
-            )
+            minLatitude = minLat
+            maxLatitude = maxLat
+            minLongitude = minLon
+            cosinus = cos((minLat + maxLat) / 2 * .pi / 180)
+            let spanX = max(0.000001, (maxLon - minLon) * cosinus)
+            let spanY = max(0.000001, maxLat - minLat)
+            scale = min((size.width - inset * 2) / spanX, (size.height - inset * 2) / spanY)
+            offsetX = (size.width - spanX * scale) / 2
+            offsetY = (size.height - spanY * scale) / 2
         }
 
-        var path = Path()
-        path.move(to: project(points[0]))
-        for point in points.dropFirst() { path.addLine(to: project(point)) }
-        return path
+        func project(_ point: RoutePoint) -> CGPoint {
+            CGPoint(
+                x: offsetX + (point.longitude - minLongitude) * cosinus * scale,
+                // L'axe des ordonnées est inversé : le nord est en haut.
+                y: offsetY + (maxLatitude - point.latitude) * scale
+            )
+        }
     }
 }
 
@@ -115,7 +167,9 @@ struct RouteShapeView: View {
 /// La carte vectorielle MapLibre, avec des tuiles OpenStreetMap.
 struct MapLibreRouteMap: UIViewRepresentable {
     var points: [GPSPoint]
+    var route: [RoutePoint] = []
     var showsCurrentPosition: Bool
+    var onTapCoordinate: ((RoutePoint) -> Void)?
 
     /// Le style de carte.
     ///
@@ -137,28 +191,125 @@ struct MapLibreRouteMap: UIViewRepresentable {
         // cas de l'écran d'avant-départ, où une carte du monde entier ne
         // renseignerait sur rien. Dès que la trace existe, c'est elle qui
         // cadre la vue — le suivi est rendu au moment du premier dessin.
-        if showsCurrentPosition && points.count < 2 {
+        if showsCurrentPosition && points.count < 2 && route.isEmpty {
             mapView.userTrackingMode = .follow
+        }
+        if onTapCoordinate != nil {
+            context.coordinator.attachTap(to: mapView)
         }
         return mapView
     }
 
     func updateUIView(_ mapView: MLNMapView, context: Context) {
         mapView.showsUserLocation = showsCurrentPosition
+        context.coordinator.onTapCoordinate = onTapCoordinate
+        context.coordinator.isPlanning = onTapCoordinate != nil
+        context.coordinator.drawRoute(route, on: mapView)
         context.coordinator.draw(points, on: mapView)
     }
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
     final class Coordinator: NSObject, MLNMapViewDelegate {
+        var onTapCoordinate: ((RoutePoint) -> Void)?
+        /// En mode dessin, la caméra appartient à l'athlète : il vise sa rue
+        /// et pose ses points. Recadrer à chaque point le renverrait sans
+        /// arrêt là d'où il vient.
+        var isPlanning = false
+
         private var drawnPointCount = 0
         private var pendingPoints: [GPSPoint] = []
+        private var plannedRoute: [RoutePoint] = []
         private var isStyleLoaded = false
+        private var hasFramedRoute = false
+        private var tracePolyline: MLNPolyline?
+        private var routePolyline: MLNPolyline?
+        private var routeMarkers: [MLNPointAnnotation] = []
+
+        /// Le titre sert d'étiquette : c'est par lui que les rappels de
+        /// style savent lequel des deux tracés ils sont en train de peindre.
+        private static let routeTitle = "parcours"
+
+        /// Marqué au fil principal, contrairement au reste de ce
+        /// coordinateur : `UIGestureRecognizer` et `UIView` sont isolés au
+        /// fil principal par UIKit, et Swift 6 refuse d'y toucher ailleurs.
+        /// Les rappels de MapLibre, eux, restent tels qu'ils étaient.
+        @MainActor
+        func attachTap(to mapView: MLNMapView) {
+            let tap = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
+            // Le double-tap zoome, et il commence par un simple tap : sans
+            // cette priorité, zoomer poserait deux points au passage.
+            for existing in mapView.gestureRecognizers ?? [] {
+                if let existing = existing as? UITapGestureRecognizer,
+                   existing.numberOfTapsRequired > 1 {
+                    tap.require(toFail: existing)
+                }
+            }
+            mapView.addGestureRecognizer(tap)
+        }
+
+        @MainActor
+        @objc private func handleTap(_ sender: UITapGestureRecognizer) {
+            guard let mapView = sender.view as? MLNMapView, let onTapCoordinate else { return }
+            let coordinate = mapView.convert(sender.location(in: mapView), toCoordinateFrom: mapView)
+            onTapCoordinate(RoutePoint(latitude: coordinate.latitude, longitude: coordinate.longitude))
+        }
 
         func mapView(_ mapView: MLNMapView, didFinishLoading style: MLNStyle) {
             isStyleLoaded = true
+            drawRoute(plannedRoute, on: mapView, force: true)
             draw(pendingPoints, on: mapView, force: true)
         }
+
+        // MARK: - Le parcours prévu
+
+        func drawRoute(_ route: [RoutePoint], on mapView: MLNMapView, force: Bool = false) {
+            let changed = route != plannedRoute
+            plannedRoute = route
+            guard isStyleLoaded, changed || force else { return }
+
+            if let existing = routePolyline { mapView.removeAnnotation(existing) }
+            routePolyline = nil
+            if !routeMarkers.isEmpty { mapView.removeAnnotations(routeMarkers) }
+            routeMarkers = []
+            guard !route.isEmpty else { return }
+
+            // Un point posé seul ne fait pas de ligne : sans ces pastilles,
+            // le premier appui du dessin ne montrerait rien du tout.
+            routeMarkers = route.map { point in
+                let marker = MLNPointAnnotation()
+                marker.coordinate = CLLocationCoordinate2D(
+                    latitude: point.latitude, longitude: point.longitude
+                )
+                marker.title = Self.routeTitle
+                return marker
+            }
+            mapView.addAnnotations(routeMarkers)
+
+            guard route.count >= 2 else { return }
+            var coordinates = route.map {
+                CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)
+            }
+            let polyline = MLNPolyline(coordinates: &coordinates, count: UInt(coordinates.count))
+            polyline.title = Self.routeTitle
+            routePolyline = polyline
+            mapView.addAnnotation(polyline)
+
+            // Un parcours qu'on vient d'ouvrir se montre en entier, une fois.
+            // En mode dessin, jamais : la caméra est à l'athlète.
+            if !isPlanning && !hasFramedRoute && pendingPoints.count < 2 {
+                hasFramedRoute = true
+                mapView.userTrackingMode = .none
+                mapView.setVisibleCoordinates(
+                    &coordinates,
+                    count: UInt(coordinates.count),
+                    edgePadding: UIEdgeInsets(top: 40, left: 30, bottom: 40, right: 30),
+                    animated: false
+                )
+            }
+        }
+
+        // MARK: - La trace
 
         func draw(_ points: [GPSPoint], on mapView: MLNMapView, force: Bool = false) {
             pendingPoints = points
@@ -178,7 +329,8 @@ struct MapLibreRouteMap: UIViewRepresentable {
             }
             let polyline = MLNPolyline(coordinates: &coordinates, count: UInt(coordinates.count))
 
-            if let existing = mapView.annotations { mapView.removeAnnotations(existing) }
+            if let existing = tracePolyline { mapView.removeAnnotation(existing) }
+            tracePolyline = polyline
             mapView.addAnnotation(polyline)
             mapView.setVisibleCoordinates(
                 &coordinates,
@@ -188,12 +340,43 @@ struct MapLibreRouteMap: UIViewRepresentable {
             )
         }
 
+        // MARK: - Le style des tracés
+
         func mapView(_ mapView: MLNMapView, lineWidthForPolylineAnnotation annotation: MLNPolyline) -> CGFloat {
-            4
+            annotation.title == Self.routeTitle ? 5 : 4
         }
 
         func mapView(_ mapView: MLNMapView, strokeColorForShapeAnnotation annotation: MLNShape) -> UIColor {
-            UIColor(Theme.accent)
+            // Le prévu et le fait ne portent pas la même couleur : sur la
+            // carte pendant une sortie, il faut voir d'un coup d'œil lequel
+            // des deux traits on est en train de suivre.
+            annotation.title == Self.routeTitle ? UIColor(Theme.warning) : UIColor(Theme.accent)
+        }
+
+        func mapView(_ mapView: MLNMapView, alphaForShapeAnnotation annotation: MLNShape) -> CGFloat {
+            annotation.title == Self.routeTitle ? 0.75 : 1
+        }
+
+        /// La pastille d'un point de parcours, dessinée une fois et
+        /// réutilisée — MapLibre garde les images en cache par identifiant.
+        func mapView(_ mapView: MLNMapView, imageFor annotation: MLNAnnotation) -> MLNAnnotationImage? {
+            // La position de l'athlète passe aussi par ici : lui donner
+            // cette pastille remplacerait le point bleu du système par un
+            // rond orange, et on ne saurait plus où l'on est.
+            guard annotation is MLNPointAnnotation else { return nil }
+            let name = "point-de-parcours"
+            if let cached = mapView.dequeueReusableAnnotationImage(withIdentifier: name) {
+                return cached
+            }
+            let size = CGSize(width: 12, height: 12)
+            let image = UIGraphicsImageRenderer(size: size).image { context in
+                context.cgContext.setFillColor(UIColor(Theme.warning).cgColor)
+                context.cgContext.fillEllipse(in: CGRect(origin: .zero, size: size).insetBy(dx: 1, dy: 1))
+                context.cgContext.setStrokeColor(UIColor(Theme.background).cgColor)
+                context.cgContext.setLineWidth(2)
+                context.cgContext.strokeEllipse(in: CGRect(origin: .zero, size: size).insetBy(dx: 1, dy: 1))
+            }
+            return MLNAnnotationImage(image: image, reuseIdentifier: name)
         }
     }
 }

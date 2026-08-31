@@ -23,6 +23,13 @@ struct MonCoachApp: App {
                     // affichée est donc un vestige, et se retire.
                     RunActivityController.endAll()
                     WorkoutActivityController.endAll()
+
+                    // Le même raisonnement pour les photos : une suppression
+                    // interrompue — l'application tuée entre l'écriture de
+                    // l'état et celle du disque — laisse des images que plus
+                    // aucune sortie ne réclame et que rien ne peut plus
+                    // atteindre. Le lancement en fait le ménage.
+                    store.prunePhotos()
                 }
         }
     }

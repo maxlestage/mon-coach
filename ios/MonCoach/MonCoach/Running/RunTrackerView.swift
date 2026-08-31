@@ -37,6 +37,16 @@ struct RunTrackerView: View {
     @AppStorage("annonces-vocales") private var speaksKilometres = true
     @State private var importError = false
     @State private var importedCount = 0
+    /// Le parcours que l'athlète a choisi de suivre, s'il en a choisi un.
+    @State private var followedRoute: PlannedRoute?
+    /// L'écran de dessin, ouvert sur un parcours neuf ou sur un existant.
+    @State private var planner: PlannerSheet?
+    @State private var showsRouteImporter = false
+    @State private var routeImportError = false
+    /// A-t-on déjà dit qu'on était sorti du parcours ? Sans cette mémoire,
+    /// la phrase se répéterait à chaque point GPS reçu, une fois par
+    /// seconde, jusqu'à ce qu'on revienne.
+    @State private var wasOffRoute = false
 
     private var unit: UnitSystem { store.profile?.unit ?? .metric }
     private var loadsTiles: Bool { store.profile?.loadsMapTiles ?? true }
@@ -139,6 +149,50 @@ struct RunTrackerView: View {
                         es: "El archivo debe ser un GPX con puntos con marca de tiempo."
                     )
                 )
+            }
+            // Un deuxième import, et pas le même : celui-ci lit un parcours
+            // à suivre, sans horodatage, et n'entre pas dans l'historique.
+            .fileImporter(
+                isPresented: $showsRouteImporter,
+                allowedContentTypes: [UTType(filenameExtension: "gpx") ?? .xml, .xml],
+                allowsMultipleSelection: false
+            ) { result in
+                guard case .success(let urls) = result, let url = urls.first else { return }
+                let secured = url.startAccessingSecurityScopedResource()
+                defer { if secured { url.stopAccessingSecurityScopedResource() } }
+                let fallback = url.deletingPathExtension().lastPathComponent
+                guard let text = try? String(contentsOf: url, encoding: .utf8) else {
+                    routeImportError = true
+                    return
+                }
+                // Nil pour deux raisons différentes — fichier illisible, ou
+                // parcours trop court —, et l'athlète n'a pas à les
+                // distinguer : dans les deux cas rien n'a été enregistré.
+                let imported = try? store.importRouteGPX(
+                    text, named: fallback, fallbackSport: selectedSport
+                )
+                if imported == nil { routeImportError = true }
+            }
+            .alert(
+                LocalizedText(
+                    fr: "Ce parcours n'a pas pu être lu",
+                    en: "This route could not be read",
+                    es: "No se ha podido leer este recorrido"
+                )[language],
+                isPresented: $routeImportError
+            ) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                CoachText(
+                    LocalizedText(
+                        fr: "Le fichier doit être un GPX contenant au moins deux points, et faire plus de trois cents mètres.",
+                        en: "The file must be a GPX with at least two points, and longer than three hundred metres.",
+                        es: "El archivo debe ser un GPX con al menos dos puntos y de más de trescientos metros."
+                    )
+                )
+            }
+            .sheet(item: $planner) { sheet in
+                RoutePlannerView(existing: sheet.route)
             }
         }
     }
@@ -272,6 +326,7 @@ struct RunTrackerView: View {
             }
 
             PrimaryButton(title: UI.start[language], systemImage: selectedSport.symbolName) {
+                wasOffRoute = false
                 tracker.start(
                     sport: plannedRun == nil ? selectedSport : .run,
                     type: selectedSport.feedsRunningPlan ? selectedType : .easy
@@ -314,9 +369,9 @@ struct RunTrackerView: View {
                         .foregroundStyle(Theme.primaryText)
                         Text(
                             LocalizedText(
-                                fr: "À chaque kilomètre : le numéro, l'allure, le temps total. La voix baisse la musique, elle ne la coupe pas.",
-                                en: "At every kilometer: the number, the pace, the total time. The voice ducks your music, it never stops it.",
-                                es: "En cada kilómetro: el número, el ritmo, el tiempo total. La voz baja la música, no la corta."
+                                fr: "À chaque kilomètre : le numéro, l'allure, le temps total — et un mot si tu quittes ton parcours. La voix baisse la musique, elle ne la coupe pas.",
+                                en: "At every kilometer: the number, the pace, the total time — and a word if you leave your route. The voice ducks your music, it never stops it.",
+                                es: "En cada kilómetro: el número, el ritmo, el tiempo total, y un aviso si te sales del recorrido. La voz baja la música, no la corta."
                             )[language]
                         )
                         .font(Theme.captionFont)
@@ -326,11 +381,123 @@ struct RunTrackerView: View {
                 .tint(Theme.accent)
             }
 
+            routesCard
             tracesCard
         }
         .onAppear {
             if let plannedRun { selectedType = plannedRun.type }
             hasStrayActivity = RunActivityController.hasAny
+        }
+    }
+
+    /// Les parcours préparés : en choisir un, en dessiner un, en importer un.
+    ///
+    /// Un parcours choisi ici s'affiche pendant toute la sortie, sous la
+    /// trace : c'est la différence entre « douze kilomètres » et « ces
+    /// douze kilomètres-là ».
+    private var routesCard: some View {
+        let sport = plannedRun == nil ? selectedSport : .run
+        let available = store.routes(for: sport)
+        return Card(
+            title: LocalizedText(fr: "Tes parcours", en: "Your routes", es: "Tus recorridos")[language],
+            subtitle: followedRoute.map { route in
+                LocalizedText(
+                    fr: "Tu suis « \(route.name) » : il s'affichera sur la carte.",
+                    en: "You are following “\(route.name)”: it will show on the map.",
+                    es: "Sigues «\(route.name)»: aparecerá en el mapa."
+                )[language]
+            }
+        ) {
+            VStack(alignment: .leading, spacing: 10) {
+                if available.isEmpty {
+                    CoachText(
+                        LocalizedText(
+                            fr: "Aucun parcours pour l'instant. Dessine-en un sur la carte, importe un GPX, ou reprends une sortie que tu as aimée depuis sa fiche du journal.",
+                            en: "No routes yet. Draw one on the map, import a GPX, or turn an activity you enjoyed into one from its journal page.",
+                            es: "Aún no hay recorridos. Dibuja uno en el mapa, importa un GPX o convierte en recorrido una salida que te haya gustado desde su ficha."
+                        )
+                    )
+                }
+                ForEach(available) { route in
+                    routeRow(route)
+                }
+                HStack(spacing: 8) {
+                    GhostButton(
+                        title: LocalizedText(fr: "Dessiner", en: "Draw", es: "Dibujar")[language],
+                        systemImage: "pencil.and.outline"
+                    ) {
+                        planner = PlannerSheet(route: nil)
+                    }
+                    GhostButton(
+                        title: LocalizedText(fr: "Importer", en: "Import", es: "Importar")[language],
+                        systemImage: "square.and.arrow.down"
+                    ) {
+                        showsRouteImporter = true
+                    }
+                }
+            }
+        }
+    }
+
+    private func routeRow(_ route: PlannedRoute) -> some View {
+        let isFollowed = followedRoute?.id == route.id
+        return HStack(spacing: 10) {
+            Button {
+                // Un deuxième appui repose le parcours : suivre est un choix
+                // qu'on doit pouvoir défaire sans chercher où.
+                followedRoute = isFollowed ? nil : route
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: isFollowed ? "checkmark.circle.fill" : "circle")
+                        .foregroundStyle(isFollowed ? Theme.accent : Theme.secondaryText)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(route.name)
+                            .font(Theme.bodyFont)
+                            .foregroundStyle(Theme.primaryText)
+                            .lineLimit(1)
+                        Text(
+                            Format.distance(meters: route.meters, unit: unit, language: language)
+                            + (route.isLoop
+                               ? " · " + LocalizedText(fr: "boucle", en: "loop", es: "bucle")[language]
+                               : "")
+                        )
+                        .font(.system(size: 12))
+                        .foregroundStyle(Theme.secondaryText)
+                    }
+                    Spacer()
+                }
+            }
+            .buttonStyle(.plain)
+
+            Menu {
+                Button {
+                    planner = PlannerSheet(route: route)
+                } label: {
+                    Label(
+                        LocalizedText(fr: "Modifier", en: "Edit", es: "Modificar")[language],
+                        systemImage: "pencil"
+                    )
+                }
+                ShareLink(
+                    item: RouteFile(route: route),
+                    preview: SharePreview(route.name)
+                ) {
+                    Label(
+                        LocalizedText(fr: "Exporter en GPX", en: "Export as GPX", es: "Exportar en GPX")[language],
+                        systemImage: "square.and.arrow.up"
+                    )
+                }
+                Button(role: .destructive) {
+                    if isFollowed { followedRoute = nil }
+                    store.deleteRoute(route.id)
+                } label: {
+                    Label(UI.delete[language], systemImage: "trash")
+                }
+            } label: {
+                Image(systemName: "ellipsis.circle")
+                    .font(.system(size: 16))
+                    .foregroundStyle(Theme.secondaryText)
+            }
         }
     }
 
@@ -441,13 +608,22 @@ struct RunTrackerView: View {
                 }
             }
 
-            RunMapView(points: tracker.points, showsCurrentPosition: true, loadsTiles: loadsTiles)
-                .frame(height: 260)
-                // Les points arrivent chaque seconde ; le contrôleur limite
-                // lui-même la cadence réellement poussée au système.
-                .onChange(of: tracker.points.count) { _, _ in
-                    liveActivity.update(tracker.activitySnapshot(unit: unit, language: language))
-                }
+            routeProgressCard
+
+            RunMapView(
+                points: tracker.points,
+                route: followedRoute?.points ?? [],
+                showsCurrentPosition: true,
+                loadsTiles: loadsTiles
+            )
+            .frame(height: 260)
+            // Les points arrivent chaque seconde ; le contrôleur limite
+            // lui-même la cadence réellement poussée au système, et l'écart
+            // au parcours n'est dit qu'aux changements d'état.
+            .onChange(of: tracker.points.count) { _, _ in
+                liveActivity.update(tracker.activitySnapshot(unit: unit, language: language))
+                announceRouteDeviation()
+            }
 
             if !tracker.splits.isEmpty {
                 Card(title: UI.splits[language]) {
@@ -497,6 +673,84 @@ struct RunTrackerView: View {
                 }
             }
         }
+    }
+
+    /// Où l'on en est du parcours suivi.
+    ///
+    /// Deux choses seulement : ce qu'il reste, et si l'on est encore dessus.
+    /// En courant, on lit l'écran d'un coup d'œil — tout le reste attendra
+    /// la fin de la sortie.
+    @ViewBuilder
+    private var routeProgressCard: some View {
+        if let followedRoute, let last = tracker.points.last {
+            let position = RoutePoint(latitude: last.latitude, longitude: last.longitude)
+            let remaining = RoutePlanner.remainingMeters(from: position, on: followedRoute.points)
+            let offRoute = RoutePlanner.isOffRoute(position, from: followedRoute.points)
+            Card(title: followedRoute.name) {
+                VStack(spacing: 10) {
+                    HStack(spacing: 12) {
+                        if let remaining {
+                            StatTile(
+                                value: Format.distance(meters: remaining, unit: unit, language: language),
+                                label: LocalizedText(
+                                    fr: "Restant", en: "Remaining", es: "Restante"
+                                )[language]
+                            )
+                        }
+                        StatTile(
+                            value: Format.distance(
+                                meters: followedRoute.meters, unit: unit, language: language
+                            ),
+                            label: LocalizedText(
+                                fr: "Le parcours", en: "The route", es: "El recorrido"
+                            )[language],
+                            tint: Theme.secondaryText
+                        )
+                    }
+                    if offRoute {
+                        HStack {
+                            Pill(
+                                text: LocalizedText(
+                                    fr: "Tu t'es écarté du parcours",
+                                    en: "You have left the route",
+                                    es: "Te has salido del recorrido"
+                                )[language],
+                                tint: Theme.warning
+                            )
+                            Spacer()
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// Dit à voix haute qu'on a quitté le parcours, et qu'on y est revenu.
+    ///
+    /// Le téléphone est dans une poche : une pastille à l'écran ne sert à
+    /// rien pour ça. La phrase ne sort qu'aux changements d'état, jamais en
+    /// boucle — c'est tout l'objet de `wasOffRoute`.
+    private func announceRouteDeviation() {
+        guard let followedRoute, let last = tracker.points.last else { return }
+        let position = RoutePoint(latitude: last.latitude, longitude: last.longitude)
+        let offRoute = RoutePlanner.isOffRoute(position, from: followedRoute.points)
+        guard offRoute != wasOffRoute else { return }
+        wasOffRoute = offRoute
+        guard speaksKilometres else { return }
+        announcer.speak(
+            offRoute
+                ? LocalizedText(
+                    fr: "Tu es sorti du parcours.",
+                    en: "You have left the route.",
+                    es: "Te has salido del recorrido."
+                )[language]
+                : LocalizedText(
+                    fr: "Te revoilà sur le parcours.",
+                    en: "You are back on the route.",
+                    es: "Ya estás de vuelta en el recorrido."
+                )[language],
+            language: language
+        )
     }
 
     private var signalRow: some View {
@@ -604,5 +858,27 @@ struct SplitList: View {
     private func barValue(for split: Split) -> Double {
         guard slowest > fastest else { return 1 }
         return 1 - (split.paceSecondsPerKm - fastest) / (slowest - fastest) * 0.75
+    }
+}
+
+/// L'écran de dessin, ouvert sur un parcours neuf ou sur un existant.
+///
+/// Une enveloppe identifiable plutôt que deux booléens : « je dessine » et
+/// « je modifie celui-là » sont le même écran, et deux feuilles concurrentes
+/// finiraient par s'ouvrir ensemble.
+struct PlannerSheet: Identifiable {
+    let id = UUID()
+    var route: PlannedRoute?
+}
+
+/// Un parcours au format GPX, fabriqué au moment du partage seulement.
+struct RouteFile: Transferable {
+    var route: PlannedRoute
+
+    static var transferRepresentation: some TransferRepresentation {
+        DataRepresentation(exportedContentType: .xml) { file in
+            Data(GPX.document(for: file.route).utf8)
+        }
+        .suggestedFileName { file in "\(file.route.name).gpx" }
     }
 }
