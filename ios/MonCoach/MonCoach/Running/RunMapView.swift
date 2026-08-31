@@ -293,16 +293,25 @@ struct MapLibreRouteMap: UIViewRepresentable {
         private func drawPlannedRoute(on mapView: MLNMapView) {
             guard !plannedRoute.isEmpty else { return }
 
-            // Un point posé seul ne fait pas de ligne : sans ces pastilles,
-            // le premier appui du dessin ne montrerait rien du tout.
-            mapView.addAnnotations(plannedRoute.map { point in
-                let marker = MLNPointAnnotation()
-                marker.coordinate = CLLocationCoordinate2D(
-                    latitude: point.latitude, longitude: point.longitude
-                )
-                marker.title = Self.routeTitle
-                return marker
-            })
+            // Les pastilles n'existent que pendant le dessin : c'est là
+            // qu'elles servent, un point posé seul ne faisant pas de ligne et
+            // le premier appui ne montrant sinon rien du tout. En suivant un
+            // parcours, elles seraient du bruit — un tracé importé en porte
+            // des centaines, une tous les quelques mètres.
+            //
+            // Posées une par une, et pas en un tableau : un objet fabriqué
+            // sur place puis remis à la carte ne relève plus de personne
+            // d'autre, là où un tableau constitué ici resterait à nous.
+            if isPlanning {
+                for point in plannedRoute {
+                    let marker = MLNPointAnnotation()
+                    marker.coordinate = CLLocationCoordinate2D(
+                        latitude: point.latitude, longitude: point.longitude
+                    )
+                    marker.title = Self.routeTitle
+                    mapView.addAnnotation(marker)
+                }
+            }
 
             guard plannedRoute.count >= 2 else { return }
             var coordinates = plannedRoute.map {
