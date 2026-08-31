@@ -37,21 +37,39 @@ struct ActivityDetailView: View {
 
                 Card {
                     HStack(spacing: 12) {
-                        StatTile(
-                            value: Format.distance(meters: activity.meters, unit: unit, language: language),
-                            label: UI.distance[language]
-                        )
+                        // Ce qui n'a pas de distance montre son sport à la
+                        // place : une tuile « 0,00 km » n'apprend rien, et
+                        // fait douter de tout le reste de la fiche.
+                        if activity.sport.tracksLocation {
+                            StatTile(
+                                value: Format.distance(meters: activity.meters, unit: unit, language: language),
+                                label: UI.distance[language]
+                            )
+                        } else {
+                            StatTile(
+                                value: activity.sport.label[language],
+                                label: LocalizedText(fr: "Sport", en: "Sport", es: "Deporte")[language]
+                            )
+                        }
                         StatTile(
                             value: Format.stopwatch(seconds: activity.duration),
                             label: UI.duration[language]
                         )
-                        StatTile(
-                            value: Format.speedOrPace(
-                                sport: activity.sport, meters: activity.meters,
-                                seconds: activity.duration, unit: unit, language: language
-                            ),
-                            label: UI.pace[language]
-                        )
+                        if activity.sport.tracksLocation {
+                            StatTile(
+                                value: Format.speedOrPace(
+                                    sport: activity.sport, meters: activity.meters,
+                                    seconds: activity.duration, unit: unit, language: language
+                                ),
+                                label: UI.pace[language]
+                            )
+                        } else {
+                            StatTile(
+                                value: "\(Int(TraceMath.energyKcal(sport: activity.sport, meters: 0, movingSeconds: activity.duration, elevationGain: 0, weightKg: store.profile?.weightKg ?? 70)))",
+                                label: UI.calories[language],
+                                tint: Theme.warning
+                            )
+                        }
                     }
                 }
 
@@ -220,7 +238,7 @@ struct ActivityDetailView: View {
                         }
                     } label: {
                         HStack(spacing: 6) {
-                            Image(systemName: activity.sport == .ride ? "bicycle" : "shoe.2")
+                            Image(systemName: activity.sport.family == .wheels ? "bicycle" : "shoe.2")
                                 .font(.system(size: 13))
                             Text(
                                 currentGear?.name

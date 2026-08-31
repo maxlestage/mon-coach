@@ -126,23 +126,38 @@ public enum TraceMath {
         elevationGain: Double,
         weightKg: Double
     ) -> Double {
-        guard meters > 0, weightKg > 0 else { return 0 }
-        switch sport {
-        case .run, .trail:
+        guard weightKg > 0 else { return 0 }
+        switch sport.mode {
+        case .running, .trailRunning:
+            guard meters > 0 else { return metabolic(sport: sport, movingSeconds: movingSeconds, weightKg: weightKg) }
             return energyKcal(meters: meters, elevationGain: elevationGain, weightKg: weightKg)
-        case .walk, .hike:
+        case .walking:
+            guard meters > 0 else { return metabolic(sport: sport, movingSeconds: movingSeconds, weightKg: weightKg) }
             // La marche coûte environ la moitié de la course au kilomètre :
             // pas de phase aérienne à financer. Le coût vertical, lui, ne
             // change pas — un mètre gravi est un mètre gravi.
             let horizontal = 0.53 * weightKg * (meters / 1_000)
             let vertical = 0.00938 * weightKg * max(0, elevationGain)
             return horizontal + vertical
-        case .ride:
-            guard movingSeconds > 0 else { return 0 }
+        case .rolling:
+            guard meters > 0, movingSeconds > 0 else {
+                return metabolic(sport: sport, movingSeconds: movingSeconds, weightKg: weightKg)
+            }
             let hours = movingSeconds / 3_600
             let kmh = (meters / 1_000) / hours
             return cyclingMET(speedKmh: kmh) * weightKg * hours
+        case .floating, .gliding, .stationary:
+            // Ni le kilomètre ni la vitesse ne disent le coût d'une heure de
+            // kayak ou d'escalade : c'est le temps passé qui le porte. Les
+            // MET du Compendium sont tabulés pour exactement ça.
+            return metabolic(sport: sport, movingSeconds: movingSeconds, weightKg: weightKg)
         }
+    }
+
+    /// La dépense d'un sport qui se compte en temps, pas en distance.
+    static func metabolic(sport: Sport, movingSeconds: TimeInterval, weightKg: Double) -> Double {
+        guard movingSeconds > 0, weightKg > 0 else { return 0 }
+        return sport.baseMET * weightKg * (movingSeconds / 3_600)
     }
 
     /// Équivalent métabolique du cyclisme, d'après les tables du Compendium

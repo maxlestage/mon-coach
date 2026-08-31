@@ -42,6 +42,15 @@ public final class LocationTracker: NSObject {
     /// ne sait pas la donner.
     public private(set) var currentSpeed: Double = -1
 
+    /// Le temps écoulé d'une activité qui ne se déplace pas, en secondes.
+    ///
+    /// Un rameur, un cours de yoga, une heure de padel : rien à tracer, mais
+    /// une durée bien réelle, qui porte à elle seule la dépense et la
+    /// charge. Elle est comptée ici plutôt que dans l'écran, pour que la
+    /// montre et le téléphone comptent pareil.
+    public private(set) var stationarySeconds: TimeInterval = 0
+    private var clock: Timer?
+
     public var type: RunType = .easy
     /// Le sport en cours. Fixé au départ : c'est lui qui décide des seuils.
     public private(set) var sport: Sport = .run
@@ -71,23 +80,31 @@ public final class LocationTracker: NSObject {
     /// que l'altitude se lisse ou que l'allure instantanée veuille dire
     /// quelque chose. Pour ce qui se marche, on prend tout.
     private func configure(for sport: Sport) {
-        switch sport {
-        case .run, .trail:
+        switch sport.mode {
+        case .running, .trailRunning:
             manager.activityType = .fitness
             manager.distanceFilter = 1
-        case .ride:
+        case .rolling, .gliding:
             manager.activityType = .otherNavigation
             manager.distanceFilter = 3
-        case .walk, .hike:
+        case .walking, .floating:
             manager.activityType = .fitness
             manager.distanceFilter = kCLDistanceFilterNone
+        case .stationary:
+            // Aucun suivi n'est démarré pour ces sports-là ; ce réglage ne
+            // sert que si l'appelant se trompe, et il doit alors coûter le
+            // moins de batterie possible.
+            manager.activityType = .other
+            manager.distanceFilter = 100
         }
     }
 
     // MARK: - Ce que l'écran lit
 
     public var meters: Double { trace?.meters ?? 0 }
-    public var movingDuration: TimeInterval { trace?.movingDuration ?? 0 }
+    public var movingDuration: TimeInterval {
+        sport.tracksLocation ? (trace?.movingDuration ?? 0) : stationarySeconds
+    }
     public var elevationGain: Double { trace?.elevationGain ?? 0 }
     public var paceSecondsPerKm: Double { trace?.paceSecondsPerKm ?? 0 }
 
@@ -140,6 +157,17 @@ public final class LocationTracker: NSObject {
         points = []
         trace = nil
         startedAt = Date()
+        stationarySeconds = 0
+
+        // Un sport qui ne se déplace pas ne demande ni permission ni GPS.
+        // Allumer CoreLocation « au cas où » coûterait la batterie d'une
+        // heure de séance pour dessiner une trace immobile, et ferait
+        // demander l'accès à la position pour un cours de yoga.
+        guard sport.tracksLocation else {
+            state = .running
+            startClock()
+            return
+        }
 
         switch manager.authorizationStatus {
         case .notDetermined:
@@ -155,12 +183,41 @@ public final class LocationTracker: NSObject {
     public func pause() {
         guard state == .running else { return }
         state = .paused
+        stopClock()
         manager.stopUpdatingLocation()
     }
 
     public func resume() {
         guard state == .paused else { return }
+        guard sport.tracksLocation else {
+            state = .running
+            startClock()
+            return
+        }
         beginUpdates()
+    }
+
+    /// L'horloge des activités sans trace.
+    ///
+    /// Une seconde de période, et le temps se relit à l'horloge du système
+    /// plutôt que de s'incrémenter : un minuteur que le système retarde —
+    /// écran verrouillé, application en arrière-plan — perdrait des
+    /// secondes, et une séance d'une heure finirait à cinquante minutes.
+    private func startClock() {
+        stopClock()
+        let base = stationarySeconds
+        let from = Date()
+        clock = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                guard let self, self.state == .running else { return }
+                self.stationarySeconds = base + Date().timeIntervalSince(from)
+            }
+        }
+    }
+
+    private func stopClock() {
+        clock?.invalidate()
+        clock = nil
     }
 
     /// Arrête la sortie et rend le journal, ou nil si rien n'a été parcouru.
@@ -170,13 +227,32 @@ public final class LocationTracker: NSObject {
     /// hebdomadaire dont dépend tout le plan.
     public func finish() -> ActivityLog? {
         manager.stopUpdatingLocation()
+        stopClock()
         state = .finished
+        guard sport.tracksLocation else {
+            // Une minute : le plancher d'un vrai créneau. En dessous, c'est
+            // un bouton effleuré en rangeant son téléphone, et une séance de
+            // douze secondes dans l'historique fausserait la charge autant
+            // qu'elle ferait douter du reste.
+            guard stationarySeconds >= 60 else { return nil }
+            return ActivityLog(
+                startedAt: startedAt ?? Date(),
+                sport: sport,
+                type: type,
+                points: [],
+                meters: 0,
+                duration: stationarySeconds,
+                elevationGain: 0
+            )
+        }
         let log = TraceAnalysis.summarise(rawPoints: points, sport: sport, type: type)
         return log.meters >= 100 ? log : nil
     }
 
     public func reset() {
         manager.stopUpdatingLocation()
+        stopClock()
+        stationarySeconds = 0
         state = .idle
         points = []
         trace = nil

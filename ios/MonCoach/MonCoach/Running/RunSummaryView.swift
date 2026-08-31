@@ -33,43 +33,65 @@ struct RunSummaryView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: Theme.stackSpacing) {
-                    RunMapView(points: run.points, loadsTiles: store.profile?.loadsMapTiles ?? true)
-                        .frame(height: 220)
+                    if run.sport.tracksLocation {
+                        RunMapView(points: run.points, loadsTiles: store.profile?.loadsMapTiles ?? true)
+                            .frame(height: 220)
+                    }
 
                     Card {
                         HStack(spacing: 12) {
-                            StatTile(
-                                value: Format.distance(meters: run.meters, unit: unit, language: language),
-                                label: UI.distance[language]
-                            )
+                            // Une séance sans trace n'a ni distance ni
+                            // allure : sa durée prend la première place,
+                            // celle du chiffre qu'on regarde.
+                            if run.sport.tracksLocation {
+                                StatTile(
+                                    value: Format.distance(meters: run.meters, unit: unit, language: language),
+                                    label: UI.distance[language]
+                                )
+                            } else {
+                                StatTile(
+                                    value: run.sport.label[language],
+                                    label: LocalizedText(fr: "Sport", en: "Sport", es: "Deporte")[language]
+                                )
+                            }
                             StatTile(
                                 value: Format.stopwatch(seconds: run.duration),
                                 label: UI.duration[language]
                             )
-                            StatTile(
-                                value: Format.speedOrPace(
-                                    sport: run.sport, meters: run.meters,
-                                    seconds: run.duration, unit: unit, language: language
-                                ),
-                                label: UI.pace[language]
-                            )
+                            if run.sport.tracksLocation {
+                                StatTile(
+                                    value: Format.speedOrPace(
+                                        sport: run.sport, meters: run.meters,
+                                        seconds: run.duration, unit: unit, language: language
+                                    ),
+                                    label: UI.pace[language]
+                                )
+                            }
                         }
                         HStack(spacing: 12) {
+                            if run.sport.tracksLocation {
+                                StatTile(
+                                    value: "\(Int(run.elevationGain)) m",
+                                    label: UI.elevation[language],
+                                    tint: Theme.warning
+                                )
+                            }
+                            // La dépense passe par le modèle du sport : la
+                            // formule de la course appliquée à un vélo
+                            // donnait le triple, et n'avait rien à dire du
+                            // tout d'une heure de yoga.
                             StatTile(
-                                value: "\(Int(run.elevationGain)) m",
-                                label: UI.elevation[language],
-                                tint: Theme.warning
-                            )
-                            StatTile(
-                                value: "\(Int(TraceMath.energyKcal(meters: run.meters, elevationGain: run.elevationGain, weightKg: weightKg)))",
+                                value: "\(Int(TraceMath.energyKcal(sport: run.sport, meters: run.meters, movingSeconds: run.duration, elevationGain: run.elevationGain, weightKg: weightKg)))",
                                 label: UI.calories[language],
                                 tint: Theme.warning
                             )
-                            StatTile(
-                                value: run.type.label[language],
-                                label: LocalizedText(fr: "Type", en: "Type", es: "Tipo")[language],
-                                tint: Theme.secondaryText
-                            )
+                            if run.sport.feedsRunningPlan {
+                                StatTile(
+                                    value: run.type.label[language],
+                                    label: LocalizedText(fr: "Type", en: "Type", es: "Tipo")[language],
+                                    tint: Theme.secondaryText
+                                )
+                            }
                         }
                     }
 

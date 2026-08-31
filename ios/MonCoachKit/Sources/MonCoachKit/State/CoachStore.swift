@@ -370,7 +370,13 @@ public final class CoachStore {
     /// se court, donc course, trail, marche et randonnée se partagent leurs
     /// parcours.
     public func routes(for sport: Sport) -> [PlannedRoute] {
-        routes.filter { $0.sport == sport || (sport != .ride && $0.sport != .ride) }
+        // Un parcours dessiné pour la marche se court très bien, et
+        // l'inverse aussi : ce qui se fait avec les pieds se partage. Un
+        // itinéraire de vélo, non — trente kilomètres de départementale ne
+        // sont pas une sortie à pied, et une piste de VTT n'est pas une
+        // route. La famille du sport tranche, plutôt qu'une liste de cas
+        // qu'il faudrait rallonger à chaque sport ajouté.
+        routes.filter { $0.sport == sport || $0.sport.family == sport.family }
     }
 
     /// Importe un fichier GPX comme parcours à suivre, pas comme sortie

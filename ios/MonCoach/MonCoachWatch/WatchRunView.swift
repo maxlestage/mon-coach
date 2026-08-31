@@ -28,16 +28,38 @@ struct WatchRunView: View {
     /// ce qui est déjà écrit sur la montre devienne illisible.
     @AppStorage("sport-de-la-sortie") private var lastSportID: String = Sport.run.rawValue
 
+    /// Les derniers sports pratiqués, du plus récent au plus ancien.
+    ///
+    /// Gardés en une chaîne de rangs séparés par des virgules : `AppStorage`
+    /// ne sait retenir que des valeurs simples, et un rang inconnu — écrit
+    /// par une version plus récente, ou retiré du catalogue — se jette à la
+    /// lecture au lieu de faire tomber l'écran de départ.
+    @AppStorage("sports-recents") private var recentIDs: String = ""
+
     private var lastSport: Sport { Sport(rawValue: lastSportID) ?? .run }
 
-    /// Les sports dans l'ordre du menu : le dernier choisi en tête, les
-    /// autres derrière, dans leur ordre habituel.
+    /// Le haut du menu : ce que l'athlète fait vraiment.
     ///
-    /// Le premier de la liste est celui qu'on atteint sans tourner la
-    /// couronne — c'est le seul rang qui coûte zéro geste, et il revient à
-    /// ce qu'on fait le plus souvent.
-    private var menu: [Sport] {
-        [lastSport] + Sport.allCases.filter { $0 != lastSport }
+    /// Quarante-huit sports ne se parcourent pas à la couronne. Les quatre
+    /// derniers pratiqués tiennent sur un écran et couvrent presque toutes
+    /// les sorties ; le reste attend derrière sa famille, à un appui. Le
+    /// premier rang est celui qu'on atteint sans rien tourner — c'est le
+    /// seul geste gratuit de l'écran, il revient au plus fréquent.
+    private var favourites: [Sport] {
+        var result: [Sport] = []
+        for id in recentIDs.split(separator: ",") {
+            if let sport = Sport(rawValue: String(id)), !result.contains(sport) {
+                result.append(sport)
+            }
+        }
+        if !result.contains(lastSport) { result.insert(lastSport, at: 0) }
+        // Une montre neuve n'a pas d'historique : on part de ce que font
+        // presque tous les athlètes, plutôt que d'une liste vide qui
+        // obligerait à passer par les familles dès la première sortie.
+        for fallback in [Sport.run, .ride, .walk] where result.count < 4 {
+            if !result.contains(fallback) { result.append(fallback) }
+        }
+        return Array(result.prefix(4))
     }
 
     private var unit: UnitSystem { store.unit }
@@ -50,11 +72,18 @@ struct WatchRunView: View {
             case .denied:
                 deniedScreen
             case .running, .paused, .finished:
-                TabView(selection: $page) {
-                    liveScreen.tag(0)
-                    splitsScreen.tag(1)
+                // La page des kilomètres n'existe que s'il y en a : un
+                // rameur qui glisse vers une page vide croit avoir perdu
+                // quelque chose.
+                if tracker.sport.tracksLocation {
+                    TabView(selection: $page) {
+                        liveScreen.tag(0)
+                        splitsScreen.tag(1)
+                    }
+                    .tabViewStyle(.verticalPage)
+                } else {
+                    liveScreen
                 }
-                .tabViewStyle(.verticalPage)
             }
         }
         .navigationTitle(
@@ -130,7 +159,7 @@ struct WatchRunView: View {
                         }
                     }
                 }
-                ForEach(menu) { sport in
+                ForEach(favourites) { sport in
                     Button {
                         start(sport)
                     } label: {
@@ -141,7 +170,45 @@ struct WatchRunView: View {
                 Text(WatchUI.chooseActivity[language])
                     .font(.caption2)
             }
+
+            // Tout le reste, rangé. Une famille par ligne, et sa liste
+            // derrière : c'est un appui de plus pour les sports rares, et
+            // quarante-quatre lignes de moins pour tous les autres.
+            Section {
+                ForEach(SportFamily.allCases) { family in
+                    NavigationLink {
+                        familyScreen(family)
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: family.sports.first?.symbolName ?? "figure.run")
+                                .font(.system(size: 15))
+                                .foregroundStyle(.green)
+                                .frame(width: 22)
+                            Text(family.label[language])
+                                .font(.system(.body, design: .rounded, weight: .medium))
+                            Spacer()
+                        }
+                    }
+                }
+            } header: {
+                Text(WatchUI.allSports[language])
+                    .font(.caption2)
+            }
         }
+    }
+
+    /// La liste d'une famille : tous ses sports, un appui pour partir.
+    private func familyScreen(_ family: SportFamily) -> some View {
+        List {
+            ForEach(family.sports) { sport in
+                Button {
+                    start(sport)
+                } label: {
+                    row(for: sport)
+                }
+            }
+        }
+        .navigationTitle(family.label[language])
     }
 
     private func row(for sport: Sport) -> some View {
@@ -169,6 +236,9 @@ struct WatchRunView: View {
     private func note(for sport: Sport) -> LocalizedText? {
         if store.todayRun != nil && sport == .run { return WatchUI.planned }
         if sport == lastSport { return WatchUI.lastTime }
+        // Dit avant de partir, pas après : quelqu'un qui démarre un rameur
+        // en attendant une carte a le droit de le savoir tout de suite.
+        if !sport.tracksLocation { return WatchUI.noGPS }
         return nil
     }
 
@@ -179,12 +249,23 @@ struct WatchRunView: View {
     /// aucun sens appliqué à une randonnée.
     private func start(_ sport: Sport) {
         lastSportID = sport.rawValue
+        remember(sport)
         let planned = store.todayRun
         tracker.start(
             sport: sport,
-            type: sport == .run ? (planned?.type ?? .easy) : .easy
+            type: sport.feedsRunningPlan ? (planned?.type ?? .easy) : .easy
         )
         heart.start()
+    }
+
+    /// Fait remonter ce sport en tête des favoris.
+    private func remember(_ sport: Sport) {
+        var kept = [sport.rawValue]
+        for id in recentIDs.split(separator: ",").map(String.init)
+        where id != sport.rawValue && Sport(rawValue: id) != nil {
+            kept.append(id)
+        }
+        recentIDs = kept.prefix(4).joined(separator: ",")
     }
 
     private var deniedScreen: some View {
@@ -206,7 +287,13 @@ struct WatchRunView: View {
 
     private var liveScreen: some View {
         VStack(spacing: 6) {
-            Text(Format.distance(meters: tracker.meters, unit: unit, language: language))
+            // Le grand chiffre est celui qui bouge : les kilomètres pour ce
+            // qui se déplace, le chronomètre pour ce qui reste sur place.
+            Text(
+                tracker.sport.tracksLocation
+                    ? Format.distance(meters: tracker.meters, unit: unit, language: language)
+                    : Format.stopwatch(seconds: tracker.movingDuration)
+            )
                 .font(.system(size: 30, weight: .bold, design: .rounded))
                 .foregroundStyle(.green)
                 .minimumScaleFactor(0.6)
@@ -214,16 +301,23 @@ struct WatchRunView: View {
 
             HStack {
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(Format.stopwatch(seconds: tracker.movingDuration))
-                        .font(.system(.body, design: .rounded, weight: .semibold))
-                    Text(Format.speedOrPace(
-                        sport: tracker.sport,
-                        secondsPerKm: tracker.recentPaceSecondsPerKm,
-                        unit: unit,
-                        language: language
-                    ))
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                    if tracker.sport.tracksLocation {
+                        Text(Format.stopwatch(seconds: tracker.movingDuration))
+                            .font(.system(.body, design: .rounded, weight: .semibold))
+                        Text(Format.speedOrPace(
+                            sport: tracker.sport,
+                            secondsPerKm: tracker.recentPaceSecondsPerKm,
+                            unit: unit,
+                            language: language
+                        ))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text(tracker.sport.label[language])
+                            .font(.system(.body, design: .rounded, weight: .semibold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                    }
                 }
                 Spacer()
                 if heart.currentBpm > 0 {
@@ -235,7 +329,7 @@ struct WatchRunView: View {
                             .font(.system(.body, design: .rounded, weight: .semibold))
                     }
                 }
-                if !tracker.hasUsableSignal {
+                if tracker.sport.tracksLocation, !tracker.hasUsableSignal {
                     Text(
                         (tracker.currentAccuracy < 0 ? WatchUI.searchingGPS : WatchUI.weakSignal)[language]
                     )

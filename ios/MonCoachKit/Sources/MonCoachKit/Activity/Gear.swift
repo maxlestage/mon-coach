@@ -27,11 +27,11 @@ public struct Gear: Codable, Sendable, Equatable, Identifiable, Hashable {
 
         /// Les sports que ce matériel équipe. C'est lui qui décide quel
         /// matériel se propose au bout d'une sortie.
+        /// Déduit du catalogue des sports plutôt qu'écrit ici : deux
+        /// listes tenues séparément finiraient par ne plus s'accorder, et
+        /// un vélo de gravel ne se proposerait jamais au bout d'un gravel.
         public var sports: Set<Sport> {
-            switch self {
-            case .shoes: [.run, .trail, .walk, .hike]
-            case .bike: [.ride]
-            }
+            Set(Sport.allCases.filter { $0.gearKinds.contains(self) })
         }
 
         /// Le seuil d'usure au-delà duquel on prévient, en mètres.

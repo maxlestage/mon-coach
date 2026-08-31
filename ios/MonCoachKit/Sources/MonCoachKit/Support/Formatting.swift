@@ -114,6 +114,10 @@ public enum Format {
             return pace(secondsPerKm: TraceMath.pace(meters: meters, seconds: seconds), unit: unit)
         case .speed:
             return speed(metersPerSecond: meters / seconds, unit: unit, language: language)
+        case .none:
+            // Un rameur ou un tapis de sol n'ont pas d'allure. Le tiret dit
+            // « rien à afficher ici », ce qu'un « 0:00/km » ne dirait pas.
+            return "—"
         }
     }
 
@@ -131,6 +135,8 @@ public enum Format {
             return pace(secondsPerKm: secondsPerKm, unit: unit)
         case .speed:
             return speed(metersPerSecond: 1_000 / secondsPerKm, unit: unit, language: language)
+        case .none:
+            return "—"
         }
     }
 
