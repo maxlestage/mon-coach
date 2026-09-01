@@ -56,6 +56,7 @@ struct ProgressDashboardView: View {
             }
             .screenBackground()
             .navigationTitle("Progression")
+            .sectionGuide(.progress)
         }
         .tint(Theme.accent)
     }

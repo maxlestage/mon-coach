@@ -36,6 +36,7 @@ struct FoodView: View {
             }
             .screenBackground()
             .navigationTitle(UI.food[language])
+            .sectionGuide(.food)
             .toolbar {
                 // Les refus à côté du panier : les deux se consultent
                 // « quand on veut », pas quand un repas les fait apparaître.

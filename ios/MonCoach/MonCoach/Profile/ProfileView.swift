@@ -11,11 +11,58 @@ struct ProfileView: View {
     @State private var showingEditor = false
     @State private var showingResetConfirmation = false
     @State private var showingPaywall = false
+    @State private var showingBenefits = false
     @State private var exportedURL: URL?
     /// Le type de matériel en cours d'ajout — c'est lui qui ouvre la boîte
     /// de saisie du nom. Nil quand rien ne s'ajoute.
     @State private var addingGearKind: Gear.Kind?
     @State private var newGearName = ""
+
+    /// La porte vers ce que l'application apporte, et ce qu'elle refuse de
+    /// faire.
+    ///
+    /// Dans le profil parce que c'est l'écran où l'on vient se demander « à
+    /// quoi ça sert au juste » — juste au-dessus de l'abonnement, où la
+    /// question devient chère.
+    private var benefitsCard: some View {
+        Button {
+            showingBenefits = true
+        } label: {
+            Card {
+                HStack(spacing: 12) {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 16))
+                        .foregroundStyle(Theme.accent)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(
+                            LocalizedText(
+                                fr: "Ce que ça t'apporte",
+                                en: "What it brings you",
+                                es: "Lo que te aporta"
+                            )[language]
+                        )
+                        .font(Theme.headlineFont)
+                        .foregroundStyle(Theme.primaryText)
+                        Text(
+                            LocalizedText(
+                                fr: "Chaque promesse, et le mécanisme qui la rend vraie.",
+                                en: "Every promise, and the mechanism that makes it true.",
+                                es: "Cada promesa, y el mecanismo que la hace cierta."
+                            )[language]
+                        )
+                        .font(Theme.captionFont)
+                        .foregroundStyle(Theme.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Theme.secondaryText)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+    }
 
     var body: some View {
         NavigationStack {
@@ -28,6 +75,7 @@ struct ProfileView: View {
                         constraintsCard(profile)
                         preferencesCard(profile)
                         runningCard(profile)
+                        benefitsCard
                         subscriptionCard
                         refusedFoodsCard
                         gearCard
@@ -41,6 +89,7 @@ struct ProfileView: View {
             }
             .screenBackground()
             .navigationTitle("Profil")
+            .sectionGuide(.profile)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Modifier") { showingEditor = true }
@@ -48,6 +97,7 @@ struct ProfileView: View {
                 }
             }
             .sheet(isPresented: $showingPaywall) { PaywallView() }
+            .sheet(isPresented: $showingBenefits) { BenefitsView() }
             .sheet(isPresented: $showingEditor) {
                 if let profile = store.profile {
                     ProfileEditorView(profile: profile) { updated in
