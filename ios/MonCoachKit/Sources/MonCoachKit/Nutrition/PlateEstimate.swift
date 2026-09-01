@@ -104,7 +104,10 @@ public struct PlateItem: Codable, Sendable, Equatable, Identifiable, Hashable {
 }
 
 /// Une assiette photographiée, estimée.
-public struct PlateEstimate: Codable, Sendable, Equatable {
+public struct PlateEstimate: Codable, Sendable, Equatable, Identifiable {
+    /// L'instant du repas fait l'identité : c'est déjà lui qui désigne une
+    /// assiette pour la corriger ou l'effacer.
+    public var id: Date { date }
     public var items: [PlateItem]
     /// L'identifiant de la photo, quand elle a été gardée.
     public var photoID: String?
@@ -196,8 +199,8 @@ public enum PlateVision {
         "turkey": "dinde",
         "steak": "steak",
         "beef": "boeuf-5",
-        "hamburger": "boeuf-15",
-        "cheeseburger": "boeuf-15",
+        "hamburger": "burger",
+        "cheeseburger": "burger",
         "meatball": "boeuf-15",
         "pork": "porc-filet",
         "bacon": "jambon-blanc",
@@ -222,7 +225,7 @@ public enum PlateVision {
         "lasagna": "pates-completes",
         "noodle": "pates-blanches",
         "ramen": "pates-blanches",
-        "pizza": "pates-blanches",
+        "pizza": "pizza-surgelee",
         "bread": "pain-complet",
         "sandwich": "pain-complet",
         "toast": "pain-complet",
@@ -230,13 +233,14 @@ public enum PlateVision {
         "baguette": "pain-blanc",
         "potato": "pomme-de-terre",
         "mashed_potato": "pomme-de-terre",
-        "french_fries": "pomme-de-terre",
+        "french_fries": "frites",
         "sweet_potato": "patate-douce",
         "quinoa": "quinoa",
         "couscous": "semoule",
         "oatmeal": "flocons-avoine",
         "porridge": "flocons-avoine",
         "cereal": "muesli-nature",
+        "muesli": "muesli-nature",
         "pancake": "pain-blanc",
         "tortilla": "tortilla-mais",
         "taco": "tortilla-mais",
@@ -244,7 +248,7 @@ public enum PlateVision {
         // Légumineuses et végétal
         "lentil": "lentilles",
         "chickpea": "pois-chiches",
-        "hummus": "pois-chiches",
+        "hummus": "houmous",
         "bean": "haricots-rouges",
         "tofu": "tofu",
         // Légumes
@@ -306,7 +310,7 @@ public enum PlateVision {
         // « steak », il dit « beefsteak », « roast_beef », « grilled_meat ».
         "beefsteak": "steak",
         "sirloin": "steak",
-        "roast_beef": "boeuf-5",
+        "roast_beef": "rosbif",
         "ground_beef": "boeuf-15",
         "brisket": "boeuf-15",
         "veal": "veau-escalope",
@@ -328,7 +332,7 @@ public enum PlateVision {
         "roast_potato": "pomme-de-terre",
         "boiled_potato": "pomme-de-terre",
         "potato_salad": "pomme-de-terre",
-        "chip": "pomme-de-terre",
+        "chip": "chips",
         "wholemeal_bread": "pain-complet",
         "whole_wheat_bread": "pain-complet",
         "sourdough": "pain-complet",
@@ -374,7 +378,7 @@ public enum PlateVision {
         "feta": "feta",
         "goat_cheese": "chevre-buche",
         "parmesan": "parmesan",
-        "greek_yogurt": "skyr",
+        "greek_yogurt": "yaourt-grec",
         "curd": "fromage-blanc",
 
         // Ce qui se mange sans être un repas. Le catalogue les porte, et les
@@ -392,7 +396,279 @@ public enum PlateVision {
         "candy": "bonbons",
         "sweet": "bonbons",
         "ice_cream": "glace",
-        "sorbet": "glace",
+        "sorbet": "sorbet",
+
+        // Ce que le classificateur dit quand il voit un plat, et non un
+        // aliment. Un plat n'est pas un ingrédient, mais il en nomme un :
+        // « carbonara » est une assiette de pâtes, « chili » un plat de
+        // haricots. Sans ces mots, une assiette de tous les jours — le plat
+        // du dimanche, la boîte du midi — ne donnait rien du tout.
+        "carbonara": "pates-blanches",
+        "bolognese": "pates-completes",
+        "spaghetti_bolognese": "pates-completes",
+        "mac_and_cheese": "pates-blanches",
+        "pad_thai": "vermicelles-riz",
+        "chow_mein": "pates-blanches",
+        "rice_noodle": "vermicelles-riz",
+        "vermicelli": "vermicelles-riz",
+        "stir_fry": "poivron",
+        "curry": "riz-basmati",
+        "paella": "riz-blanc",
+        "jambalaya": "riz-blanc",
+        "chili": "haricots-rouges",
+        "chili_con_carne": "haricots-rouges",
+        "casserole": "pomme-de-terre",
+        "gratin": "pomme-de-terre",
+        "shepherd_pie": "pomme-de-terre",
+        "quiche": "oeuf",
+        "frittata": "oeuf",
+        "stew": "boeuf-5",
+        "pot_roast": "rosbif",
+        "ratatouille": "aubergine",
+        "coleslaw": "chou",
+        "guacamole": "avocat",
+        "poke": "saumon",
+        "poke_bowl": "saumon",
+        "ceviche": "cabillaud",
+        "kebab": "agneau-gigot",
+        "shawarma": "blanc-de-poulet",
+        "gyro": "agneau-gigot",
+        "falafel": "falafel",
+        "burger": "burger",
+        "hot_dog": "saucisse-toulouse",
+        "club_sandwich": "pain-complet",
+        "wrap": "wrap-ble",
+        "panini": "pain-blanc",
+        "croque_monsieur": "pain-blanc",
+        "bruschetta": "pain-blanc",
+        "nachos": "tortilla-mais",
+        "quesadilla": "tortilla-mais",
+        "enchilada": "tortilla-mais",
+        "dumpling": "pates-blanches",
+        "gnocchi": "gnocchis",
+        "ravioli": "pates-blanches",
+        "nugget": "nuggets",
+        "chicken_nugget": "nuggets",
+        "couscous_royal": "semoule",
+        "tabbouleh": "boulgour",
+        "porridge_oats": "flocons-avoine",
+        "granola": "granola",
+        "smoothie_bowl": "banane",
+        "protein_shake": "whey",
+
+        // Les mots plus précis de la boucherie et de la poissonnerie. Le
+        // système les emploie couramment, et « fillet », « loin », « chop »
+        // n'étaient rattachés à rien.
+        "chicken_thigh": "cuisse-de-poulet",
+        "chicken_wing": "cuisse-de-poulet",
+        "chicken_leg": "cuisse-de-poulet",
+        "turkey_breast": "dinde",
+        "duck": "dinde",
+        "rabbit": "lapin",
+        "liver": "foie-de-volaille",
+        "rib": "porc-echine",
+        "pork_chop": "porc-echine",
+        "pork_loin": "porc-filet",
+        "pork_belly": "bacon",
+        "lardon": "bacon",
+        "pancetta": "bacon",
+        "prosciutto": "jambon-blanc",
+        "bresaola": "viande-des-grisons",
+        "salami": "charcuterie",
+        "chorizo": "charcuterie",
+        "pepperoni": "charcuterie",
+        "merguez": "merguez",
+        "entrecote": "steak",
+        "ribeye": "steak",
+        "fillet": "steak",
+        "filet_mignon": "steak",
+        "tenderloin": "steak",
+        "tartare": "boeuf-5",
+        "carpaccio": "boeuf-5",
+        "salmon_fillet": "saumon",
+        "smoked_salmon": "saumon-fume",
+        "lox": "saumon-fume",
+        "tuna_steak": "thon-frais",
+        "seabass": "bar",
+        "sea_bass": "bar",
+        "bream": "dorade",
+        "sea_bream": "dorade",
+        "tilapia": "tilapia",
+        "hake": "colin-lieu",
+        "pollock": "colin-lieu",
+        "sole": "sole",
+        "haddock": "cabillaud",
+        "anchovy": "anchois",
+        "herring": "hareng",
+        "squid": "calamars",
+        "calamari": "calamars",
+        "octopus": "calamars",
+        "crab": "crabe",
+        "crab_stick": "surimi",
+        "surimi": "surimi",
+        "lobster": "crabe",
+        "scallop": "noix-st-jacques",
+        "clam": "moules",
+
+        // Légumes, fruits et graines que la table ignorait.
+        "sprout": "chou-bruxelles",
+        "bean_sprout": "germes-soja",
+        "broccolini": "brocoli",
+        "green_pea": "petits-pois",
+        "snow_pea": "petits-pois",
+        "split_pea": "pois-casses",
+        "broad_bean": "feves",
+        "fava": "feves",
+        "white_bean": "haricots-blancs",
+        "cannellini": "haricots-blancs",
+        "baked_bean": "haricots-blancs",
+        "sweetcorn": "mais-doux",
+        "corn_flakes": "cereales-mais",
+        "squash": "potiron",
+        "butternut": "butternut",
+        "swede": "navet",
+        "parsnip": "navet",
+        "celeriac": "celeri-rave",
+        "red_cabbage": "chou-rouge",
+        "shallot": "oignon",
+        "gherkin": "cornichons",
+        "pickle": "cornichons",
+        "olive": "olives",
+        "sauerkraut": "chou",
+        "watercress": "cresson",
+        "lamb_lettuce": "mache",
+        "rocket": "roquette",
+        "arugula": "roquette",
+        "chard": "blettes",
+        "clementine": "clementine",
+        "mandarin": "clementine",
+        "tangerine": "clementine",
+        "grapefruit": "pamplemousse",
+        "lemon": "citron",
+        "lime": "citron",
+        "apricot": "abricot",
+        "dried_apricot": "abricots-secs",
+        "plum": "prune",
+        "cherry": "cerises",
+        "fig": "figue",
+        "date": "dattes",
+        "raisin": "raisins-secs",
+        "prune": "pruneaux",
+        "raspberry": "framboises",
+        "blackberry": "mures",
+        "blackcurrant": "cassis",
+        "persimmon": "kaki",
+        "melon": "melon",
+        "papaya": "mangue",
+        "pomegranate": "grenade",
+        "apple_sauce": "compote-ssa",
+        "compote": "compote-ssa",
+        "coconut": "coco-rape",
+        "chia": "graines-chia",
+        "chia_seed": "graines-chia",
+        "flaxseed": "graines-lin",
+        "sunflower_seed": "graines-tournesol",
+        "pumpkin_seed": "graines-courge",
+        "sesame": "graines-sesame",
+        "tahini": "tahini",
+        "pecan": "noix-pecan",
+        "macadamia": "noix",
+        "brazil_nut": "noix-bresil",
+        "peanut_butter": "beurre-cacahuete",
+        "almond_butter": "puree-amande",
+
+        // Laitiers, œufs et corps gras.
+        "brie": "comte",
+        "camembert": "comte",
+        "cheddar": "emmental",
+        "gruyere": "emmental",
+        "comte": "comte",
+        "emmental": "emmental",
+        "gouda": "emmental",
+        "ricotta": "ricotta",
+        "mascarpone": "creme-fraiche",
+        "cream": "creme-fraiche",
+        "sour_cream": "creme-fraiche",
+        "creme_fraiche": "creme-fraiche",
+        "kefir": "kefir-lait",
+        "yoghurt": "yaourt-nature",
+        "skyr": "skyr",
+        "soy_milk": "boisson-soja",
+        "almond_milk": "boisson-amande",
+        "oat_milk": "boisson-avoine",
+        "margarine": "beurre",
+        "mayonnaise": "mayonnaise",
+        "ketchup": "ketchup",
+        "mustard": "moutarde",
+        "pesto": "pesto",
+        "tomato_sauce": "sauce-tomate",
+        "marinara": "sauce-tomate",
+        "soy_sauce": "sauce-soja",
+        "vinaigrette": "huile-olive",
+        "dressing": "huile-olive",
+        "rapeseed_oil": "huile-colza",
+        "canola_oil": "huile-colza",
+        "coconut_oil": "huile-coco",
+        "sunflower_oil": "huile-colza",
+        "walnut_oil": "huile-noix",
+
+        // Le sucré, encore : c'est ce qu'on photographie le plus, et c'est
+        // ce que le système nomme le plus volontiers.
+        "croissant": "viennoiserie",
+        "pain_au_chocolat": "viennoiserie",
+        "danish": "viennoiserie",
+        "doughnut": "viennoiserie",
+        "donut": "viennoiserie",
+        "waffle": "viennoiserie",
+        "crepe": "pain-blanc",
+        "tart": "viennoiserie",
+        "pie": "viennoiserie",
+        "apple_pie": "viennoiserie",
+        "cheesecake": "gateau-chocolat",
+        "tiramisu": "gateau-chocolat",
+        "mousse": "gateau-chocolat",
+        "pudding": "gateau-chocolat",
+        "macaron": "bonbons",
+        "marshmallow": "bonbons",
+        "jam": "confiture",
+        "honey": "miel",
+        "syrup": "sirop-erable",
+        "maple_syrup": "sirop-erable",
+        "nutella": "pate-a-tartiner",
+        "chocolate_spread": "pate-a-tartiner",
+        "milk_chocolate": "barre-chocolatee",
+        "chocolate_bar": "barre-chocolatee",
+        "dark_chocolate": "chocolat-noir",
+        "crisps": "chips",
+        "potato_chip": "chips",
+        "french_fry": "frites",
+        "pretzel": "biscuits",
+
+        // Les boissons. Elles ne nourrissent pas beaucoup, mais un jus ou
+        // une bière comptent, et les taire fausse la journée.
+        "water": "eau",
+        "sparkling_water": "eau-gazeuse",
+        "coffee": "cafe",
+        "espresso": "cafe",
+        "cappuccino": "lait",
+        "latte": "lait",
+        "tea": "the-noir",
+        "green_tea": "the-vert",
+        "kombucha": "kombucha",
+        "hot_chocolate": "chocolat-chaud",
+        "orange_juice": "jus-fruit",
+        "apple_juice": "jus-fruit",
+        "smoothie": "jus-fruit",
+        "soda": "soda",
+        "cola": "soda",
+        "lemonade": "soda",
+        "diet_soda": "soda-light",
+        "beer": "biere",
+        "wine": "vin-rouge",
+        "red_wine": "vin-rouge",
+        "cocktail": "spiritueux",
+        "whisky": "spiritueux",
+        "vodka": "spiritueux",
     ]
 
     /// Les mots du classificateur qui désignent une famille plutôt qu'un
@@ -422,6 +698,8 @@ public enum PlateVision {
         "pasta": .carb,
         "grain": .carb,
         "cereal": .carb,
+        "soup": .vegetable,
+        "broth": .vegetable,
         "rice": .carb,
         "noodle": .carb,
         "dough": .carb,
@@ -462,36 +740,10 @@ public enum PlateVision {
             .replacingOccurrences(of: "-", with: "_")
     }
 
-    /// Les formes sous lesquelles chercher un identifiant, de la plus
-    /// fidèle à la plus permissive.
-    ///
-    /// Le singulier vient après la forme exacte, et jamais à sa place :
-    /// certaines catégories du système finissent par un « s » qui fait
-    /// partie du mot — « baked_goods », « greens » — et les tronquer
-    /// d'office les rendait introuvables.
-    ///
-    /// Le dernier mot d'un composé vient en dernier : « grilled_chicken »
-    /// est du poulet, « chocolate_chip_cookie » est un biscuit.
-    static func lookupKeys(_ identifier: String) -> [String] {
-        let key = normalised(identifier)
-        var keys = [key]
-        if key.hasSuffix("s"), !key.hasSuffix("ss"), key.count > 3 {
-            keys.append(String(key.dropLast()))
-        }
-        for candidate in keys where candidate.contains("_") {
-            if let tail = candidate.split(separator: "_").last.map(String.init) {
-                keys.append(tail)
-                if tail.hasSuffix("s"), !tail.hasSuffix("ss"), tail.count > 3 {
-                    keys.append(String(tail.dropLast()))
-                }
-            }
-        }
-        return keys
-    }
-
     /// L'aliment du catalogue visé par un identifiant, s'il y en a un.
     static func food(for identifier: String) -> String? {
-        for key in lookupKeys(identifier) {
+        let full = normalised(identifier)
+        for key in lookupKeys(identifier) where key == full || !dishes.contains(key) {
             if let found = mapping[key] { return found }
         }
         return nil
@@ -514,45 +766,24 @@ public enum PlateVision {
         from observations: [(identifier: String, confidence: Double)],
         limit: Int = 3
     ) -> [FoodRole] {
-        var seen: [FoodRole] = []
-        for observation in observations where observation.confidence >= minimumConfidence {
-            if let role = category(for: observation.identifier), !seen.contains(role) {
-                seen.append(role)
-            }
-            if seen.count == limit { break }
-        }
-        return seen
+        Array(analyse(observations.map { PlateReading(identifier: $0.identifier, confidence: $0.confidence) }).roles.prefix(limit))
     }
 
     /// Traduit les propositions du système en aliments du catalogue.
     ///
-    /// L'ordre des propositions est conservé : le classificateur les rend de
-    /// la plus probable à la moins probable, et c'est l'information la plus
-    /// utile qu'il donne. Un même aliment proposé deux fois — « chicken » et
-    /// « roast_chicken » — n'est retenu qu'une fois, à sa meilleure
-    /// confiance.
+    /// Un raccourci sur `analyse`, pour les appels qui n'ont qu'une image
+    /// entière à donner et rien à apprendre. Tout ce qui compte — l'accord
+    /// entre étiquettes, les traductions apprises, la portion habituelle —
+    /// est dans `analyse`, et il n'y a qu'un seul chemin.
     public static func foods(
         from observations: [(identifier: String, confidence: Double)],
         excluding excluded: Set<String> = [],
         limit: Int = maximumItems
     ) -> [PlateItem] {
-        var seen = Set<String>()
-        var result: [PlateItem] = []
-        for observation in observations
-        where observation.confidence >= minimumConfidence {
-            guard let foodID = food(for: observation.identifier),
-                  FoodCatalog.food(id: foodID) != nil,
-                  // Un aliment écarté du plan — allergie, dégoût — n'a rien à
-                  // faire dans une assiette proposée. S'il y était vraiment,
-                  // l'athlète l'ajoute lui-même, en connaissance de cause.
-                  !excluded.contains(foodID),
-                  seen.insert(foodID).inserted
-            else { continue }
-            result.append(
-                PlateItem(foodID: foodID, portion: .medium, confidence: observation.confidence)
-            )
-            if result.count == limit { break }
-        }
-        return result
+        analyse(
+            observations.map { PlateReading(identifier: $0.identifier, confidence: $0.confidence) },
+            excluding: excluded,
+            limit: limit
+        ).items
     }
 }
