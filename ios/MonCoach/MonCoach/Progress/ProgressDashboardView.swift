@@ -245,6 +245,9 @@ struct ProgressDashboardView: View {
                 Text(exercise.name[language])
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(Theme.primaryText)
+                // Une courbe de progression sans savoir ce qu'on mesure ne
+                // dit rien : la fiche est à un appui, ici comme ailleurs.
+                ExerciseInfoButton(exercise: exercise)
                 Spacer()
                 Text(Format.weight(best, unit: unit, decimals: 0))
                     .font(.system(size: 15, weight: .bold, design: .rounded))

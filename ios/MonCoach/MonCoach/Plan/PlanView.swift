@@ -139,7 +139,10 @@ struct PlanView: View {
                             Text(session.title[language])
                                 .font(.system(size: 14, weight: .bold))
                                 .foregroundStyle(Theme.primaryText)
-                            SessionSummary(session: session, unit: unit, showsLoads: false)
+                            SessionSummary(
+                                session: session, unit: unit, showsLoads: false,
+                                owned: store.profile?.equipment
+                            )
                         }
                         .padding(12)
                         .background(Theme.surfaceRaised, in: RoundedRectangle(cornerRadius: 12))
