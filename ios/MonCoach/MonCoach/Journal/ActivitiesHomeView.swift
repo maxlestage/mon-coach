@@ -57,6 +57,7 @@ struct ActivitiesHomeView: View {
             }
             .screenBackground()
             .navigationTitle(UI.activities[language])
+            .sectionGuide(.running)
         }
         .tint(Theme.accent)
         .onAppear {

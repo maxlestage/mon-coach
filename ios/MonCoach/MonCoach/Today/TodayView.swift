@@ -45,6 +45,7 @@ struct TodayView: View {
             }
             .screenBackground()
             .navigationTitle(greeting)
+            .sectionGuide(.today)
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {

@@ -57,6 +57,7 @@ struct PlanView: View {
                 }
             }
             .navigationTitle("Mon plan")
+            .sectionGuide(.plan)
         }
         .tint(Theme.accent)
     }
