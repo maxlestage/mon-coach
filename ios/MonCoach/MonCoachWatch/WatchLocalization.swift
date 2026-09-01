@@ -69,6 +69,21 @@ enum WatchUI {
         en: "Session, run, ride, walk…",
         es: "Sesión, correr, bici, caminar…"
     )
+    static let sessionInProgress = LocalizedText(
+        fr: "Séance en cours",
+        en: "Session in progress",
+        es: "Sesión en curso"
+    )
+    static let resumeSession = LocalizedText(
+        fr: "Appuie pour la reprendre",
+        en: "Tap to pick it up",
+        es: "Toca para retomarla"
+    )
+    static let discardSession = LocalizedText(
+        fr: "Abandonner sans enregistrer",
+        en: "Discard without saving",
+        es: "Abandonar sin guardar"
+    )
     static let allSports = LocalizedText(
         fr: "Tous les sports",
         en: "All sports",

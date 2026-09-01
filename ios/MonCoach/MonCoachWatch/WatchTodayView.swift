@@ -7,6 +7,8 @@ struct WatchTodayView: View {
     @Environment(\.language) private var language
 
     @State private var showsRun = false
+    /// L'écran de séance, poussé par-dessus l'accueil plutôt qu'à sa place.
+    @State private var showsSession = false
 
     var body: some View {
         ScrollView {
@@ -21,6 +23,14 @@ struct WatchTodayView: View {
         .navigationTitle("Stride")
         .navigationDestination(isPresented: $showsRun) {
             WatchRunView()
+        }
+        .navigationDestination(isPresented: $showsSession) {
+            WatchSessionView()
+        }
+        // Démarrer une séance ouvre son écran ; le quitter d'un glissement
+        // ramène ici, où elle attend d'être reprise.
+        .onChange(of: store.activeSession?.session.id) { _, id in
+            if id != nil { showsSession = true }
         }
     }
 
@@ -57,6 +67,24 @@ struct WatchTodayView: View {
             .gaugeStyle(.accessoryCircularCapacity)
             .tint(.green)
             .frame(width: 44, height: 44)
+        }
+
+        if store.activeSession != nil {
+            Button {
+                showsSession = true
+            } label: {
+                VStack(alignment: .leading, spacing: 4) {
+                    Label(WatchUI.sessionInProgress[language], systemImage: "figure.strengthtraining.traditional")
+                        .font(.system(.body, design: .rounded, weight: .semibold))
+                    Text(WatchUI.resumeSession[language])
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(.orange.opacity(0.20), in: RoundedRectangle(cornerRadius: 12))
+            }
+            .buttonStyle(.plain)
         }
 
         // Ce qui est prévu s'affiche ; ce qu'on fait se choisit. Les cartes

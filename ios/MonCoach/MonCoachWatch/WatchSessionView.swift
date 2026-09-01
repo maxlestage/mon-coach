@@ -70,6 +70,11 @@ struct WatchSessionView: View {
                     es: "Terminar y sincronizar"
                 )[language]
             ) { store.finishActiveSession() }
+            // Une séance ouverte par erreur ne doit pas obliger à
+            // enregistrer un entraînement qui n'a pas eu lieu.
+            Button(WatchUI.discardSession[language], role: .destructive) {
+                store.discardActiveSession()
+            }
             Button(
                 LocalizedText(fr: "Continuer", en: "Keep going", es: "Continuar")[language],
                 role: .cancel

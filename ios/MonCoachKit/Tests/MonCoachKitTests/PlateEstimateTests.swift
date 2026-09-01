@@ -22,15 +22,17 @@ struct PlateMathTests {
     @Test("Les propositions du système deviennent des aliments, dans l'ordre")
     func observationsBecomeFoods() {
         let items = PlateVision.foods(from: [
-            ("chicken", 0.82),
-            ("rice", 0.61),
-            // Sous le seuil : du bruit de classificateur, pas un aliment.
-            ("banana", 0.12),
+            ("chicken", 0.42),
+            ("rice", 0.21),
+            // Sous le seuil : le bas de liste d'un classificateur qui note
+            // mille catégories est du bruit, et une banane à 2 % n'a rien à
+            // faire dans l'assiette.
+            ("banana", 0.02),
             // Inconnu de la table : on ne devine pas.
             ("tablecloth", 0.95),
         ])
         #expect(items.map(\.foodID) == ["blanc-de-poulet", "riz-blanc"])
-        #expect(items.first?.confidence == 0.82)
+        #expect(items.first?.confidence == 0.42)
         #expect(items.allSatisfy { $0.portion == .medium })
     }
 
@@ -133,5 +135,75 @@ struct PlateMathTests {
         store.deletePlate(at: day)
         #expect(store.plates(on: day).isEmpty)
         #expect(store.eatenToday(on: day) == nil, "sans assiette, on ne sait pas — on ne dit pas zéro")
+    }
+}
+
+@Suite("Ce que le classificateur dit vraiment")
+struct PlateVocabularyTests {
+
+    @Test("Les formes du système sont ramenées à une seule")
+    func identifiersAreNormalised() {
+        // Le système écrit selon les catégories : majuscules, espaces,
+        // tirets, pluriels. Sans mise à plat, la moitié de ce qu'il propose
+        // ne serait pas reconnue.
+        #expect(PlateVision.food(for: "Cookie") != nil)
+        #expect(PlateVision.food(for: "bell pepper") == PlateVision.food(for: "bell_pepper"))
+        #expect(PlateVision.food(for: "cookies") == PlateVision.food(for: "cookie"))
+        #expect(PlateVision.food(for: "french-fries") == "pomme-de-terre")
+        // Le dernier mot d'un composé porte le sens.
+        #expect(PlateVision.food(for: "grilled_chicken") == "blanc-de-poulet")
+        #expect(PlateVision.food(for: "chocolate_chip_cookie") != nil)
+    }
+
+    @Test("Les mots des photos réelles trouvent un aliment")
+    func realWorldLabelsResolve() {
+        // Ceux-là viennent d'assiettes qui n'avaient rien donné : une
+        // entrecôte avec des grenailles et de la salade, des cookies, des
+        // carottes rôties. Le seuil était trop haut, et ces mots-là
+        // manquaient à la table.
+        let expected = [
+            "steak", "beefsteak", "roast_beef", "new_potato", "roast_potato",
+            "green_salad", "lettuce", "cookie", "biscuit", "carrot",
+            "roasted_carrot", "burrata", "mozzarella",
+        ]
+        for label in expected {
+            #expect(
+                PlateVision.food(for: label) != nil,
+                Comment(rawValue: "« \(label) » ne mène à aucun aliment")
+            )
+        }
+    }
+
+    @Test("Une famille reconnue vaut mieux qu'un écran vide")
+    func categoriesGiveARole() {
+        // Le système décrit souvent par catégorie avant de nommer quoi que
+        // ce soit. « De la viande et un dessert » n'est pas une assiette
+        // chiffrée, mais c'est la bonne page du catalogue.
+        #expect(PlateVision.category(for: "meat") == .protein)
+        #expect(PlateVision.category(for: "Dessert") == .treat)
+        #expect(PlateVision.category(for: "baked_goods") == .treat)
+        #expect(PlateVision.category(for: "vegetables") == .vegetable)
+        #expect(PlateVision.category(for: "chair") == nil, "un meuble n'est pas un rayon")
+
+        let roles = PlateVision.roles(from: [
+            ("meat", 0.4), ("dessert", 0.2), ("furniture", 0.9), ("tablecloth", 0.3),
+        ])
+        #expect(roles == [.protein, .treat])
+
+        // Sous le seuil, rien : le bruit ne fabrique pas de rayon.
+        #expect(PlateVision.roles(from: [("meat", 0.01)]).isEmpty)
+    }
+
+    @Test("La table couvre largement ce qu'on mange")
+    func vocabularyIsWideEnough() {
+        #expect(PlateVision.mapping.count >= 140, "\(PlateVision.mapping.count) mots : trop court")
+        #expect(PlateVision.categories.count >= 30)
+        // Et chaque rayon du catalogue a au moins un mot qui y mène.
+        for role in FoodRole.allCases {
+            #expect(
+                PlateVision.categories.values.contains(role),
+                Comment(rawValue: "aucun mot ne mène au rayon \(role.rawValue)")
+            )
+        }
     }
 }

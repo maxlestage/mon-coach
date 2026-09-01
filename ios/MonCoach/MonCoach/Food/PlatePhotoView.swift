@@ -36,6 +36,11 @@ struct PlatePhotoView: View {
     @State private var recognisedNothing = false
     @State private var showsFoodPicker = false
     @State private var showsCamera = false
+    /// Les rayons devinés quand aucun aliment précis n'a été reconnu.
+    @State private var seenRoles: [FoodRole] = []
+    /// Le rayon sur lequel ouvrir le catalogue, quand on y entre par une
+    /// famille devinée.
+    @State private var pickerRole: FoodRole?
 
     private var estimate: PlateEstimate {
         PlateEstimate(items: items)
@@ -70,7 +75,7 @@ struct PlatePhotoView: View {
                 }
             }
             .sheet(isPresented: $showsFoodPicker) {
-                PlateFoodPicker { food in
+                PlateFoodPicker(focus: pickerRole) { food in
                     guard !items.contains(where: { $0.foodID == food.id }) else { return }
                     items.append(PlateItem(foodID: food.id, portion: .medium))
                 }
@@ -226,6 +231,7 @@ struct PlatePhotoView: View {
                     itemRow(item)
                 }
                 Button {
+                    pickerRole = nil
                     showsFoodPicker = true
                 } label: {
                     HStack(spacing: 6) {
@@ -318,20 +324,59 @@ struct PlatePhotoView: View {
 
     private var emptyResultCard: some View {
         Card(
-            title: LocalizedText(
-                fr: "Je ne reconnais rien de sûr",
-                en: "Nothing I can name confidently",
-                es: "No reconozco nada con seguridad"
-            )[language]
+            title: seenRoles.isEmpty
+                ? LocalizedText(
+                    fr: "Je ne reconnais rien de sûr",
+                    en: "Nothing I can name confidently",
+                    es: "No reconozco nada con seguridad"
+                )[language]
+                : LocalizedText(
+                    fr: "Je ne sais pas nommer précisément",
+                    en: "I cannot name it precisely",
+                    es: "No sé nombrarlo con precisión"
+                )[language]
         ) {
             CoachText(
-                LocalizedText(
-                    fr: "Une assiette de face, à la lumière du jour, se reconnaît mieux. Tu peux aussi composer l'assiette à la main : c'est plus juste que ce que devinerait une photo floue.",
-                    en: "A plate shot from above in daylight is easier to read. You can also build the plate by hand: it beats what a blurry photo would guess.",
-                    es: "Un plato de frente y con luz de día se reconoce mejor. También puedes componerlo a mano: será más exacto que lo que adivinaría una foto borrosa."
-                )
+                seenRoles.isEmpty
+                    ? LocalizedText(
+                        fr: "Une assiette de face, à la lumière du jour, se reconnaît mieux. Tu peux aussi composer l'assiette à la main : c'est plus juste que ce que devinerait une photo floue.",
+                        en: "A plate shot from above in daylight is easier to read. You can also build the plate by hand: it beats what a blurry photo would guess.",
+                        es: "Un plato de frente y con luz de día se reconoce mejor. También puedes componerlo a mano: será más exacto que lo que adivinaría una foto borrosa."
+                    )
+                    : LocalizedText(
+                        fr: "Je vois de quoi il s'agit sans pouvoir mettre un nom dessus. Ouvre le bon rayon et choisis : deux appuis, et le compte est juste.",
+                        en: "I can see the kind of thing without putting a name on it. Open the right aisle and pick: two taps, and the count is right.",
+                        es: "Veo de qué se trata sin poder ponerle nombre. Abre la sección correcta y elige: dos toques y la cuenta es exacta."
+                    )
             )
+
+            // Les rayons devinés, en gros : c'est le chemin le plus court
+            // entre une photo illisible et une assiette juste.
+            if !seenRoles.isEmpty {
+                FlowLayout(spacing: 8) {
+                    ForEach(seenRoles, id: \.self) { role in
+                        Button {
+                            pickerRole = role
+                            showsFoodPicker = true
+                        } label: {
+                            HStack(spacing: 5) {
+                                Image(systemName: "plus")
+                                    .font(.system(size: 11, weight: .bold))
+                                Text(role.label[language])
+                            }
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(Theme.background)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 7)
+                            .background(Theme.accent, in: Capsule())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+
             Button {
+                pickerRole = nil
                 showsFoodPicker = true
             } label: {
                 Text(
@@ -393,7 +438,12 @@ struct PlatePhotoView: View {
         // La photo est recompressée avant d'être gardée : une image d'appareil
         // photo pèse cinq mégaoctets, et l'estimation n'en a pas besoin.
         imageData = PhotoEncoding.prepared(from: data) ?? data
-        items = await recognise(data)
+        let readings = await recognise(data)
+        items = PlateVision.foods(from: readings, excluding: excluded)
+        // Ce que le système a cru voir sans savoir le nommer : « de la
+        // viande et un féculent » ouvre la bonne page du catalogue, là où
+        // « je ne reconnais rien » était un cul-de-sac.
+        seenRoles = items.isEmpty ? PlateVision.roles(from: readings) : []
         recognisedNothing = items.isEmpty
     }
 
@@ -403,24 +453,36 @@ struct PlatePhotoView: View {
     /// centaines de millisecondes, et l'interface doit rester vivante — sans
     /// quoi l'écran se fige juste après le déclenchement, au moment précis
     /// où l'on croit que l'application a planté.
-    private func recognise(_ data: Data) async -> [PlateItem] {
-        let excluded = excluded
-        return await Task.detached(priority: .userInitiated) { () -> [PlateItem] in
+    private func recognise(_ data: Data) async -> [(identifier: String, confidence: Double)] {
+        await Task.detached(priority: .userInitiated) { () -> [(identifier: String, confidence: Double)] in
             let request = VNClassifyImageRequest()
             let handler = VNImageRequestHandler(data: data, options: [:])
             guard (try? handler.perform([request])) != nil,
                   let observations = request.results
             else { return [] }
-            let readings = observations.map {
-                (identifier: $0.identifier, confidence: Double($0.confidence))
-            }
-            return PlateVision.foods(from: readings, excluding: excluded)
+
+            // Le tri fiable est celui du système, pas un seuil écrit à la
+            // main.
+            //
+            // Le classificateur note plus de mille catégories
+            // indépendamment : ses confiances ne sont pas des probabilités,
+            // et une reconnaissance franche sort couramment autour de 0,1.
+            // Un seuil brut de trente pour cent ne laissait donc rien
+            // passer — cinq assiettes parfaitement nettes n'ont rien donné.
+            // `hasMinimumPrecision` répond à la vraie question : « à ce
+            // niveau de rappel, cette étiquette est-elle assez sûre ? »,
+            // et c'est le modèle lui-même qui la connaît.
+            let trusted = observations.filter { $0.hasMinimumPrecision(0.4, forRecall: 0.5) }
+            let kept = trusted.isEmpty ? Array(observations.prefix(40)) : trusted
+            return kept.map { (identifier: $0.identifier, confidence: Double($0.confidence)) }
         }.value
     }
 }
 
 /// Le catalogue, pour ajouter à la main ce que la photo n'a pas vu.
 private struct PlateFoodPicker: View {
+    /// Le rayon sur lequel ouvrir, quand on sait déjà de quoi il s'agit.
+    var focus: FoodRole?
     var onPick: (Food) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -443,7 +505,7 @@ private struct PlateFoodPicker: View {
                             .autocorrectionDisabled()
                         }
                     }
-                    ForEach(FoodRole.allCases, id: \.self) { role in
+                    ForEach(FoodRole.allCases.filter { focus == nil || $0 == focus }, id: \.self) { role in
                         let foods = FoodCatalog.all
                             .filter { $0.role == role && matches($0) }
                             .sorted { $0.name[language] < $1.name[language] }
