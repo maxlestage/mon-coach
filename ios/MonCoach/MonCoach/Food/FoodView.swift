@@ -11,6 +11,8 @@ struct FoodView: View {
     @State private var showsShoppingList = false
     @State private var showsExclusions = false
     @State private var showsPlateCamera = false
+    @State private var showsPlateJournal = false
+    @State private var showsVocabulary = false
 
     enum Tab: Hashable { case today, guide }
 
@@ -42,6 +44,13 @@ struct FoodView: View {
                         showsPlateCamera = true
                     } label: {
                         Image(systemName: "camera")
+                    }
+                }
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        showsPlateJournal = true
+                    } label: {
+                        Image(systemName: "chart.bar.doc.horizontal")
                     }
                 }
                 ToolbarItem(placement: .primaryAction) {
@@ -82,6 +91,12 @@ struct FoodView: View {
             }
             .sheet(isPresented: $showsPlateCamera) {
                 PlatePhotoView()
+            }
+            .sheet(isPresented: $showsPlateJournal) {
+                PlateJournalView()
+            }
+            .sheet(isPresented: $showsVocabulary) {
+                PlateVocabularyView()
             }
         }
     }
@@ -198,6 +213,52 @@ struct FoodView: View {
                             .buttonStyle(.plain)
                         }
                     }
+                }
+
+                // Une journée ne dit rien ; quinze en disent long. La porte
+                // vers l'historique est ici, sous le seul endroit où l'on
+                // regarde ce qu'on a mangé.
+                HStack(spacing: 14) {
+                    Button {
+                        showsPlateJournal = true
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "chart.bar.doc.horizontal")
+                                .font(.system(size: 12, weight: .semibold))
+                            Text(
+                                LocalizedText(
+                                    fr: "Voir la tendance",
+                                    en: "See the trend",
+                                    es: "Ver la tendencia"
+                                )[language]
+                            )
+                            .font(.system(size: 13, weight: .medium))
+                        }
+                        .foregroundStyle(Theme.accent)
+                    }
+                    .buttonStyle(.plain)
+
+                    if !store.plateCorrections.isEmpty {
+                        Button {
+                            showsVocabulary = true
+                        } label: {
+                            HStack(spacing: 5) {
+                                Image(systemName: "graduationcap")
+                                    .font(.system(size: 12, weight: .semibold))
+                                Text(
+                                    LocalizedText(
+                                        fr: "\(store.plateCorrections.count) mot\(store.plateCorrections.count > 1 ? "s" : "") appris",
+                                        en: "\(store.plateCorrections.count) word\(store.plateCorrections.count > 1 ? "s" : "") learned",
+                                        es: "\(store.plateCorrections.count) palabra\(store.plateCorrections.count > 1 ? "s" : "") aprendida\(store.plateCorrections.count > 1 ? "s" : "")"
+                                    )[language]
+                                )
+                                .font(.system(size: 13, weight: .medium))
+                            }
+                            .foregroundStyle(Theme.secondaryText)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    Spacer()
                 }
             }
         }

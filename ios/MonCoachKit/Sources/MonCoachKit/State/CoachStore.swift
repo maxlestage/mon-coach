@@ -22,6 +22,11 @@ public struct PersistedState: Codable, Sendable {
     /// reste. Absente des fichiers écrits avant l'abonnement — ceux-là
     /// commencent leur essai à la première ouverture qui suit.
     public var trialStartedAt: Date?
+    /// Ce que l'athlète a appris à l'application sur les mots du
+    /// classificateur : « pastry » est chez lui une viennoiserie, « curry »
+    /// du riz basmati. Une table personnelle, qui passe devant la table
+    /// commune et qui voyage avec l'export.
+    public var plateCorrections: [String: String]
 
     public init(
         profile: UserProfile?,
@@ -29,7 +34,8 @@ public struct PersistedState: Codable, Sendable {
         history: TrainingHistory,
         segments: [Segment] = [],
         routes: [PlannedRoute] = [],
-        trialStartedAt: Date? = nil
+        trialStartedAt: Date? = nil,
+        plateCorrections: [String: String] = [:]
     ) {
         self.profile = profile
         self.plan = plan
@@ -37,6 +43,7 @@ public struct PersistedState: Codable, Sendable {
         self.segments = segments
         self.routes = routes
         self.trialStartedAt = trialStartedAt
+        self.plateCorrections = plateCorrections
     }
 
     /// Les segments sont arrivés après coup : un fichier écrit avant eux
@@ -50,6 +57,7 @@ public struct PersistedState: Codable, Sendable {
         segments = try container.decodeIfPresent([Segment].self, forKey: .segments) ?? []
         routes = try container.decodeIfPresent([PlannedRoute].self, forKey: .routes) ?? []
         trialStartedAt = try container.decodeIfPresent(Date.self, forKey: .trialStartedAt)
+        plateCorrections = try container.decodeIfPresent([String: String].self, forKey: .plateCorrections) ?? [:]
     }
 
     public static let empty = PersistedState(profile: nil, plan: nil, history: .empty)
@@ -67,6 +75,13 @@ public final class CoachStore {
     public private(set) var profile: UserProfile?
     public private(set) var plan: Mesocycle?
     public private(set) var history: TrainingHistory = .empty
+    /// Les mots du classificateur que l'athlète a lui-même traduits.
+    ///
+    /// C'est la seule partie du détecteur qui apprend, et elle n'apprend
+    /// que ce qu'on lui dit explicitement : deviner une traduction à partir
+    /// d'une correction de portion reviendrait à inventer une règle sur un
+    /// geste qui voulait dire autre chose.
+    public private(set) var plateCorrections: [String: String] = [:]
     /// Les segments que l'athlète a découpés, du plus récent au plus ancien.
     public private(set) var segments: [Segment] = []
     /// Les parcours préparés, du plus récent au plus ancien.
@@ -104,6 +119,7 @@ public final class CoachStore {
         segments = state.segments
         routes = state.routes
         trialStartedAt = state.trialStartedAt
+        plateCorrections = state.plateCorrections
     }
 
     /// Fait courir l'essai à partir d'aujourd'hui, une seule fois.
@@ -491,6 +507,61 @@ public final class CoachStore {
         return today.map(\.macros).reduce(Macros.zero, +)
     }
 
+    /// Remplace les aliments d'une assiette déjà enregistrée.
+    ///
+    /// Une assiette se corrige après coup : on se souvient à 22 h qu'il y
+    /// avait aussi du fromage. Sans cela, il fallait la supprimer et la
+    /// refaire, photo comprise — et la photo, elle, ne se refait pas.
+    public func updatePlate(at date: Date, items: [PlateItem]) {
+        guard let index = history.plates.firstIndex(where: { $0.date == date }) else { return }
+        history.plates[index].items = items
+        save()
+    }
+
+    /// Les assiettes des `days` derniers jours, de la plus récente à la plus
+    /// ancienne.
+    public func recentPlates(days: Int = 30, from day: Date = Date(), calendar: Calendar = .current) -> [PlateEstimate] {
+        guard let start = calendar.date(byAdding: .day, value: -(days - 1), to: calendar.startOfDay(for: day))
+        else { return [] }
+        return history.plates
+            .filter { $0.date >= start }
+            .sorted { $0.date > $1.date }
+    }
+
+    /// Retient qu'une étiquette du système désigne cet aliment-là.
+    ///
+    /// C'est ce qui rend le détecteur meilleur avec le temps sans qu'aucune
+    /// donnée ne quitte le téléphone : le mot appris passe devant la table
+    /// commune, pour toutes les photos suivantes.
+    public func learnPlateLabel(_ label: String, as foodID: String) {
+        let key = PlateVision.normalised(label)
+        guard !key.isEmpty, FoodCatalog.food(id: foodID) != nil else { return }
+        plateCorrections[key] = foodID
+        save()
+    }
+
+    /// Oublie une traduction apprise — on se trompe aussi en apprenant.
+    public func forgetPlateLabel(_ label: String) {
+        plateCorrections.removeValue(forKey: PlateVision.normalised(label))
+        save()
+    }
+
+    /// Tout ce qu'une photo a donné, avec ce que le magasin sait en plus :
+    /// les aliments écartés du plan, les traductions apprises et les
+    /// portions habituelles.
+    ///
+    /// Les vues ne rassemblent pas ces trois-là elles-mêmes : elles
+    /// oublieraient l'une des trois un jour, et la reconnaissance serait
+    /// bonne à un endroit et médiocre à un autre.
+    public func analysePlate(_ readings: [PlateReading]) -> PlateAnalysis {
+        PlateVision.analyse(
+            readings,
+            excluding: profile?.excludedFoods ?? [],
+            corrections: plateCorrections,
+            history: recentPlates(days: 90)
+        )
+    }
+
     /// Efface les fichiers d'image que plus aucune sortie ne réclame.
     ///
     /// Appelé au lancement : une suppression interrompue — l'application
@@ -738,7 +809,7 @@ public final class CoachStore {
     private func save() {
         let state = PersistedState(
             profile: profile, plan: plan, history: history, segments: segments, routes: routes,
-            trialStartedAt: trialStartedAt
+            trialStartedAt: trialStartedAt, plateCorrections: plateCorrections
         )
         do {
             try storage.save(state)
@@ -757,7 +828,7 @@ public final class CoachStore {
         try StateStorage.encoder.encode(
             PersistedState(
                 profile: profile, plan: plan, history: history, segments: segments, routes: routes,
-                trialStartedAt: trialStartedAt
+                trialStartedAt: trialStartedAt, plateCorrections: plateCorrections
             )
         )
     }

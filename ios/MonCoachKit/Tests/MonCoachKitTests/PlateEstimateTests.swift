@@ -149,7 +149,9 @@ struct PlateVocabularyTests {
         #expect(PlateVision.food(for: "Cookie") != nil)
         #expect(PlateVision.food(for: "bell pepper") == PlateVision.food(for: "bell_pepper"))
         #expect(PlateVision.food(for: "cookies") == PlateVision.food(for: "cookie"))
-        #expect(PlateVision.food(for: "french-fries") == "pomme-de-terre")
+        // Des frites sont des frites depuis que le catalogue les porte : les
+        // rendre en « pomme de terre » sous-comptait la moitié des calories.
+        #expect(PlateVision.food(for: "french-fries") == "frites")
         // Le dernier mot d'un composé porte le sens.
         #expect(PlateVision.food(for: "grilled_chicken") == "blanc-de-poulet")
         #expect(PlateVision.food(for: "chocolate_chip_cookie") != nil)
