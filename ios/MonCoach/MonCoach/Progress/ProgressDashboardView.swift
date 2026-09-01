@@ -25,6 +25,19 @@ struct ProgressDashboardView: View {
     private var unit: UnitSystem { store.profile?.unit ?? .metric }
     private var history: TrainingHistory { store.history }
 
+    /// Ce qu'on regarde du volume. Trois lectures d'une même réalité, et
+    /// elles ne mentent pas au même endroit.
+    @State private var measure: VolumeMeasure = .sets
+
+    /// Douze semaines : trois mois se lisent d'un coup d'œil au pouce, et
+    /// c'est la durée d'un bloc et demi — assez pour qu'une tendance ait un
+    /// sens, assez court pour que chaque barre reste distincte.
+    private static let window = 12
+
+    private var weeks: [VolumeWeek] {
+        TrainingVolume.weeks(from: history.sessions, window: Self.window)
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -52,88 +65,203 @@ struct ProgressDashboardView: View {
     private var summaryCard: some View {
         let completed = history.sessions.filter { !$0.skipped }
         let tonnage = completed.reduce(0.0) { $0 + $1.totalVolumeKg }
+        let streak = TrainingVolume.streak(from: history.sessions)
         return Card(title: "Depuis le début") {
             HStack(spacing: 12) {
-                StatTile(value: "\(completed.count)", label: "séances")
+                StatTile(
+                    value: "\(completed.count)",
+                    label: completed.count > 1 ? "séances" : "séance"
+                )
                 StatTile(value: "\(completed.reduce(0) { $0 + $1.sets.count })", label: "séries")
-                StatTile(value: "\(Int(tonnage / 1000)) t", label: "tonnage soulevé")
-                StatTile(value: "\(currentStreak)", label: "semaines d'affilée")
+                StatTile(value: Self.tonnage(tonnage, unit: unit), label: "soulevé en tout")
+                StatTile(
+                    value: "\(streak)",
+                    label: streak > 1 ? "semaines d'affilée" : "semaine d'affilée"
+                )
             }
         }
     }
 
-    /// Consecutive weeks, counting back from this one, with at least one session.
-    private var currentStreak: Int {
-        let calendar = Calendar.current
-        var streak = 0
-        var cursor = Date()
-        while streak < 200 {
-            guard let weekStart = calendar.date(byAdding: .day, value: -7, to: cursor) else { break }
-            let trained = history.sessions.contains {
-                !$0.skipped && $0.date > weekStart && $0.date <= cursor
-            }
-            guard trained else { break }
-            streak += 1
-            cursor = weekStart
+    /// Le tonnage dit sans arrondir jusqu'à l'inutile.
+    ///
+    /// « 1 t » pour dix-huit cents kilos efface presque la moitié du chiffre,
+    /// et c'est le genre de perte qu'on ne remarque pas parce qu'elle a
+    /// l'air propre. Sous le millier on parle en unités de l'athlète,
+    /// au-dessus on garde une décimale tant qu'elle change quelque chose.
+    private static func tonnage(_ kg: Double, unit: UnitSystem) -> String {
+        let value = unit == .metric ? kg : kg / 0.45359237
+        let big = unit == .metric ? "t" : "k lb"
+        if value < 1_000 { return Format.weight(kg, unit: unit, decimals: 0) }
+        if value < 10_000 {
+            return Format.number(value / 1_000, decimals: 1) + " " + big
         }
-        return streak
+        return Format.number((value / 1_000).rounded(), decimals: 0) + " " + big
     }
 
     // MARK: Volume
 
-    /// Une barre par semaine : les séries réellement faites.
+    /// Le volume, semaine après semaine, sur une fenêtre fixe de trois mois.
     ///
-    /// C'est le graphique qui vit dès la première séance, quand les deux
-    /// autres attendent encore leurs données — le poids de corps veut
-    /// plusieurs pesées, la force plusieurs journées. Et c'est la mesure la
-    /// plus honnête du travail : le tonnage ment sur les exercices au poids
-    /// de corps, une série faite est une série faite.
-    private var weeklySets: [TrendPoint] {
-        let calendar = Calendar.current
-        var byWeek: [Date: Int] = [:]
-        for session in history.sessions where !session.skipped {
-            guard let week = calendar.dateInterval(of: .weekOfYear, for: session.date)?.start
-            else { continue }
-            byWeek[week, default: 0] += session.sets.count
-        }
-        return byWeek
-            .map { TrendPoint(date: $0.key, value: Double($0.value)) }
-            .sorted { $0.date < $1.date }
-    }
-
+    /// Ce qui a changé, et pourquoi
+    /// ----------------------------
+    /// La version précédente ne dessinait que les semaines travaillées. Avec
+    /// deux séances au compteur, ça donnait deux barres aussi larges que
+    /// l'écran, collées l'une à l'autre : plus d'axe du temps, pas de trou
+    /// visible, aucune tendance lisible — un graphique où il n'y avait
+    /// littéralement rien à voir.
+    ///
+    /// La fenêtre est maintenant fixe et se termine sur la semaine en cours.
+    /// Les semaines sans séance y figurent, vides : c'est ce qui rend une
+    /// barre haute lisible comme une grosse semaine et un blanc lisible
+    /// comme une semaine sautée. La moyenne des semaines travaillées passe
+    /// en trait pointillé, parce qu'une barre isolée ne dit rien tant qu'on
+    /// n'a pas de quoi la comparer.
     @ViewBuilder
     private var volumeCard: some View {
-        let weeks = weeklySets
-        if !weeks.isEmpty {
-            Card(
-                title: "Volume par semaine",
-                subtitle: "Les séries faites, semaine après semaine. La progression vient de cette charge qui monte doucement — pas d'une séance héroïque."
-            ) {
-                Chart(weeks) { point in
-                    BarMark(
-                        x: .value("Semaine", point.date, unit: .weekOfYear),
-                        y: .value("Séries", point.value)
-                    )
-                    .foregroundStyle(Theme.accent)
-                    .cornerRadius(4)
-                }
-                .frame(height: 150)
+        let weeks = self.weeks
+        let average = TrainingVolume.average(of: weeks, measure: measure)
+        let best = TrainingVolume.best(of: weeks, measure: measure)
+        let worked = weeks.filter { !$0.isEmpty }
 
-                // La dernière barre n'est pas forcément la semaine en cours :
-                // après une semaine sans séance, elle date. Le chiffre du bas
-                // dit la semaine en cours, zéro compris — c'est sa valeur.
-                let thisWeek = Calendar.current.dateInterval(of: .weekOfYear, for: Date())?.start
-                let current = weeks.last.flatMap { $0.date == thisWeek ? Int($0.value) : nil } ?? 0
-                HStack {
-                    Text("Cette semaine")
-                        .font(Theme.captionFont)
-                        .foregroundStyle(Theme.secondaryText)
-                    Spacer()
-                    Text("\(current) séries")
-                        .font(.system(size: 14, weight: .bold, design: .rounded))
-                        .foregroundStyle(current > 0 ? Theme.accent : Theme.secondaryText)
+        Card(
+            title: "Volume par semaine",
+            subtitle: measure.explanation[language]
+        ) {
+            Picker("", selection: $measure) {
+                ForEach(VolumeMeasure.allCases) { option in
+                    Text(option.label[language]).tag(option)
                 }
             }
+            .pickerStyle(.segmented)
+
+            Chart {
+                ForEach(weeks) { week in
+                    BarMark(
+                        x: .value("Semaine", week.start, unit: .weekOfYear),
+                        y: .value(measure.label[language], measure.value(of: week)),
+                        width: .ratio(0.6)
+                    )
+                    .foregroundStyle(
+                        week.id == weeks.last?.id ? Theme.accent : Theme.accent.opacity(0.45)
+                    )
+                    .cornerRadius(3)
+                }
+
+                if let average, worked.count >= 2 {
+                    RuleMark(y: .value("Moyenne", average))
+                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                        .foregroundStyle(Theme.primaryText.opacity(0.45))
+                        .annotation(position: .top, alignment: .leading) {
+                            Text("moyenne \(Self.format(average, measure: measure, unit: unit))")
+                                .font(.system(size: 10))
+                                .foregroundStyle(Theme.secondaryText)
+                        }
+                }
+            }
+            .chartXAxis {
+                // Une étiquette toutes les trois semaines : douze dates
+                // collées deviennent une bouillie grise, et personne ne lit
+                // un axe qu'il ne peut pas déchiffrer.
+                AxisMarks(values: .stride(by: .weekOfYear, count: 3)) { _ in
+                    AxisGridLine().foregroundStyle(Theme.separator)
+                    AxisValueLabel(format: .dateTime.day().month(.abbreviated))
+                        .font(.system(size: 10))
+                        .foregroundStyle(Theme.secondaryText)
+                }
+            }
+            .chartYAxis {
+                AxisMarks(position: .leading) { value in
+                    AxisGridLine().foregroundStyle(Theme.separator)
+                    AxisValueLabel {
+                        if let number = value.as(Double.self) {
+                            Text(Self.axisLabel(number, measure: measure, unit: unit))
+                                .font(.system(size: 10))
+                                .foregroundStyle(Theme.secondaryText)
+                        }
+                    }
+                }
+            }
+            .frame(height: 170)
+
+            volumeStanding(weeks: weeks, average: average, best: best)
+        }
+    }
+
+    /// Ce que la semaine en cours vaut par rapport aux précédentes.
+    ///
+    /// C'est la seule lecture qui fait agir : « quatre séries de moins que
+    /// d'habitude » dit quoi faire, là où une barre isolée ne dit rien.
+    @ViewBuilder
+    private func volumeStanding(
+        weeks: [VolumeWeek],
+        average: Double?,
+        best: VolumeWeek?
+    ) -> some View {
+        let current = weeks.last.map { measure.value(of: $0) } ?? 0
+        HStack(spacing: 12) {
+            StatTile(
+                value: Self.format(current, measure: measure, unit: unit),
+                label: "cette semaine",
+                tint: current > 0 ? Theme.accent : Theme.secondaryText
+            )
+            if let average {
+                StatTile(
+                    value: Self.format(average, measure: measure, unit: unit),
+                    label: "moyenne",
+                    tint: Theme.secondaryText
+                )
+            }
+            if let best {
+                StatTile(
+                    value: Self.format(measure.value(of: best), measure: measure, unit: unit),
+                    label: "meilleure semaine",
+                    tint: Theme.secondaryText
+                )
+            }
+        }
+
+        // Une phrase plutôt qu'un pourcentage : trois semaines de données ne
+        // méritent pas d'être présentées comme une tendance, et le dire
+        // vaut mieux que de laisser croire le contraire.
+        Text(volumeSentence(weeks: weeks))
+            .font(Theme.captionFont)
+            .foregroundStyle(Theme.secondaryText)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func volumeSentence(weeks: [VolumeWeek]) -> String {
+        let worked = weeks.filter { !$0.isEmpty }.count
+        guard worked > 0 else {
+            return "Rien d'enregistré sur les trois derniers mois. La première barre apparaîtra à ta première séance terminée."
+        }
+        guard worked >= 3, let standing = TrainingVolume.standing(of: weeks, measure: measure) else {
+            return "\(worked) semaine\(worked > 1 ? "s" : "") travaillée\(worked > 1 ? "s" : "") sur \(Self.window). C'est encore trop peu pour une tendance — les barres se comparent à partir de trois semaines."
+        }
+        let gap = standing.difference
+        if abs(gap) < 0.5 {
+            return "Cette semaine est dans ta moyenne. C'est exactement ce qu'on cherche : la progression vient de la régularité, pas d'une séance héroïque."
+        }
+        let word = Self.format(abs(gap), measure: measure, unit: unit)
+        return gap > 0
+            ? "Cette semaine dépasse ta moyenne de \(word). Une bonne semaine ne se paie que si les suivantes tiennent — ne fais pas de ce pic la nouvelle norme."
+            : "Cette semaine est en retrait de \(word) sur ta moyenne. Rien de grave si la semaine n'est pas finie ; c'est en la répétant que ça se voit dans trois mois."
+    }
+
+    /// Le chiffre d'une mesure, écrit comme on le dit.
+    private static func format(_ value: Double, measure: VolumeMeasure, unit: UnitSystem) -> String {
+        switch measure {
+        case .sets: "\(Int(value.rounded()))"
+        case .sessions: "\(Int(value.rounded()))"
+        case .tonnage: tonnage(value, unit: unit)
+        }
+    }
+
+    /// La même chose en plus court, pour un axe où la place manque.
+    private static func axisLabel(_ value: Double, measure: VolumeMeasure, unit: UnitSystem) -> String {
+        switch measure {
+        case .sets, .sessions: "\(Int(value.rounded()))"
+        case .tonnage:
+            tonnage(value, unit: unit)
         }
     }
 
@@ -145,7 +273,9 @@ struct ProgressDashboardView: View {
 
         return Card(
             title: "Poids de corps",
-            subtitle: logs.count >= 2 ? nil : "Au moins quatre pesées sont nécessaires pour lire une tendance."
+            subtitle: logs.count >= 2
+                ? "\(logs.count) pesée\(logs.count > 1 ? "s" : "") · la tendance se lit sur quatre semaines, jamais sur deux points."
+                : "Deux pesées suffisent pour tracer une courbe ; quatre semaines pour en tirer une conclusion."
         ) {
             if logs.count >= 2 {
                 Chart(logs) { log in
@@ -161,8 +291,25 @@ struct ProgressDashboardView: View {
                         y: .value("Poids", log.weightKg)
                     )
                     .foregroundStyle(Theme.accent)
+                    .symbolSize(28)
                 }
                 .chartYScale(domain: .automatic(includesZero: false))
+                .chartXAxis {
+                    AxisMarks(values: .automatic(desiredCount: 4)) { _ in
+                        AxisGridLine().foregroundStyle(Theme.separator)
+                        AxisValueLabel(format: .dateTime.day().month(.abbreviated))
+                            .font(.system(size: 10))
+                            .foregroundStyle(Theme.secondaryText)
+                    }
+                }
+                .chartYAxis {
+                    AxisMarks(position: .leading) { _ in
+                        AxisGridLine().foregroundStyle(Theme.separator)
+                        AxisValueLabel()
+                            .font(.system(size: 10))
+                            .foregroundStyle(Theme.secondaryText)
+                    }
+                }
                 .frame(height: 170)
 
                 if let trend {
@@ -260,10 +407,51 @@ struct ProgressDashboardView: View {
                         y: .value("1RM estimé", point.value)
                     )
                     .foregroundStyle(Theme.accent)
+                    // Les points, parce qu'avec trois séances une ligne nue
+                    // ne montre pas où sont les mesures — et on ne sait plus
+                    // si l'on regarde trois jours ou trois mois.
+                    PointMark(
+                        x: .value("Date", point.date),
+                        y: .value("1RM estimé", point.value)
+                    )
+                    .foregroundStyle(Theme.accent)
+                    .symbolSize(24)
                 }
                 .chartYScale(domain: .automatic(includesZero: false))
-                .chartXAxis(.hidden)
-                .frame(height: 70)
+                .chartXAxis {
+                    AxisMarks(values: .automatic(desiredCount: 3)) { _ in
+                        AxisValueLabel(format: .dateTime.day().month(.abbreviated))
+                            .font(.system(size: 9))
+                            .foregroundStyle(Theme.secondaryText)
+                    }
+                }
+                .chartYAxis {
+                    AxisMarks(position: .leading, values: .automatic(desiredCount: 3)) { _ in
+                        AxisGridLine().foregroundStyle(Theme.separator)
+                        AxisValueLabel()
+                            .font(.system(size: 9))
+                            .foregroundStyle(Theme.secondaryText)
+                    }
+                }
+                .frame(height: 96)
+
+                // Ce que la courbe vaut en un mot : sans ça, deux points
+                // reliés par un trait laissent croire à une progression
+                // qu'un seul bon jour peut avoir fabriquée.
+                if let first = daily.first?.value, let last = daily.last?.value, first > 0 {
+                    let gap = last - first
+                    Text(
+                        abs(gap) < 0.5
+                            ? "Stable sur \(daily.count) journées enregistrées."
+                            : "\(Format.signed(gap, decimals: 1)) kg depuis la première mesure, sur \(daily.count) journées."
+                    )
+                    .font(.system(size: 11))
+                    .foregroundStyle(gap >= 0 ? Theme.accent : Theme.secondaryText)
+                }
+            } else {
+                Text("Une seule journée enregistrée : la courbe démarre à la deuxième.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Theme.secondaryText)
             }
         }
     }
