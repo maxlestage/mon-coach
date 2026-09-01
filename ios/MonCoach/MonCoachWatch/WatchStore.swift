@@ -102,6 +102,16 @@ final class WatchStore {
         activeSession = nil
     }
 
+    /// Abandonne la séance en cours sans rien enregistrer.
+    ///
+    /// Une séance ouverte par erreur — ou qu'on décide de ne pas faire —
+    /// ne doit pas obliger à enregistrer un entraînement qui n'a pas eu
+    /// lieu. Les séries déjà validées sont perdues, et c'est le sens du
+    /// mot « abandonner » : l'écran le demande deux fois avant.
+    func discardActiveSession() {
+        activeSession = nil
+    }
+
     /// Remplace un exercice de la séance en cours au poignet.
     ///
     /// Le remplacement ne remonte pas au téléphone comme un changement de

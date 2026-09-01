@@ -73,6 +73,7 @@ struct ActivityDetailView: View {
                     }
                 }
 
+                traceQualityCard
                 effortAndGearCard
                 photosCard
                 highlightsCard
@@ -209,6 +210,38 @@ struct ActivityDetailView: View {
     /// le montrer ici relie chaque sortie à la courbe qu'elle nourrit. Le
     /// matériel se corrige d'un menu — la sortie a pris les chaussures du
     /// moment toute seule, mais « ce jour-là j'avais les autres » arrive.
+
+    /// Ce que la trace a jeté, et pourquoi.
+    ///
+    /// Le site le promet, et jusqu'ici l'application se taisait : elle
+    /// comptait les points écartés sans jamais les dire. Une sortie courte
+    /// laissait alors croire à un coup de moins bien, ou à une application
+    /// qui compte mal — alors que la vraie raison était connue.
+    @ViewBuilder
+    private var traceQualityCard: some View {
+        if let note = TraceAnalysis.quality(of: activity) {
+            Card(
+                title: LocalizedText(
+                    fr: "Ce que la trace a jeté",
+                    en: "What the trace discarded",
+                    es: "Lo que la traza descartó"
+                )[language],
+                subtitle: LocalizedText(
+                    fr: "\(note.rejectedTotal) point\(note.rejectedTotal > 1 ? "s" : "") sur la sortie",
+                    en: "\(note.rejectedTotal) point\(note.rejectedTotal > 1 ? "s" : "") on this activity",
+                    es: "\(note.rejectedTotal) punto\(note.rejectedTotal > 1 ? "s" : "") en esta salida"
+                )[language]
+            ) {
+                VStack(alignment: .leading, spacing: 8) {
+                    CoachText(note.headline, color: note.isSevere ? Theme.warning : Theme.primaryText)
+                    ForEach(note.reasons, id: \.self) { reason in
+                        CoachText(reason, font: .system(size: 12))
+                    }
+                }
+            }
+        }
+    }
+
     private var effortAndGearCard: some View {
         let effort = TrainingLoadEngine.effort(for: activity, maximumBpm: maximumBpm)
         let currentGearID = store.history.activities.first { $0.id == activity.id }?.gearID

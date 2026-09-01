@@ -164,11 +164,19 @@ public enum PlateVision {
 
     /// La confiance en dessous de laquelle on ne propose rien.
     ///
-    /// Un classificateur généraliste rend toujours une liste, du plus
-    /// probable au moins probable, et le bas de cette liste est du bruit.
-    /// Trente pour cent est le seuil sous lequel ses propositions cessent
-    /// d'avoir un rapport avec l'image.
-    public static let minimumConfidence = 0.3
+    /// Cinq pour cent, et pas trente. Le premier réglage partait d'une idée
+    /// fausse : que la confiance d'un classificateur généraliste est une
+    /// probabilité, comparable à celle d'une pièce truquée. Elle ne l'est
+    /// pas. Le classificateur du système note chaque étiquette
+    /// indépendamment, sur plus de mille catégories, et une reconnaissance
+    /// franche — une assiette de viande photographiée en plein jour — sort
+    /// couramment autour de 0,1. À trente pour cent, rien ne passait
+    /// jamais : cinq photos parfaitement nettes ne donnaient aucun aliment.
+    ///
+    /// Le tri fin ne se fait donc pas ici mais dans l'appel au système, qui
+    /// sait dire lui-même quelles étiquettes sont fiables. Ce seuil-ci n'est
+    /// plus qu'un plancher contre le bruit du bas de liste.
+    public static let minimumConfidence = 0.05
 
     /// Combien d'aliments au plus on propose pour une assiette. Au-delà,
     /// c'est le classificateur qui énumère, pas l'assiette qui contient.
@@ -286,7 +294,235 @@ public enum PlateVision {
         "peanut": "cacahuetes",
         "walnut": "noix",
         "nut": "amandes",
+        "cashew": "cajou",
+        "hazelnut": "noisettes",
+        "pistachio": "pistaches",
+
+        // Les mots que le classificateur emploie vraiment.
+        //
+        // Ceux-ci manquaient, et c'est ce qui faisait qu'une assiette
+        // parfaitement lisible — une entrecôte, des grenailles, une salade —
+        // ne donnait aucun aliment : le système ne dit pas toujours
+        // « steak », il dit « beefsteak », « roast_beef », « grilled_meat ».
+        "beefsteak": "steak",
+        "sirloin": "steak",
+        "roast_beef": "boeuf-5",
+        "ground_beef": "boeuf-15",
+        "brisket": "boeuf-15",
+        "veal": "veau-escalope",
+        "lamb": "agneau-gigot",
+        "chicken_breast": "blanc-de-poulet",
+        "drumstick": "cuisse-de-poulet",
+        "cod": "cabillaud",
+        "trout": "truite",
+        "sardine": "sardines",
+        "mackerel": "maquereau",
+        "prawn": "crevettes",
+        "mussel": "moules",
+        "boiled_egg": "oeuf",
+        "poached_egg": "oeuf",
+
+        // Féculents et pains
+        "new_potato": "pomme-de-terre",
+        "baby_potato": "pomme-de-terre",
+        "roast_potato": "pomme-de-terre",
+        "boiled_potato": "pomme-de-terre",
+        "potato_salad": "pomme-de-terre",
+        "chip": "pomme-de-terre",
+        "wholemeal_bread": "pain-complet",
+        "whole_wheat_bread": "pain-complet",
+        "sourdough": "pain-complet",
+        "rye_bread": "pain-seigle",
+        "flatbread": "pain-blanc",
+        "pita": "pain-blanc",
+        "crouton": "pain-blanc",
+        "macaroni": "pates-blanches",
+        "penne": "pates-completes",
+        "tagliatelle": "pates-completes",
+        "brown_rice": "riz-complet",
+        "basmati": "riz-basmati",
+        "polenta": "polenta",
+        "bulgur": "boulgour",
+        "barley": "orge-perle",
+        "millet": "millet",
+
+        // Légumes
+        "green_salad": "salade",
+        "mixed_salad": "salade",
+        "leaf": "salade",
+        "romaine": "salade",
+        "baby_carrot": "carotte",
+        "roasted_carrot": "carotte",
+        "cherry_tomato": "tomate",
+        "courgette": "courgette",
+        "aubergine": "aubergine",
+        "leek": "poireau",
+        "radish": "radis",
+        "turnip": "navet",
+        "pumpkin": "potiron",
+        "artichoke": "artichaut",
+        "fennel": "fenouil",
+        "celery": "celeri-branche",
+        "brussels_sprout": "chou-bruxelles",
+        "kale": "chou-kale",
+        "endive": "endive",
+        "leek_soup": "poireau",
+
+        // Laitiers et desserts
+        "burrata": "mozzarella",
+        "mozzarella": "mozzarella",
+        "feta": "feta",
+        "goat_cheese": "chevre-buche",
+        "parmesan": "parmesan",
+        "greek_yogurt": "skyr",
+        "curd": "fromage-blanc",
+
+        // Ce qui se mange sans être un repas. Le catalogue les porte, et les
+        // ignorer donnait le pire des écrans : une plaque de cookies
+        // reconnue comme « rien de sûr ».
+        "cookie": "biscuits",
+        "biscuit": "biscuits",
+        "shortbread": "biscuits",
+        "cracker": "biscuits",
+        "cake": "gateau-chocolat",
+        "brownie": "gateau-chocolat",
+        "muffin": "gateau-chocolat",
+        "cupcake": "gateau-chocolat",
+        "chocolate": "chocolat-noir",
+        "candy": "bonbons",
+        "sweet": "bonbons",
+        "ice_cream": "glace",
+        "sorbet": "glace",
     ]
+
+    /// Les mots du classificateur qui désignent une famille plutôt qu'un
+    /// aliment.
+    ///
+    /// Le système décrit souvent une image par sa catégorie — « meat »,
+    /// « dessert », « vegetable » — avant de nommer quoi que ce soit de
+    /// précis. Ces mots-là ne donnent pas un aliment, mais ils donnent un
+    /// rayon, et un rayon suffit à ne pas laisser l'athlète devant un écran
+    /// vide : on lui ouvre la bonne page du catalogue plutôt que de lui
+    /// dire qu'on n'a rien vu.
+    public static let categories: [String: FoodRole] = [
+        "meat": .protein,
+        "poultry": .protein,
+        "seafood": .protein,
+        "fish": .protein,
+        "shellfish": .protein,
+        "egg": .protein,
+        "legume": .protein,
+        "vegetable": .vegetable,
+        "salad": .vegetable,
+        "greens": .vegetable,
+        "fruit": .fruit,
+        "berry": .fruit,
+        "citrus": .fruit,
+        "bread": .carb,
+        "pasta": .carb,
+        "grain": .carb,
+        "cereal": .carb,
+        "rice": .carb,
+        "noodle": .carb,
+        "dough": .carb,
+        "batter": .carb,
+        "dairy": .dairy,
+        "cheese": .dairy,
+        "yogurt": .dairy,
+        "milk": .dairy,
+        "nut": .fat,
+        "oil": .fat,
+        "seed": .fat,
+        "dessert": .treat,
+        "baked_goods": .treat,
+        "pastry": .treat,
+        "cookie": .treat,
+        "biscuit": .treat,
+        "cake": .treat,
+        "chocolate": .treat,
+        "candy": .treat,
+        "ice_cream": .treat,
+        "snack_food": .treat,
+        "drink": .drink,
+        "beverage": .drink,
+        "juice": .drink,
+        "coffee": .drink,
+        "tea": .drink,
+    ]
+
+    /// Ramène un identifiant du système à une forme comparable.
+    ///
+    /// Le système écrit « French_Fries », « bell pepper », « cookies » selon
+    /// les catégories : sans cette mise à plat, la table ne reconnaîtrait
+    /// que la moitié de ce qui lui est réellement présenté.
+    static func normalised(_ identifier: String) -> String {
+        identifier
+            .lowercased()
+            .replacingOccurrences(of: " ", with: "_")
+            .replacingOccurrences(of: "-", with: "_")
+    }
+
+    /// Les formes sous lesquelles chercher un identifiant, de la plus
+    /// fidèle à la plus permissive.
+    ///
+    /// Le singulier vient après la forme exacte, et jamais à sa place :
+    /// certaines catégories du système finissent par un « s » qui fait
+    /// partie du mot — « baked_goods », « greens » — et les tronquer
+    /// d'office les rendait introuvables.
+    ///
+    /// Le dernier mot d'un composé vient en dernier : « grilled_chicken »
+    /// est du poulet, « chocolate_chip_cookie » est un biscuit.
+    static func lookupKeys(_ identifier: String) -> [String] {
+        let key = normalised(identifier)
+        var keys = [key]
+        if key.hasSuffix("s"), !key.hasSuffix("ss"), key.count > 3 {
+            keys.append(String(key.dropLast()))
+        }
+        for candidate in keys where candidate.contains("_") {
+            if let tail = candidate.split(separator: "_").last.map(String.init) {
+                keys.append(tail)
+                if tail.hasSuffix("s"), !tail.hasSuffix("ss"), tail.count > 3 {
+                    keys.append(String(tail.dropLast()))
+                }
+            }
+        }
+        return keys
+    }
+
+    /// L'aliment du catalogue visé par un identifiant, s'il y en a un.
+    static func food(for identifier: String) -> String? {
+        for key in lookupKeys(identifier) {
+            if let found = mapping[key] { return found }
+        }
+        return nil
+    }
+
+    /// Le rayon visé par un identifiant, quand il ne nomme qu'une famille.
+    static func category(for identifier: String) -> FoodRole? {
+        for key in lookupKeys(identifier) {
+            if let found = categories[key] { return found }
+        }
+        return nil
+    }
+
+    /// Les rayons que le système a cru voir, sans savoir nommer d'aliment.
+    ///
+    /// Servis à l'écran quand rien de précis n'a été reconnu : « il y a
+    /// l'air d'y avoir de la viande et un féculent » vaut infiniment mieux
+    /// que « je ne reconnais rien », qui est un cul-de-sac.
+    public static func roles(
+        from observations: [(identifier: String, confidence: Double)],
+        limit: Int = 3
+    ) -> [FoodRole] {
+        var seen: [FoodRole] = []
+        for observation in observations where observation.confidence >= minimumConfidence {
+            if let role = category(for: observation.identifier), !seen.contains(role) {
+                seen.append(role)
+            }
+            if seen.count == limit { break }
+        }
+        return seen
+    }
 
     /// Traduit les propositions du système en aliments du catalogue.
     ///
@@ -304,8 +540,7 @@ public enum PlateVision {
         var result: [PlateItem] = []
         for observation in observations
         where observation.confidence >= minimumConfidence {
-            let key = observation.identifier.lowercased()
-            guard let foodID = mapping[key] ?? mapping[key.replacingOccurrences(of: " ", with: "_")],
+            guard let foodID = food(for: observation.identifier),
                   FoodCatalog.food(id: foodID) != nil,
                   // Un aliment écarté du plan — allergie, dégoût — n'a rien à
                   // faire dans une assiette proposée. S'il y était vraiment,
