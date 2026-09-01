@@ -12,6 +12,7 @@ struct TodayView: View {
     @State private var showingRunTracker = false
     /// La fiche d'un mouvement proposé un jour creux.
     @State private var openedExtra: Exercise?
+    @State private var showsPaywall = false
 
     private var briefing: TodayBriefing? { store.briefing(on: now) }
     private var unit: UnitSystem { store.profile?.unit ?? .metric }
@@ -30,6 +31,7 @@ struct TodayView: View {
                             plannedRunCard(run, done: briefing.recordedRun)
                         }
                         nutritionCard(briefing.nutrition)
+                        trialBanner
                         insightsCard
                     } else {
                         Card(title: "Aucun programme") {
@@ -54,6 +56,7 @@ struct TodayView: View {
                     .tint(Theme.accent)
                 }
             }
+            .sheet(isPresented: $showsPaywall) { PaywallView() }
             .sheet(isPresented: $showingReadiness) {
                 ReadinessSheet(date: now) { check in
                     store.recordReadiness(check)
@@ -246,10 +249,46 @@ struct TodayView: View {
                     .font(Theme.bodyFont)
                     .foregroundStyle(Theme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
-                PrimaryButton(title: "Construire le bloc suivant", systemImage: "arrow.triangle.2.circlepath") {
-                    store.startNextBlock(on: now)
+                // Le bloc suivant est la seule chose que la fin de l'essai
+                // retienne côté musculation — et elle n'arrive jamais au
+                // milieu d'un bloc : celui qui est commencé va au bout.
+                if store.isUnlocked(.nextBlocks, on: now) {
+                    PrimaryButton(title: "Construire le bloc suivant", systemImage: "arrow.triangle.2.circlepath") {
+                        store.startNextBlock(on: now)
+                    }
                 }
             }
+            if !store.isUnlocked(.nextBlocks, on: now) {
+                PlusLockedCard(feature: .nextBlocks)
+            }
+        }
+    }
+
+    /// Le compte à rebours de l'essai, tant qu'il court.
+    ///
+    /// Un rappel, pas une pression : il dit ce qui reste et disparaît de
+    /// lui-même. Presser quelqu'un qui a encore neuf jours devant lui est la
+    /// meilleure façon de le faire partir avant la fin.
+    @ViewBuilder
+    private var trialBanner: some View {
+        if let banner = store.subscription.banner(on: now) {
+            Button {
+                showsPaywall = true
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Theme.accent)
+                    Text(banner[language])
+                        .font(.system(size: 13))
+                        .foregroundStyle(Theme.primaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer()
+                }
+                .padding(12)
+                .background(Theme.accentMuted, in: RoundedRectangle(cornerRadius: 12))
+            }
+            .buttonStyle(.plain)
         }
     }
 

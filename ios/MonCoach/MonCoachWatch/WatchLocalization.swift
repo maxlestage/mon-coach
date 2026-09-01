@@ -84,6 +84,16 @@ enum WatchUI {
         en: "Discard without saving",
         es: "Abandonar sin guardar"
     )
+    static let plusNeeded = LocalizedText(
+        fr: "Stride+ au poignet",
+        en: "Stride+ on the wrist",
+        es: "Stride+ en la muñeca"
+    )
+    static let plusNeededDetail = LocalizedText(
+        fr: "Ton essai est terminé. L'application de la montre fait partie de Stride+ : active-le depuis ton iPhone, et elle se rallume ici toute seule. Ton téléphone, lui, continue de tout enregistrer.",
+        en: "Your trial is over. The watch app is part of Stride+: turn it on from your iPhone and it comes back here on its own. Your phone keeps recording everything.",
+        es: "Tu prueba ha terminado. La aplicación del reloj forma parte de Stride+: actívalo desde tu iPhone y volverá aquí sola. Tu teléfono sigue registrándolo todo."
+    )
     static let allSports = LocalizedText(
         fr: "Tous les sports",
         en: "All sports",

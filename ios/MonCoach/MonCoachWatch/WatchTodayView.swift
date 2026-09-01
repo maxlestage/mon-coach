@@ -14,7 +14,11 @@ struct WatchTodayView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
                 if let snapshot = store.snapshot {
-                    content(snapshot)
+                    if store.isUnlocked {
+                        content(snapshot)
+                    } else {
+                        lockedScreen
+                    }
                 } else {
                     waiting
                 }
@@ -42,6 +46,26 @@ struct WatchTodayView: View {
             Text(WatchUI.waiting[language])
                 .font(.headline)
             Text(WatchUI.waitingDetail[language])
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    /// Ce que la montre affiche quand l'essai est fini et l'abonnement
+    /// absent.
+    ///
+    /// Pas un écran vide, et surtout pas une porte muette : elle dit ce
+    /// qu'il manque et où le régler, puisque l'achat se fait sur le
+    /// téléphone. Les deux chiffres de l'alimentation restent affichés —
+    /// ils viennent du plan du jour, qui est gratuit.
+    private var lockedScreen: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Image(systemName: "sparkles")
+                .font(.title3)
+                .foregroundStyle(.green)
+            Text(WatchUI.plusNeeded[language])
+                .font(.headline)
+            Text(WatchUI.plusNeededDetail[language])
                 .font(.footnote)
                 .foregroundStyle(.secondary)
         }

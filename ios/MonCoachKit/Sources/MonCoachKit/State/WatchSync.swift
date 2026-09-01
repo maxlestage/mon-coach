@@ -31,6 +31,15 @@ public struct WatchSnapshot: Codable, Sendable, Equatable {
     public var plannedRun: PlannedRun?
     /// Vrai si la sortie du jour a déjà été enregistrée côté téléphone.
     public var runDone: Bool
+    /// L'application de la montre est-elle ouverte ?
+    ///
+    /// Le droit d'accès se constate auprès de l'App Store, et c'est le
+    /// téléphone qui sait le faire : la montre reçoit la réponse, elle ne
+    /// la calcule pas. Optionnel, parce qu'un instantané écrit avant
+    /// l'abonnement n'en porte pas — et un poignet qui se verrouillerait
+    /// tout seul faute de champ serait le pire des accueils.
+    public var plus: Bool?
+
     public init(
         generatedAt: Date,
         firstName: String,
@@ -46,7 +55,8 @@ public struct WatchSnapshot: Codable, Sendable, Equatable {
         calories: Int,
         proteinG: Int,
         plannedRun: PlannedRun? = nil,
-        runDone: Bool = false
+        runDone: Bool = false,
+        plus: Bool? = nil
     ) {
         self.generatedAt = generatedAt
         self.firstName = firstName
@@ -63,6 +73,7 @@ public struct WatchSnapshot: Codable, Sendable, Equatable {
         self.proteinG = proteinG
         self.plannedRun = plannedRun
         self.runDone = runDone
+        self.plus = plus
     }
 }
 
@@ -146,7 +157,8 @@ extension CoachStore {
             calories: briefing.nutrition.calories,
             proteinG: briefing.nutrition.proteinG,
             plannedRun: briefing.plannedRun,
-            runDone: briefing.recordedRun != nil
+            runDone: briefing.recordedRun != nil,
+            plus: isUnlocked(.watchApp, on: date)
         )
     }
 

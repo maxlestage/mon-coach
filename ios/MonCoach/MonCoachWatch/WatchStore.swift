@@ -80,6 +80,16 @@ final class WatchStore {
 
     // MARK: - Séance
 
+    /// L'application de la montre est-elle ouverte ?
+    ///
+    /// Lue dans l'instantané, jamais décidée ici : la montre n'a pas de
+    /// StoreKit à interroger, et deux appareils qui décideraient chacun de
+    /// leur côté finiraient par ne pas dire la même chose. Un instantané
+    /// écrit avant l'abonnement — ou aucun instantané du tout — laisse tout
+    /// ouvert : un poignet qui se verrouille faute de champ est le pire des
+    /// accueils.
+    var isUnlocked: Bool { snapshot?.plus ?? true }
+
     func startSession() {
         guard let session = todaySession else { return }
         activeSession = ActiveSession(session: session)

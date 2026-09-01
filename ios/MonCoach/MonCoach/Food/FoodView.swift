@@ -60,7 +60,22 @@ struct FoodView: View {
                 }
             }
             .sheet(isPresented: $showsShoppingList) {
-                ShoppingListView()
+                // Les repas du jour et les cibles restent gratuits ; c'est
+                // la liste agrégée de la semaine qui demande Stride+.
+                if store.isUnlocked(.shoppingList) {
+                    ShoppingListView()
+                } else {
+                    NavigationStack {
+                        ScrollView {
+                            PlusLockedCard(feature: .shoppingList).padding(16)
+                        }
+                        .screenBackground()
+                        .navigationTitle(
+                            LocalizedText(fr: "Liste de courses", en: "Shopping list", es: "Lista de la compra")[language]
+                        )
+                        .navigationBarTitleDisplayMode(.inline)
+                    }
+                }
             }
             .sheet(isPresented: $showsExclusions) {
                 ExcludedFoodsView()
