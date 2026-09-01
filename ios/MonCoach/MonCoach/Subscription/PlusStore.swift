@@ -45,17 +45,21 @@ final class PlusStore {
         // pour toute la vie de l'application : un renouvellement, un
         // remboursement ou un achat fait sur un autre appareil arrivent par
         // là, et jamais autrement.
+        //
+        // Rien ne l'annule au `deinit` : celui-ci s'exécute hors du main
+        // actor et n'a donc pas le droit de toucher à cette propriété. La
+        // boucle s'arrête d'elle-même — elle ne retient pas le magasin, et
+        // la première transaction reçue après sa disparition la termine.
         updates = Task { [weak self] in
             for await update in Transaction.updates {
+                guard let self else { return }
                 if case .verified(let transaction) = update {
                     await transaction.finish()
                 }
-                await self?.refresh()
+                await self.refresh()
             }
         }
     }
-
-    deinit { updates?.cancel() }
 
     /// Charge les offres et l'état de l'abonnement.
     func load() async {
