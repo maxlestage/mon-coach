@@ -82,7 +82,7 @@ struct GymCoachView: View {
                 }
             }
             .sheet(item: $opened) { exercise in
-                GuidedTechniqueView(exercise: exercise)
+                GuidedTechniqueView(exercise: exercise, owned: store.profile?.equipment)
             }
         }
     }
@@ -245,6 +245,9 @@ struct SubstitutionRow: View {
                     Text("\(option.closeness)")
                         .font(.system(size: 13, weight: .bold, design: .rounded))
                         .foregroundStyle(Theme.accent)
+                    // On ne remplace pas un exercice par un nom qu'on ne
+                    // connaît pas : la fiche s'ouvre avant le choix.
+                    ExerciseInfoButton(exercise: option.exercise)
                 }
                 Text(
                     option.exercise.equipment

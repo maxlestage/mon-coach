@@ -18,6 +18,8 @@ struct WatchSessionView: View {
     @State private var restRemaining: Int = 0
     @State private var adjusting: Adjusting = .weight
     @State private var confirmingFinish = false
+    /// La fiche de l'exercice en cours, poussée par-dessus la série.
+    @State private var showsBrief = false
     @State private var showsSubstitution = false
 
     private let ticker = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -163,6 +165,28 @@ struct WatchSessionView: View {
                         LocalizedText(fr: "Réglage", en: "Adjusting", es: "Ajuste")[language]
                     )
 
+                    // La fiche au poignet : c'est devant la machine qu'on se
+                    // demande où mettre les pieds, et c'est précisément là
+                    // qu'on n'a pas envie d'aller chercher son téléphone.
+                    if exercise != nil {
+                        Button {
+                            showsBrief = true
+                        } label: {
+                            Label(
+                                LocalizedText(
+                                    fr: "La fiche",
+                                    en: "The card",
+                                    es: "La ficha"
+                                )[language],
+                                systemImage: "info.circle"
+                            )
+                            .font(.system(size: 12))
+                            .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(.gray)
+                    }
+
                     Button {
                         showsSubstitution = true
                     } label: {
@@ -211,6 +235,11 @@ struct WatchSessionView: View {
             }
         }
         .navigationTitle(active.session.title[language])
+        .navigationDestination(isPresented: $showsBrief) {
+            if let exercise {
+                WatchExerciseBriefView(exercise: exercise)
+            }
+        }
         .navigationDestination(isPresented: $showsSubstitution) {
             WatchGymView(prescription: prescription) { replacement in
                 store.substituteInActiveSession(prescription: prescription.id, with: replacement)

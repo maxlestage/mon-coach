@@ -8,6 +8,9 @@ import MonCoachKit
 /// trente secondes et ne se laisse pas interroger.
 struct GuidedTechniqueView: View {
     var exercise: Exercise
+    /// Le matériel dont dispose l'athlète, pour ne proposer que des
+    /// remplaçants qu'il peut réellement faire.
+    var owned: Set<Equipment>?
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.language) private var language
@@ -28,6 +31,30 @@ struct GuidedTechniqueView: View {
                                 .foregroundStyle(Theme.accent)
                             CoachText(technique.oneThing, font: Theme.headlineFont, color: Theme.primaryText)
                         }
+                    }
+
+                    // Ce qui est propre à *cet* exercice vient avant la
+                    // technique de famille : devant une machine inconnue, la
+                    // première question n'est pas « comment on s'accroupit »
+                    // mais « qu'est-ce que cette machine me veut ».
+                    ExerciseBriefCard(exercise: exercise, owned: owned)
+
+                    Card(
+                        title: LocalizedText(
+                            fr: "La technique du geste",
+                            en: "The technique of the movement",
+                            es: "La técnica del gesto"
+                        )[language],
+                        subtitle: technique.title[language]
+                    ) {
+                        CoachText(
+                            LocalizedText(
+                                fr: "Ce qui suit vaut pour toute la famille de mouvements : ce qui protège ton dos ici le protège aussi ailleurs.",
+                                en: "What follows holds for the whole family of movements: what protects your back here protects it elsewhere too.",
+                                es: "Lo que sigue vale para toda la familia de movimientos: lo que protege tu espalda aquí la protege también en otros."
+                            ),
+                            font: .system(size: 13)
+                        )
                     }
 
                     stepCard

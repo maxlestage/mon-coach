@@ -8,6 +8,7 @@ struct SessionSummary: View {
     var session: PlannedSession
     var unit: UnitSystem
     var showsLoads: Bool = true
+    var owned: Set<Equipment>?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -19,7 +20,9 @@ struct SessionSummary: View {
             .foregroundStyle(Theme.secondaryText)
 
             ForEach(session.exercises) { prescription in
-                ExerciseSummaryRow(prescription: prescription, unit: unit, showsLoad: showsLoads)
+                ExerciseSummaryRow(
+                    prescription: prescription, unit: unit, showsLoad: showsLoads, owned: owned
+                )
                 if prescription.id != session.exercises.last?.id {
                     Divider().overlay(Theme.separator)
                 }
@@ -33,6 +36,9 @@ struct ExerciseSummaryRow: View {
     var prescription: ExercisePrescription
     var unit: UnitSystem
     var showsLoad: Bool = true
+    /// Le matériel de l'athlète, transmis à la fiche pour que les
+    /// remplaçants proposés soient faisables là où il s'entraîne.
+    var owned: Set<Equipment>?
 
     private var exercise: Exercise? {
         ExerciseCatalog.exercise(id: prescription.exerciseID)
@@ -53,6 +59,13 @@ struct ExerciseSummaryRow: View {
                 Text(Format.load(load, unit: unit))
                     .font(.system(size: 15, weight: .bold, design: .rounded))
                     .foregroundStyle(Theme.accent)
+            }
+            // La fiche est ici parce que c'est ici qu'on lit le nom d'un
+            // mouvement pour la première fois — dans le plan, dans la séance
+            // du jour, dans l'aperçu de l'inscription. Une explication qu'il
+            // faut aller chercher ailleurs n'est jamais lue.
+            if let exercise {
+                ExerciseInfoButton(exercise: exercise, owned: owned)
             }
         }
     }

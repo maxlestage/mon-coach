@@ -573,7 +573,7 @@ struct OnboardingView: View {
             }
             Card(title: "Ta première séance") {
                 if let first = program.plan.weeks.first?.sessions.first {
-                    SessionSummary(session: first, unit: draft.unit)
+                    SessionSummary(session: first, unit: draft.unit, owned: draft.equipment)
                 }
             }
         }

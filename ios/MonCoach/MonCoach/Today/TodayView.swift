@@ -66,7 +66,7 @@ struct TodayView: View {
                 RunTrackerView(plannedRun: briefing?.plannedRun)
             }
             .sheet(item: $openedExtra) { exercise in
-                GuidedTechniqueView(exercise: exercise)
+                GuidedTechniqueView(exercise: exercise, owned: store.profile?.equipment)
             }
             .sheet(isPresented: $showingWeighIn) {
                 WeighInSheet(unit: unit, currentKg: store.profile?.weightKg ?? 70) { log in
@@ -195,7 +195,7 @@ struct TodayView: View {
                         }
                     }
                 }
-                SessionSummary(session: session, unit: unit)
+                SessionSummary(session: session, unit: unit, owned: store.profile?.equipment)
 
                 PrimaryButton(title: "Démarrer la séance", systemImage: "play.fill") {
                     store.startSession(session)
@@ -239,7 +239,10 @@ struct TodayView: View {
                     Text("Ta prochaine séance : \(next.title[language])")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(Theme.primaryText)
-                    SessionSummary(session: next, unit: unit, showsLoads: false)
+                    SessionSummary(
+                        session: next, unit: unit, showsLoads: false,
+                        owned: store.profile?.equipment
+                    )
                 }
             }
 

@@ -41,7 +41,7 @@ struct SessionPlayerView: View {
             }
             .navigationTitle(active?.session.title[language] ?? "Séance")
             .sheet(item: $guidedExercise) { exercise in
-                GuidedTechniqueView(exercise: exercise)
+                GuidedTechniqueView(exercise: exercise, owned: store.profile?.equipment)
             }
             .sheet(item: $gymObstacleFor) { exercise in
                 GymCoachView(
