@@ -640,12 +640,44 @@ enum DishPreference {
     /// Les plats sont pris à intervalle régulier dans la liste plutôt qu'en
     /// tête : deux recettes voisines au catalogue partagent souvent une
     /// protéine, et quatre plats de suite feraient une semaine de poulet.
+    /// La famille d'un féculent, pour ne pas servir deux fois la même chose
+    /// sous deux noms.
+    ///
+    /// « Riz blanc » et « riz basmati » sont deux lignes de courses et deux
+    /// identifiants, mais dans l'assiette c'est du riz deux fois. Un athlète
+    /// qui demande des menus différents ne fait pas la différence, et il a
+    /// raison de ne pas la faire.
+    ///
+    /// La table est écrite à la main plutôt que devinée du nom : « galettes
+    /// de riz » ne sont pas un plat de riz, et aucune règle sur les mots ne
+    /// le sait. Un test vérifie qu'aucun féculent du catalogue n'y manque.
+    static let starchFamilies: [String: String] = [
+        "riz-blanc": "riz", "riz-basmati": "riz", "riz-complet": "riz",
+        "vermicelles-riz": "riz", "galettes-riz": "galette",
+        "pates-blanches": "pâtes", "pates-completes": "pâtes", "gnocchis": "pâtes",
+        "pomme-de-terre": "pomme de terre", "patate-douce": "patate douce",
+        "quinoa": "quinoa", "sarrasin": "sarrasin", "millet": "millet",
+        "boulgour": "blé", "semoule": "blé", "epeautre": "blé", "orge-perle": "orge",
+        "polenta": "maïs", "mais-doux": "maïs", "tortilla-mais": "maïs",
+        "cereales-mais": "maïs",
+        "pain-blanc": "pain", "pain-complet": "pain", "pain-seigle": "pain",
+        "pain-cereales": "pain", "cracottes-seigle": "pain", "wrap-ble": "pain",
+        "flocons-avoine": "avoine", "muesli-nature": "avoine", "granola": "avoine",
+        "petits-pois": "petits pois",
+    ]
+
+    /// La famille d'un féculent, ou son identifiant faute de mieux.
+    static func starchFamily(of foodID: String) -> String {
+        starchFamilies[foodID] ?? foodID
+    }
+
     static func menu(
         slot: MealSlot,
         target: Macros,
         diet: DietPreference,
         excluded: Set<String>,
-        count: Int
+        count: Int,
+        offset: Int = 0
     ) -> [Recipe] {
         // Le menu ne propose que des plats que le repas acceptera.
         //
@@ -670,24 +702,59 @@ enum DishPreference {
         }
         guard !candidates.isEmpty, count > 0 else { return [] }
         let wanted = min(count, candidates.count)
-        var chosen: [Recipe] = [candidates[0]]
-        var basket = Set(candidates[0].foodIDs)
+
+        // Le point de départ tourne d'une semaine à l'autre.
+        //
+        // Sans lui, la semaine deux servait exactement la semaine un, et la
+        // semaine dix aussi : `dayIndex` repartait de zéro tous les sept
+        // jours et rien ne s'en souvenait. Au bout d'un mois on avait mangé
+        // le même dîner quatre fois sans qu'aucune ligne de code ne dise
+        // pourquoi. Décaler l'entrée dans la liste des plats retenus suffit,
+        // et ça reste reproductible : la même semaine redonne le même menu.
+        let start = ((offset % candidates.count) + candidates.count) % candidates.count
+        let first = candidates[start]
+        var chosen: [Recipe] = [first]
+        var basket = Set(first.foodIDs)
 
         while chosen.count < wanted {
-            let remaining = candidates.filter { candidate in
+            // Jamais deux fois la même protéine dans la semaine.
+            let loose = candidates.filter { candidate in
                 !chosen.contains { $0.id == candidate.id }
                     && !chosen.contains { $0.proteinID == candidate.proteinID }
             }
+
+            // Et jamais la même famille de féculent deux plats **de suite**.
+            //
+            // De suite, et pas dans toute la semaine : le déjeuner reprend le
+            // dîner de la veille, donc ce sont les plats voisins qui tombent
+            // dans la même journée. C'est là que « riz basmati » le midi et
+            // « riz blanc » le soir se voyaient — deux assiettes de riz que
+            // personne ne compte comme deux plats.
+            //
+            // L'imposer sur la semaine entière a été essayé et rendu : sept
+            // familles distinctes épuisent le catalogue, et les quantités
+            // tombent à dix-sept grammes de féculent sur la liste de courses.
+            // Une règle qui rend le panier inachetable n'est pas une règle,
+            // c'est un autre défaut.
+            let previous = chosen.last.map { starchFamily(of: $0.carbID) }
+            // Le dernier plat retenu voisine aussi le premier : le déjeuner
+            // du jour zéro reprend le dîner du dernier jour du cycle.
+            let wrapping = chosen.count == wanted - 1
+                ? chosen.first.map { starchFamily(of: $0.carbID) }
+                : nil
+            let strict = loose.filter { candidate in
+                let family = starchFamily(of: candidate.carbID)
+                return family != previous && family != wrapping
+            }
+
+            let remaining = strict.isEmpty ? loose : strict
             guard !remaining.isEmpty else { break }
 
             // Parmi les plats qui restent, celui qui réutilise le plus le
-            // panier déjà commencé — sans jamais reprendre une protéine déjà
-            // prise, sinon la semaine se réduirait à un seul plat décliné.
-            //
-            // C'est ce qui évite trois riz différents dans la même semaine :
-            // riz basmati, riz blanc et riz complet sont trois lignes de
-            // course, trois paquets, et aucun palais ne fait la différence
-            // dans un plat en sauce.
+            // panier déjà commencé. Les légumes, les matières grasses et les
+            // condiments se partagent d'un plat à l'autre : c'est là que la
+            // liste de courses se raccourcit, sans que deux assiettes se
+            // ressemblent.
             let best = remaining.max { left, right in
                 let leftShared = basket.intersection(left.foodIDs).count
                 let rightShared = basket.intersection(right.foodIDs).count
@@ -824,13 +891,17 @@ enum DishPreference {
     /// Quatre, et non sept. On ne cuisine pas sept plats différents par
     /// semaine, et surtout on ne fait pas les courses pour sept : le panier
     /// se remplit alors de portions qu'aucun magasin ne vend.
-    static let distinctDaysPerWeek = 4
+    static let distinctDaysPerWeek = 7
 
 
     public static func day(
         target: NutritionTarget,
         diet: DietPreference = .omnivore,
         dayIndex: Int = 0,
+        /// La semaine du programme, à partir de zéro. C'est elle qui fait
+        /// tourner le menu : sans elle, la semaine deux resservait la
+        /// semaine un, et ainsi de suite jusqu'à la fin du bloc.
+        weekIndex: Int = 0,
         mealsPerDay: Int = 4,
         excluding excluded: Set<String> = [],
         trainsToday: Bool = false,
@@ -849,19 +920,25 @@ enum DishPreference {
         let proteinMeals = max(1, layout.filter { $0.slot != .preWorkout }.count)
         let proteinPerMeal = dayTarget.proteinG / Double(proteinMeals)
 
-        // La semaine tient en quelques journées, répétées.
+        // Sept journées distinctes : un menu par jour, jamais le même deux
+        // fois dans la semaine.
         //
-        // Sans cela, chaque jour tirait ses aliments indépendamment, et la
-        // liste de courses de la semaine comptait cinquante-quatre lignes
-        // dont « 60 g de steak » et « 30 g de caséine ». Ce n'est pas une
-        // liste de courses, c'est une addition : personne n'achète soixante
-        // grammes de steak, et personne ne cuisine quinze protéines
-        // différentes en sept jours.
+        // La version précédente n'en construisait que quatre, et le
+        // raisonnement était faux. Ce qui rendait la liste de courses
+        // impossible n'était pas le nombre de plats, c'était que chaque jour
+        // tirait ses aliments **indépendamment** : la semaine comptait
+        // cinquante-quatre lignes dont « 60 g de steak », des portions
+        // qu'aucun magasin ne vend.
         //
-        // Quatre journées distinctes suffisent à ne pas lasser — c'est aussi
-        // le seuil que vérifie le test de variété — et elles divisent par
-        // deux le nombre d'ingrédients tout en doublant les quantités, qui
-        // deviennent enfin celles d'un vrai panier.
+        // Ce qui a réglé ça, et qui reste, c'est le déjeuner qui reprend le
+        // dîner de la veille : on cuisine une fois, on mange deux fois, donc
+        // chaque ingrédient est acheté pour deux portions. Sept dîners
+        // couvrent quatorze repas et demandent sept protéines — poulet,
+        // dinde, saumon, bœuf, œufs, lentilles, cabillaud. C'est exactement
+        // les courses d'une semaine ordinaire.
+        //
+        // Bloquer à quatre n'économisait donc plus rien sur le panier ; ça
+        // servait seulement le même dîner deux fois par semaine.
         let menuDay = ((dayIndex % distinctDaysPerWeek) + distinctDaysPerWeek) % distinctDaysPerWeek
 
         func mealTarget(_ entry: (slot: MealSlot, share: Double)) -> Macros {
@@ -882,7 +959,8 @@ enum DishPreference {
         let dinners = dinnerSlot.map {
             menu(
                 slot: .dinner, target: mealTarget(layout[$0]), diet: diet,
-                excluded: excluded, count: distinctDaysPerWeek
+                excluded: excluded, count: distinctDaysPerWeek,
+                offset: weekIndex * distinctDaysPerWeek
             )
         } ?? []
         let breakfastSlot = layout.firstIndex { $0.slot == .breakfast }
@@ -892,7 +970,7 @@ enum DishPreference {
             // quatre matières grasses et quatre poudres.
             menu(
                 slot: .breakfast, target: mealTarget(layout[$0]), diet: diet,
-                excluded: excluded, count: 2
+                excluded: excluded, count: 2, offset: weekIndex * 2
             )
         } ?? []
 
@@ -1067,6 +1145,7 @@ enum DishPreference {
     public static func week(
         target: NutritionTarget,
         diet: DietPreference = .omnivore,
+        weekIndex: Int = 0,
         mealsPerDay: Int = 4,
         excluding excluded: Set<String> = [],
         trainingDays: Set<Int> = [],
@@ -1077,6 +1156,7 @@ enum DishPreference {
                 target: target,
                 diet: diet,
                 dayIndex: index,
+                weekIndex: weekIndex,
                 mealsPerDay: mealsPerDay,
                 excluding: excluded,
                 trainsToday: trainingDays.contains(index),
@@ -1117,6 +1197,10 @@ enum DishPreference {
     /// la quantité d'une semaine et se signale comme étant à reprendre.
     /// Multiplier aveuglément aurait donné une liste que personne ne peut
     /// suivre, et une liste qu'on ne suit pas ne sert à rien.
+    /// Le plus petit poids qu'un magasin vend au détail, en grammes de
+    /// produit tel qu'on l'achète.
+    static let minimumLooseGrams: Double = 50
+
     public static func shoppingList(
         for days: [DayPlan],
         horizon: ShoppingHorizon = .week
@@ -1138,6 +1222,20 @@ enum DishPreference {
                     grams: (grams / 10).rounded(.up) * 10,
                     role: food.role
                 )
+                // Un plancher d'achat pour ce qui se vend au poids.
+                //
+                // La semaine peut n'avoir besoin que de trente-trois grammes
+                // de riz — un seul plat en porte, et c'est une journée à
+                // basses calories. Mais personne ne vend trente-trois grammes
+                // de riz : on achète un petit paquet, on en utilise le tiers,
+                // et le reste sert la semaine suivante. La liste dit donc ce
+                // qu'on met dans le caddie, pas ce que les recettes pèsent.
+                if case .loose = line.purchase, line.weightToBuy < minimumLooseGrams {
+                    let ratio = line.weightToBuy / max(line.grams, 1)
+                    if ratio > 0 {
+                        line.grams = (minimumLooseGrams / ratio / 10).rounded(.up) * 10
+                    }
+                }
                 guard horizon != .week else { return line }
                 if line.keeps {
                     line.grams = line.grams * Double(horizon.weeks)

@@ -260,10 +260,16 @@ public enum CoachEngine {
             from: calendar.startOfDay(for: program.plan.startDate),
             to: calendar.startOfDay(for: date)
         ).day ?? 0
+        // Le jour dans la semaine choisit le menu ; la semaine écoulée le
+        // fait tourner. Une division qui arrondit vers le bas, pour qu'une
+        // date antérieure au début du programme ne renvoie pas la même
+        // semaine que le premier jour.
+        let weekIndex = Int(floor(Double(elapsed) / 7))
         return MealPlanner.day(
             target: program.nutrition,
             diet: program.profile.dietPreference,
             dayIndex: ((elapsed % 7) + 7) % 7,
+            weekIndex: weekIndex,
             mealsPerDay: program.profile.mealCount,
             excluding: program.profile.excludedFoods,
             trainsToday: trains,

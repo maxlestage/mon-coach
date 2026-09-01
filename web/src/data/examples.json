@@ -22,63 +22,63 @@
       {
         "items" : [
           {
-            "grams" : 155,
+            "grams" : 225,
             "name" : {
-              "en" : "Skyr or 0 % Greek yoghurt",
-              "es" : "Skyr o yogur griego 0 %",
-              "fr" : "Skyr ou yaourt grec 0 %"
+              "en" : "Cottage cheese",
+              "es" : "Requesón",
+              "fr" : "Cottage cheese"
             },
             "reason" : {
-              "en" : "Twice the protein of a plain yoghurt, with a texture that actually fills you up.",
-              "es" : "El doble de proteína que un yogur normal, con una textura que sacia.",
-              "fr" : "Deux fois plus de protéines qu'un yaourt classique, et une texture qui rassasie."
+              "en" : "Rich in casein: the protein that holds longest between meals.",
+              "es" : "Rico en caseína: la proteína que más aguanta entre comidas.",
+              "fr" : "Riche en caséine : c'est la protéine qui tient le plus longtemps entre deux repas."
             },
             "tier" : "base"
           },
           {
-            "grams" : 145,
+            "grams" : 95,
             "name" : {
-              "en" : "No-added-sugar muesli",
-              "es" : "Muesli sin azúcar añadido",
-              "fr" : "Muesli sans sucre ajouté"
+              "en" : "Brown rice cakes",
+              "es" : "Tortitas de arroz integral",
+              "fr" : "Galettes de riz complet"
             },
             "reason" : {
-              "en" : "Oats, dried fruit and seeds, nothing coated: granola without the syrup fry-up.",
-              "es" : "Avena, fruta seca y semillas, nada recubierto: la granola sin la fritura de sirope.",
-              "fr" : "Avoine, fruits secs et graines, rien d'enrobé : le granola sans la friture au sirop."
+              "en" : "Gluten-free and easy to carry, but barely filling: they are a base for something else, not a meal.",
+              "es" : "Sin gluten y fáciles de llevar, pero poco saciantes: son la base de otra cosa, no una comida.",
+              "fr" : "Sans gluten et faciles à transporter, mais très peu rassasiantes : elles servent de support à autre chose, pas de repas."
+            },
+            "tier" : "moderate"
+          },
+          {
+            "grams" : 150,
+            "name" : {
+              "en" : "Kiwi",
+              "es" : "Kiwi",
+              "fr" : "Kiwi"
+            },
+            "reason" : {
+              "en" : "Two kiwis cover the day's vitamin C, and they help things move.",
+              "es" : "Dos kiwis cubren la vitamina C del día y ayudan al tránsito.",
+              "fr" : "Deux kiwis couvrent la vitamine C de la journée, et ils aident au transit."
             },
             "tier" : "base"
           },
           {
-            "grams" : 125,
+            "grams" : 6,
             "name" : {
-              "en" : "Blackberries",
-              "es" : "Moras",
-              "fr" : "Mûres"
+              "en" : "Almond butter",
+              "es" : "Crema de almendras",
+              "fr" : "Purée d'amande"
             },
             "reason" : {
-              "en" : "Nearly raspberry-level fibre, and free along the paths of August.",
-              "es" : "Casi tanta fibra como la frambuesa, y gratis en los caminos de agosto.",
-              "fr" : "Presque autant de fibres que la framboise, et gratuites au bord des chemins d'août."
+              "en" : "Almonds in spreadable form: the same virtues without the chewing brake — the spoon gets weighed.",
+              "es" : "La almendra untable: las mismas virtudes sin el freno de masticar; la cucharada se pesa.",
+              "fr" : "L'amande en version tartinable : les mêmes qualités, sans le frein de la mastication — la cuillère se pèse."
             },
-            "tier" : "base"
-          },
-          {
-            "grams" : 13,
-            "name" : {
-              "en" : "Ground flaxseed",
-              "es" : "Semillas de lino molidas",
-              "fr" : "Graines de lin moulues"
-            },
-            "reason" : {
-              "en" : "They have to be ground: whole, they pass straight through without delivering anything.",
-              "es" : "Hay que molerlas: enteras atraviesan el intestino sin aportar nada.",
-              "fr" : "Il faut les moudre : entières, elles traversent l'intestin sans rien livrer."
-            },
-            "tier" : "base"
+            "tier" : "moderate"
           }
         ],
-        "kcal" : 743,
+        "kcal" : 716,
         "note" : {
           "en" : "Thirty grams of protein first thing blunts hunger for the whole day: this is the highest-return meal to fix.",
           "es" : "Treinta gramos de proteína a primera hora cortan el hambre de todo el día: es la comida más rentable de corregir.",
@@ -94,7 +94,141 @@
       {
         "items" : [
           {
-            "grams" : 70,
+            "grams" : 80,
+            "name" : {
+              "en" : "Drained tinned sardines",
+              "es" : "Sardinas en aceite escurridas",
+              "fr" : "Sardines à l'huile égouttées"
+            },
+            "reason" : {
+              "en" : "Omega-3s, calcium from the bones and vitamin D, for almost nothing.",
+              "es" : "Omega-3, calcio de las espinas y vitamina D, por muy poco dinero.",
+              "fr" : "Oméga-3, calcium des arêtes et vitamine D, pour un prix dérisoire."
+            },
+            "tier" : "base"
+          },
+          {
+            "grams" : 620,
+            "name" : {
+              "en" : "Boiled potatoes",
+              "es" : "Patatas cocidas",
+              "fr" : "Pommes de terre à l'eau"
+            },
+            "reason" : {
+              "en" : "The top-ranked food on the laboratory satiety index, across every category.",
+              "es" : "El alimento mejor situado en el índice de saciedad medido en laboratorio, en todas las categorías.",
+              "fr" : "L'aliment le mieux classé sur l'indice de satiété mesuré en laboratoire, toutes catégories confondues."
+            },
+            "tier" : "base"
+          },
+          {
+            "grams" : 150,
+            "name" : {
+              "en" : "Salad leaves",
+              "es" : "Hojas de ensalada",
+              "fr" : "Salade verte"
+            },
+            "reason" : {
+              "en" : "Volume for nothing, as long as you watch what goes on top.",
+              "es" : "Volumen por nada, siempre que vigiles lo que le pones encima.",
+              "fr" : "Du volume pour rien, à condition de surveiller ce qu'on met dessus."
+            },
+            "tier" : "base"
+          },
+          {
+            "grams" : 150,
+            "name" : {
+              "en" : "Tomatoes",
+              "es" : "Tomates",
+              "fr" : "Tomates"
+            },
+            "reason" : {
+              "en" : "Lycopene becomes more available cooked than raw: tomato sauce genuinely counts.",
+              "es" : "El licopeno está más disponible cocido que crudo: la salsa de tomate cuenta de verdad.",
+              "fr" : "Le lycopène devient plus disponible cuit qu'à cru : la sauce tomate compte vraiment."
+            },
+            "tier" : "base"
+          },
+          {
+            "grams" : 10,
+            "name" : {
+              "en" : "Extra-virgin olive oil",
+              "es" : "Aceite de oliva virgen extra",
+              "fr" : "Huile d'olive vierge extra"
+            },
+            "reason" : {
+              "en" : "The best-documented fat for cardiovascular health. One tablespoon is 120 kcal — this is where deficits quietly die.",
+              "es" : "La grasa mejor documentada para la salud cardiovascular. Una cucharada son 120 kcal: ahí es donde se pierden los déficits.",
+              "fr" : "Le gras le mieux documenté sur la santé cardiovasculaire. Une cuillère à soupe pèse 120 kcal : c'est là que les déficits se perdent."
+            },
+            "tier" : "base"
+          }
+        ],
+        "kcal" : 844,
+        "proteinG" : 36,
+        "slot" : {
+          "en" : "Lunch",
+          "es" : "Comida",
+          "fr" : "Déjeuner"
+        }
+      },
+      {
+        "items" : [
+          {
+            "grams" : 315,
+            "name" : {
+              "en" : "Skyr or 0 % Greek yoghurt",
+              "es" : "Skyr o yogur griego 0 %",
+              "fr" : "Skyr ou yaourt grec 0 %"
+            },
+            "reason" : {
+              "en" : "Twice the protein of a plain yoghurt, with a texture that actually fills you up.",
+              "es" : "El doble de proteína que un yogur normal, con una textura que sacia.",
+              "fr" : "Deux fois plus de protéines qu'un yaourt classique, et une texture qui rassasie."
+            },
+            "tier" : "base"
+          },
+          {
+            "grams" : 50,
+            "name" : {
+              "en" : "Dates",
+              "es" : "Dátiles",
+              "fr" : "Dattes"
+            },
+            "reason" : {
+              "en" : "Concentrated sugar, but with fibre and potassium: perfect before a long run, less so in front of the television.",
+              "es" : "Azúcar concentrado, pero con fibra y potasio: perfectos antes de una tirada larga, menos frente al televisor.",
+              "fr" : "Du sucre concentré, mais avec des fibres et du potassium : parfait avant une sortie longue, pas devant la télévision."
+            },
+            "tier" : "moderate"
+          },
+          {
+            "grams" : 8,
+            "name" : {
+              "en" : "Butter",
+              "es" : "Mantequilla",
+              "fr" : "Beurre"
+            },
+            "reason" : {
+              "en" : "Nothing forbidden, but almost entirely saturated fat: it complements the oils, it does not replace them.",
+              "es" : "Nada prohibido, pero casi solo grasa saturada: complementa a los aceites, no los sustituye.",
+              "fr" : "Rien d'interdit, mais presque uniquement des acides gras saturés : il complète les huiles, il ne les remplace pas."
+            },
+            "tier" : "moderate"
+          }
+        ],
+        "kcal" : 397,
+        "proteinG" : 36,
+        "slot" : {
+          "en" : "Snack",
+          "es" : "Merienda",
+          "fr" : "Collation"
+        }
+      },
+      {
+        "items" : [
+          {
+            "grams" : 80,
             "name" : {
               "en" : "Prawns",
               "es" : "Gambas",
@@ -108,7 +242,7 @@
             "tier" : "base"
           },
           {
-            "grams" : 475,
+            "grams" : 395,
             "name" : {
               "en" : "Basmati rice",
               "es" : "Arroz basmati",
@@ -150,7 +284,7 @@
             "tier" : "base"
           },
           {
-            "grams" : 18,
+            "grams" : 15,
             "name" : {
               "en" : "Extra-virgin olive oil",
               "es" : "Aceite de oliva virgen extra",
@@ -164,147 +298,13 @@
             "tier" : "base"
           }
         ],
-        "kcal" : 877,
-        "proteinG" : 36,
-        "slot" : {
-          "en" : "Lunch",
-          "es" : "Comida",
-          "fr" : "Déjeuner"
-        }
-      },
-      {
-        "items" : [
-          {
-            "grams" : 45,
-            "name" : {
-              "en" : "Plant protein powder",
-              "es" : "Proteína vegetal en polvo",
-              "fr" : "Protéines végétales en poudre"
-            },
-            "reason" : {
-              "en" : "A pea-rice blend covers every amino acid, which neither source does alone. Useful when the day is short on lean protein, pointless otherwise.",
-              "es" : "Una mezcla de guisante y arroz cubre todos los aminoácidos, cosa que ninguna de las dos hace sola. Útil cuando al día le falta proteína magra, inútil si no.",
-              "fr" : "Un mélange pois-riz couvre tous les acides aminés, ce qu'aucune des deux sources ne fait seule. Utile quand la journée manque de protéines maigres, inutile sinon."
-            },
-            "tier" : "moderate"
-          },
-          {
-            "grams" : 60,
-            "name" : {
-              "en" : "Dates",
-              "es" : "Dátiles",
-              "fr" : "Dattes"
-            },
-            "reason" : {
-              "en" : "Concentrated sugar, but with fibre and potassium: perfect before a long run, less so in front of the television.",
-              "es" : "Azúcar concentrado, pero con fibra y potasio: perfectos antes de una tirada larga, menos frente al televisor.",
-              "fr" : "Du sucre concentré, mais avec des fibres et du potassium : parfait avant une sortie longue, pas devant la télévision."
-            },
-            "tier" : "moderate"
-          },
-          {
-            "grams" : 6,
-            "name" : {
-              "en" : "Butter",
-              "es" : "Mantequilla",
-              "fr" : "Beurre"
-            },
-            "reason" : {
-              "en" : "Nothing forbidden, but almost entirely saturated fat: it complements the oils, it does not replace them.",
-              "es" : "Nada prohibido, pero casi solo grasa saturada: complementa a los aceites, no los sustituye.",
-              "fr" : "Rien d'interdit, mais presque uniquement des acides gras saturés : il complète les huiles, il ne les remplace pas."
-            },
-            "tier" : "moderate"
-          }
-        ],
-        "kcal" : 381,
-        "proteinG" : 35,
-        "slot" : {
-          "en" : "Snack",
-          "es" : "Merienda",
-          "fr" : "Collation"
-        }
-      },
-      {
-        "items" : [
-          {
-            "grams" : 65,
-            "name" : {
-              "en" : "Turkey breast",
-              "es" : "Pechuga de pavo",
-              "fr" : "Escalope de dinde"
-            },
-            "reason" : {
-              "en" : "Slightly leaner than chicken, and cheaper per kilo of protein.",
-              "es" : "Algo más magra que el pollo y más barata por kilo de proteína.",
-              "fr" : "Encore un peu plus maigre que le poulet, et moins cher au kilo de protéines."
-            },
-            "tier" : "base"
-          },
-          {
-            "grams" : 365,
-            "name" : {
-              "en" : "Basmati rice",
-              "es" : "Arroz basmati",
-              "fr" : "Riz basmati"
-            },
-            "reason" : {
-              "en" : "The white rice with the gentlest glycaemic index — the long grain genuinely matters.",
-              "es" : "El arroz blanco de índice glucémico más suave: el grano largo marca una diferencia real.",
-              "fr" : "Le riz blanc à l'index glycémique le plus doux — le grain long fait une vraie différence."
-            },
-            "tier" : "base"
-          },
-          {
-            "grams" : 150,
-            "name" : {
-              "en" : "Onions",
-              "es" : "Cebollas",
-              "fr" : "Oignons"
-            },
-            "reason" : {
-              "en" : "Prebiotic fibre, and the start of nearly every recipe.",
-              "es" : "Fibra prebiótica, y el inicio de casi todas las recetas.",
-              "fr" : "Des fibres prébiotiques, et le début de presque toutes les recettes."
-            },
-            "tier" : "base"
-          },
-          {
-            "grams" : 150,
-            "name" : {
-              "en" : "Peppers",
-              "es" : "Pimientos",
-              "fr" : "Poivrons"
-            },
-            "reason" : {
-              "en" : "More vitamin C than an orange, gram for gram.",
-              "es" : "Más vitamina C que una naranja, a igual peso.",
-              "fr" : "Plus de vitamine C qu'une orange, à poids égal."
-            },
-            "tier" : "base"
-          },
-          {
-            "grams" : 14,
-            "name" : {
-              "en" : "Extra-virgin olive oil",
-              "es" : "Aceite de oliva virgen extra",
-              "fr" : "Huile d'olive vierge extra"
-            },
-            "reason" : {
-              "en" : "The best-documented fat for cardiovascular health. One tablespoon is 120 kcal — this is where deficits quietly die.",
-              "es" : "La grasa mejor documentada para la salud cardiovascular. Una cucharada son 120 kcal: ahí es donde se pierden los déficits.",
-              "fr" : "Le gras le mieux documenté sur la santé cardiovasculaire. Une cuillère à soupe pèse 120 kcal : c'est là que les déficits se perdent."
-            },
-            "tier" : "base"
-          }
-        ],
-        "kcal" : 767,
+        "kcal" : 763,
         "note" : {
           "en" : "Eating late does not make you fat: the day's total is what counts. A protein-rich dinner just helps you sleep.",
           "es" : "Cenar tarde no engorda: lo que cuenta es el total del día. Una cena proteica solo ayuda a dormir mejor.",
           "fr" : "Manger tard ne fait pas grossir : c'est le total de la journée qui compte. Un dîner protéiné aide simplement à mieux dormir."
         },
-        "proteinG" : 35,
+        "proteinG" : 36,
         "slot" : {
           "en" : "Dinner",
           "es" : "Cena",
@@ -324,13 +324,13 @@
         "fr" : "Les féculents sont donnés cuits. Sur le paquet, ils sont donnés crus : 100 g de riz sec deviennent environ 300 g de riz cuit."
       },
       {
-        "en" : "This day brings 45 g of fibre against 39 g recommended. That is the difference between a deficit you can hold and one that breaks on Thursday night.",
-        "es" : "Este día aporta 45 g de fibra frente a los 39 g recomendados. Es la diferencia entre un déficit sostenible y uno que se rompe el jueves por la noche.",
-        "fr" : "Cette journée apporte 45 g de fibres, pour 39 g recommandés. C'est ce qui fait la différence entre un déficit tenable et un déficit qui craque le jeudi soir."
+        "en" : "This day brings 36 g of fibre against 39 g recommended. That is the difference between a deficit you can hold and one that breaks on Thursday night.",
+        "es" : "Este día aporta 36 g de fibra frente a los 39 g recomendados. Es la diferencia entre un déficit sostenible y uno que se rompe el jueves por la noche.",
+        "fr" : "Cette journée apporte 36 g de fibres, pour 39 g recommandés. C'est ce qui fait la différence entre un déficit tenable et un déficit qui craque le jeudi soir."
       }
     ],
-    "totalFiberG" : 45,
-    "totalKcal" : 2768,
+    "totalFiberG" : 36,
+    "totalKcal" : 2720,
     "totalProteinG" : 143
   },
   "nutrition" : {

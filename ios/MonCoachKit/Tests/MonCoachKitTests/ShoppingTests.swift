@@ -20,15 +20,21 @@ struct ShoppingListTests {
         // Le vrai défaut n'était pas l'affichage : c'était un plan qui tirait
         // une protéine différente à chaque repas, et réclamait cinquante-
         // quatre lignes pour sept jours. Ce test garde la cause, pas le
-        // symptôme. Le seuil garde une classe de régression, pas un chiffre
-        // exact : au-delà de quarante lignes, la semaine s'est remise à
-        // changer d'ingrédients à chaque assiette, et le panier redevient
-        // celui que personne ne remplit.
+        // symptôme.
+        //
+        // Le seuil est passé de quarante à quarante-cinq le jour où la
+        // semaine est passée de quatre menus à sept. Ce n'est pas le seuil
+        // qu'on a assoupli pour faire passer le test : c'est le produit qui
+        // a changé, et trois dîners de plus coûtent quelques lignes. La
+        // classe de régression visée — la semaine qui change d'ingrédients à
+        // chaque assiette — reste attrapée : elle en demandait cinquante-
+        // quatre, et le déjeuner qui reprend le dîner de la veille, lui, n'a
+        // pas bougé.
         for goal in PrimaryGoal.allCases {
             for diet in DietPreference.allCases {
                 let count = Self.list(goal, diet).count
                 #expect(
-                    count <= 40,
+                    count <= 45,
                     Comment(rawValue: "\(goal.rawValue)/\(diet.rawValue) : \(count) lignes")
                 )
             }
@@ -132,13 +138,63 @@ struct WeeklyMenuTests {
         #expect(matched >= 4, Comment(rawValue: "\(matched) déjeuners sur 6 reprennent la veille"))
     }
 
-    @Test("La semaine garde quatre journées différentes")
-    func theWeekRepeats() {
-        let week = MealPlanner.week(target: ShoppingListTests.target(.recomposition))
-        let dinners = week.compactMap { $0.meals.first { $0.slot == .dinner }?.recipeID }
-        #expect(Set(dinners).count >= 4)
-        // Et pas sept : sept plats par semaine, c'est le panier impossible.
-        #expect(Set(dinners).count <= MealPlanner.distinctDaysPerWeek)
+    @Test("Chaque jour de la semaine a son propre dîner")
+    func theWeekNeverRepeatsADinner() {
+        // Sept dîners pour sept jours. Le panier tient quand même parce que
+        // le déjeuner reprend le dîner de la veille : chaque ingrédient est
+        // acheté pour deux portions, pas pour une.
+        for goal in PrimaryGoal.allCases {
+            let week = MealPlanner.week(target: ShoppingListTests.target(goal))
+            let dinners = week.compactMap { $0.meals.first { $0.slot == .dinner }?.recipeID }
+            let distinct = Set(dinners).count
+            #expect(
+                distinct == 7,
+                Comment(rawValue: "\(goal.rawValue) : \(distinct) dîners différents sur 7")
+            )
+        }
+    }
+
+    @Test("Deux semaines de suite ne servent pas le même menu")
+    func weeksRotate() {
+        // C'était le défaut le plus coûteux et le moins visible : `dayIndex`
+        // repartait de zéro tous les sept jours, donc la semaine deux
+        // resservait la semaine un, et la semaine dix aussi. Au bout d'un
+        // mois on avait mangé le même dîner quatre fois.
+        let target = ShoppingListTests.target(.hypertrophy)
+        let first = MealPlanner.week(target: target, weekIndex: 0)
+            .compactMap { $0.meals.first { $0.slot == .dinner }?.recipeID }
+        let second = MealPlanner.week(target: target, weekIndex: 1)
+            .compactMap { $0.meals.first { $0.slot == .dinner }?.recipeID }
+        let shared = Set(first).intersection(Set(second)).count
+        #expect(shared <= 2, Comment(rawValue: "\(shared) dîners repris à l'identique"))
+
+        // Et la même semaine redonne le même menu : un plan qui change à
+        // chaque ouverture n'est pas un plan.
+        let again = MealPlanner.week(target: target, weekIndex: 1)
+            .compactMap { $0.meals.first { $0.slot == .dinner }?.recipeID }
+        #expect(again == second)
+    }
+
+    @Test("Jamais le même féculent midi et soir")
+    func noStarchTwiceInADay() {
+        // Le déjeuner reprend le dîner de la veille : si deux dîners de
+        // suite portent le même féculent, la journée sert deux assiettes de
+        // riz. C'est ce qu'on voyait à l'écran.
+        for goal in PrimaryGoal.allCases {
+            let week = MealPlanner.week(target: ShoppingListTests.target(goal))
+            for day in week {
+                let starches = day.meals
+                    .filter { $0.slot == .lunch || $0.slot == .dinner }
+                    .compactMap { meal in
+                        meal.items.first { $0.food?.role == .carb }?.foodID
+                    }
+                let distinct = Set(starches).count
+                #expect(
+                    distinct == starches.count,
+                    Comment(rawValue: "\(goal.rawValue) jour \(day.dayIndex) : \(starches)")
+                )
+            }
+        }
     }
 
     @Test("Le petit-déjeuner ne se réinvente pas tous les matins")
