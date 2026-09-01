@@ -464,15 +464,48 @@ jobs:
           </plist>
           PLIST
 
-          xcodebuild -exportArchive \
-            -archivePath "$ARCHIVE" \
-            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
-            -exportPath "$EXPORT_DIR" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$RUNNER_TEMP/private_keys/AuthKey_${KEY_ID}.p8" \
-            -authenticationKeyID "$KEY_ID" \
-            -authenticationKeyIssuerID "$ISSUER_ID" \
-            2>&1 | tee "$GITHUB_WORKSPACE/build/xcodebuild-export.log" | $FORMATTER
+          # Le certificat de cette exécution vient de naître, et Apple ne le
+          # publie pas partout au même instant : l'API qui l'a créé le rend
+          # aussitôt, l'index que consulte la signature automatique de Xcode
+          # peut avoir quelques minutes de retard. Xcode ne dit alors pas
+          # « pas encore là » — il dit que le certificat « a été révoqué ou a
+          # expiré », ce qui envoie chercher au mauvais endroit. Le build 47
+          # est passé avec ce même délai de quatre minutes ; le 49 s'est fait
+          # refuser. Attendre est la seule réponse, et deux minutes de plus
+          # coûtent moins qu'une archive entière à refaire.
+          LOG="$GITHUB_WORKSPACE/build/xcodebuild-export.log"
+          for attempt in 1 2 3 4; do
+            set +e
+            xcodebuild -exportArchive \
+              -archivePath "$ARCHIVE" \
+              -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+              -exportPath "$EXPORT_DIR" \
+              -allowProvisioningUpdates \
+              -authenticationKeyPath "$RUNNER_TEMP/private_keys/AuthKey_${KEY_ID}.p8" \
+              -authenticationKeyID "$KEY_ID" \
+              -authenticationKeyIssuerID "$ISSUER_ID" \
+              2>&1 | tee "$LOG" | $FORMATTER
+            status=${PIPESTATUS[0]}
+            set -e
+
+            [ "$status" -eq 0 ] && break
+
+            # Comme à l'archivage : on n'insiste que sur cette cause-là. Un
+            # refus de validation ou une phrase d'autorisation manquante ne
+            # se répare pas en attendant.
+            if ! grep -q "Signing certificate is invalid" "$LOG"; then
+              echo "::error::L'envoi a échoué pour une autre raison que le certificat."
+              exit "$status"
+            fi
+            if [ "$attempt" -eq 4 ]; then
+              echo "::error::Quatre tentatives : Apple ne reconnaît toujours pas le certificat de cette exécution."
+              echo "Ce n'est plus un retard de publication. Il faudra poser les profils"
+              echo "nous-mêmes par l'API plutôt que de laisser Xcode les choisir."
+              exit "$status"
+            fi
+            echo "::notice::Certificat pas encore reconnu par Apple — nouvelle tentative dans 90 s."
+            sleep 90
+          done
 
       - name: Récupérer le journal de distribution
         if: failure()
