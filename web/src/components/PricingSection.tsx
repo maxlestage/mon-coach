@@ -11,7 +11,7 @@ const copy = {
     freeFeatures: [
       "Le questionnaire complet et ton profil",
       "Un premier bloc entier (5 à 6 semaines) : séances, charges autorégulées, décharge",
-      "Le mode guidé sur les soixante mouvements du catalogue",
+      "Le mode guidé sur les quatre-vingt-douze mouvements du catalogue",
       "Check-in du jour et séance ajustée à ta forme",
       "Cibles caloriques et macros, expliquées",
       "Enregistrement des séances, des sorties et des pesées, sans limite",
@@ -43,7 +43,7 @@ const copy = {
     freeFeatures: [
       "The full questionnaire and your profile",
       "A complete first block (5 to 6 weeks): sessions, autoregulated loads, deload",
-      "Guided mode on all sixty movements in the catalogue",
+      "Guided mode on all ninety-two movements in the catalogue",
       "Daily check-in and a session adjusted to your readiness",
       "Calorie and macro targets, explained",
       "Logging sessions, runs and weigh-ins, without limit",
@@ -75,7 +75,7 @@ const copy = {
     freeFeatures: [
       "El cuestionario completo y tu perfil",
       "Un primer bloque entero (5 a 6 semanas): sesiones, cargas autorreguladas, descarga",
-      "El modo guiado en los sesenta movimientos del catálogo",
+      "El modo guiado en los noventa y dos movimientos del catálogo",
       "Check-in del día y sesión ajustada a tu forma",
       "Objetivos de calorías y macros, explicados",
       "Registro de sesiones, rodajes y pesajes, sin límite",

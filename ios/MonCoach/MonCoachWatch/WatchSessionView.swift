@@ -1,5 +1,6 @@
 import Combine
 import SwiftUI
+import WatchKit
 import MonCoachKit
 
 /// La séance au poignet : une série à la fois, réglable à la couronne.
@@ -44,7 +45,21 @@ struct WatchSessionView: View {
             }
         }
         .onReceive(ticker) { _ in
-            if restRemaining > 0 { restRemaining -= 1 }
+            guard restRemaining > 0 else { return }
+            restRemaining -= 1
+            // Le poignet prévient quand le repos est fini.
+            //
+            // C'est tout l'intérêt d'un chrono à cette place : sans
+            // vibration, il faut regarder l'écran pour savoir qu'on peut
+            // repartir — et regarder sa montre toutes les dix secondes entre
+            // deux séries, c'est exactement ce qu'on venait éviter. Les
+            // trois dernières secondes préviennent doucement, la fin
+            // franchement.
+            switch restRemaining {
+            case 0: WKInterfaceDevice.current().play(.notification)
+            case 1...3: WKInterfaceDevice.current().play(.click)
+            default: break
+            }
         }
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {

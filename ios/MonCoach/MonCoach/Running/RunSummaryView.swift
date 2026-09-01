@@ -112,6 +112,7 @@ struct RunSummaryView: View {
                     }
 
                     manualDistanceCard
+                    traceQualityCard
                     highlightsCard
                     photosCard
 
@@ -257,6 +258,38 @@ struct RunSummaryView: View {
 
     /// Les distinctions du jour : records battus, segments améliorés,
     /// allure corrigée quand le terrain la justifie.
+
+    /// Ce que la trace a jeté, et pourquoi.
+    ///
+    /// Le site le promet, et jusqu'ici l'application se taisait : elle
+    /// comptait les points écartés sans jamais les dire. Une sortie courte
+    /// laissait alors croire à un coup de moins bien, ou à une application
+    /// qui compte mal — alors que la vraie raison était connue.
+    @ViewBuilder
+    private var traceQualityCard: some View {
+        if let note = TraceAnalysis.quality(of: run) {
+            Card(
+                title: LocalizedText(
+                    fr: "Ce que la trace a jeté",
+                    en: "What the trace discarded",
+                    es: "Lo que la traza descartó"
+                )[language],
+                subtitle: LocalizedText(
+                    fr: "\(note.rejectedTotal) point\(note.rejectedTotal > 1 ? "s" : "") sur la sortie",
+                    en: "\(note.rejectedTotal) point\(note.rejectedTotal > 1 ? "s" : "") on this activity",
+                    es: "\(note.rejectedTotal) punto\(note.rejectedTotal > 1 ? "s" : "") en esta salida"
+                )[language]
+            ) {
+                VStack(alignment: .leading, spacing: 8) {
+                    CoachText(note.headline, color: note.isSevere ? Theme.warning : Theme.primaryText)
+                    ForEach(note.reasons, id: \.self) { reason in
+                        CoachText(reason, font: .system(size: 12))
+                    }
+                }
+            }
+        }
+    }
+
     /// La distance de la machine, recopiée à la main.
     ///
     /// Facultative, et dite comme telle : personne n'est obligé de la
