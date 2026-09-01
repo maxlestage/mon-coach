@@ -10,6 +10,7 @@ struct ProfileView: View {
 
     @State private var showingEditor = false
     @State private var showingResetConfirmation = false
+    @State private var showingPaywall = false
     @State private var exportedURL: URL?
     /// Le type de matériel en cours d'ajout — c'est lui qui ouvre la boîte
     /// de saisie du nom. Nil quand rien ne s'ajoute.
@@ -27,6 +28,7 @@ struct ProfileView: View {
                         constraintsCard(profile)
                         preferencesCard(profile)
                         runningCard(profile)
+                        subscriptionCard
                         refusedFoodsCard
                         gearCard
                         dataCard
@@ -45,6 +47,7 @@ struct ProfileView: View {
                         .disabled(store.profile == nil)
                 }
             }
+            .sheet(isPresented: $showingPaywall) { PaywallView() }
             .sheet(isPresented: $showingEditor) {
                 if let profile = store.profile {
                     ProfileEditorView(profile: profile) { updated in
@@ -131,6 +134,45 @@ struct ProfileView: View {
                         ForEach(Array(profile.limitations).sorted { $0.rawValue < $1.rawValue }, id: \.self) {
                             Pill(text: $0.label[language], tint: Theme.warning)
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    /// L'état de l'abonnement, et la porte pour le prendre ou le gérer.
+    ///
+    /// Dans le profil et pas ailleurs : c'est là qu'on va chercher ce genre
+    /// de chose, et un écran qui vendrait depuis l'accueil tous les jours
+    /// finirait par ne plus être ouvert du tout.
+    @ViewBuilder
+    private var subscriptionCard: some View {
+        let status = store.subscription
+        let daysLeft = status.trialDaysLeft()
+        Card(
+            title: "Stride+",
+            subtitle: status.isSubscribed
+                ? "Abonnement actif. Merci — c'est ce qui paie le développement."
+                : daysLeft > 0
+                    ? "Essai en cours : \(daysLeft) jour\(daysLeft > 1 ? "s" : "") restant\(daysLeft > 1 ? "s" : ""). Tout est ouvert."
+                    : "Essai terminé. Ton historique, ton bloc en cours et tes repas continuent."
+        ) {
+            VStack(alignment: .leading, spacing: 10) {
+                if status.isSubscribed {
+                    Text(AlwaysFree.hostageClause[language])
+                        .font(.system(size: 12))
+                        .foregroundStyle(Theme.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                    // La résiliation passe par Apple : lui proposer un
+                    // chemin ailleurs serait l'envoyer dans le mur.
+                    Link(destination: URL(string: "https://apps.apple.com/account/subscriptions")!) {
+                        Text("Gérer l'abonnement")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(Theme.accent)
+                    }
+                } else {
+                    GhostButton(title: "Voir Stride+", systemImage: "sparkles") {
+                        showingPaywall = true
                     }
                 }
             }

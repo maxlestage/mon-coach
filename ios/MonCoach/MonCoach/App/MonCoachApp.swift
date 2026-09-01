@@ -5,11 +5,13 @@ import MonCoachKit
 @MainActor
 struct MonCoachApp: App {
     @State private var store = CoachStore()
+    @State private var plus = PlusStore()
 
     var body: some Scene {
         WindowGroup {
             RootView()
                 .environment(store)
+                .environment(plus)
                 .preferredColorScheme(.dark)
                 .task {
                     // Une Live Activity survit à l'application qui l'a
@@ -36,6 +38,21 @@ struct MonCoachApp: App {
                     // reprend celles des deux enregistrements.
                     store.mergeDuplicateActivities()
                     store.prunePhotos()
+
+                    // L'essai part à la première ouverture, jamais avant :
+                    // quatorze jours comptés depuis le moment où l'athlète
+                    // a réellement vu le produit.
+                    store.startTrialIfNeeded()
+
+                    // Puis on demande à l'App Store ce qu'il en est. C'est
+                    // lui qui décide, pas un fichier local : un droit
+                    // d'accès stocké sur l'appareil serait un droit qu'on
+                    // peut s'accorder soi-même.
+                    await plus.load()
+                    store.setSubscribed(plus.isSubscribed)
+                }
+                .onChange(of: plus.isSubscribed) { _, subscribed in
+                    store.setSubscribed(subscribed)
                 }
         }
     }

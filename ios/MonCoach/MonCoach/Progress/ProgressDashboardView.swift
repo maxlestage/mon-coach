@@ -33,7 +33,11 @@ struct ProgressDashboardView: View {
                     volumeCard
                     bodyWeightCard
                     strengthCard
-                    weeklyReviewCard
+                    if store.isUnlocked(.weeklyReview) {
+                        weeklyReviewCard
+                    } else {
+                        PlusLockedCard(feature: .weeklyReview)
+                    }
                 }
                 .padding(20)
             }

@@ -15,19 +15,28 @@ public struct PersistedState: Codable, Sendable {
     public var segments: [Segment]
     /// Les parcours préparés à l'avance.
     public var routes: [PlannedRoute]
+    /// Le jour de la première ouverture, qui fait courir l'essai.
+    ///
+    /// Gardé dans l'état plutôt que dans les réglages de l'appareil : c'est
+    /// une date qui engage, et elle doit voyager avec l'export comme le
+    /// reste. Absente des fichiers écrits avant l'abonnement — ceux-là
+    /// commencent leur essai à la première ouverture qui suit.
+    public var trialStartedAt: Date?
 
     public init(
         profile: UserProfile?,
         plan: Mesocycle?,
         history: TrainingHistory,
         segments: [Segment] = [],
-        routes: [PlannedRoute] = []
+        routes: [PlannedRoute] = [],
+        trialStartedAt: Date? = nil
     ) {
         self.profile = profile
         self.plan = plan
         self.history = history
         self.segments = segments
         self.routes = routes
+        self.trialStartedAt = trialStartedAt
     }
 
     /// Les segments sont arrivés après coup : un fichier écrit avant eux
@@ -40,6 +49,7 @@ public struct PersistedState: Codable, Sendable {
         history = try container.decode(TrainingHistory.self, forKey: .history)
         segments = try container.decodeIfPresent([Segment].self, forKey: .segments) ?? []
         routes = try container.decodeIfPresent([PlannedRoute].self, forKey: .routes) ?? []
+        trialStartedAt = try container.decodeIfPresent(Date.self, forKey: .trialStartedAt)
     }
 
     public static let empty = PersistedState(profile: nil, plan: nil, history: .empty)
@@ -69,6 +79,14 @@ public final class CoachStore {
     /// training log silently is the one thing this app must not do.
     public private(set) var saveError: LocalizedText?
 
+    /// Le jour de la première ouverture. Voir `startTrialIfNeeded`.
+    public private(set) var trialStartedAt: Date?
+    /// Ce que l'App Store a constaté au dernier passage. Jamais persisté :
+    /// un droit d'accès qu'on garderait sur le disque serait un droit qu'on
+    /// pourrait s'accorder soi-même, et il se relit de toute façon en une
+    /// fraction de seconde au lancement.
+    public private(set) var isSubscribed = false
+
     private let storage: StateStorage
     /// Les photos des sorties, en fichiers à côté de l'état.
     public let photos: PhotoStore
@@ -85,6 +103,40 @@ public final class CoachStore {
         history = state.history
         segments = state.segments
         routes = state.routes
+        trialStartedAt = state.trialStartedAt
+    }
+
+    /// Fait courir l'essai à partir d'aujourd'hui, une seule fois.
+    ///
+    /// Appelé au lancement. La date n'est jamais réécrite : réinstaller
+    /// l'application ne redonne pas quatorze jours, et une horloge avancée
+    /// puis remise à l'heure ne les reprend pas non plus.
+    @discardableResult
+    public func startTrialIfNeeded(on date: Date = Date()) -> Date {
+        if let trialStartedAt { return trialStartedAt }
+        trialStartedAt = date
+        save()
+        return date
+    }
+
+    /// Enregistre ce que l'App Store dit de l'abonnement.
+    ///
+    /// Le magasin ne décide de rien : il constate. L'entitlement vient de
+    /// StoreKit, qui vit dans l'application parce qu'il n'existe pas
+    /// ailleurs, et il est simplement déposé ici pour que tous les écrans
+    /// lisent la même réponse.
+    public func setSubscribed(_ subscribed: Bool) {
+        isSubscribed = subscribed
+    }
+
+    /// L'état d'accès, tel que les écrans doivent le lire.
+    public var subscription: SubscriptionStatus {
+        SubscriptionStatus(trialStartedAt: trialStartedAt, isSubscribed: isSubscribed)
+    }
+
+    /// Cette fonctionnalité est-elle ouverte aujourd'hui ?
+    public func isUnlocked(_ feature: PlusFeature, on date: Date = Date()) -> Bool {
+        subscription.isUnlocked(feature, on: date)
     }
 
     // MARK: - Derived state
@@ -651,13 +703,23 @@ public final class CoachStore {
 
     /// Ends the current block and builds the next one from what the last week
     /// actually showed.
-    public func startNextBlock(on date: Date = Date()) {
-        guard let program, let weekIndex = currentWeekIndex(on: date) ?? plan?.weekCount else { return }
+    /// Rend `false` quand le bloc suivant demande un abonnement.
+    ///
+    /// Le bloc en cours n'est jamais interrompu : c'est le suivant qui
+    /// attend. Laisser quelqu'un au milieu d'un bloc sans ses séances
+    /// serait lui retirer un entraînement déjà commencé, ce qu'aucune
+    /// frontière commerciale ne justifie.
+    @discardableResult
+    public func startNextBlock(on date: Date = Date()) -> Bool {
+        guard isUnlocked(.nextBlocks, on: date) else { return false }
+        guard let program, let weekIndex = currentWeekIndex(on: date) ?? plan?.weekCount
+        else { return false }
         let review = CoachEngine.weeklyReview(program: program, history: history, weekIndex: weekIndex)
         let next = CoachEngine.nextBlock(after: program, review: review, startingOn: date)
         profile = next.profile
         plan = next.plan
         save()
+        return true
     }
 
     public func resetEverything() {
@@ -675,7 +737,8 @@ public final class CoachStore {
 
     private func save() {
         let state = PersistedState(
-            profile: profile, plan: plan, history: history, segments: segments, routes: routes
+            profile: profile, plan: plan, history: history, segments: segments, routes: routes,
+            trialStartedAt: trialStartedAt
         )
         do {
             try storage.save(state)
@@ -693,7 +756,8 @@ public final class CoachStore {
     public func exportJSON() throws -> Data {
         try StateStorage.encoder.encode(
             PersistedState(
-                profile: profile, plan: plan, history: history, segments: segments, routes: routes
+                profile: profile, plan: plan, history: history, segments: segments, routes: routes,
+                trialStartedAt: trialStartedAt
             )
         )
     }

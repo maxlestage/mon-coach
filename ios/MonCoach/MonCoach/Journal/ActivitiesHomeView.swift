@@ -30,11 +30,27 @@ struct ActivitiesHomeView: View {
                 .padding(.horizontal, 16)
                 .padding(.bottom, 4)
 
+                // Le journal reste ouvert quoi qu'il arrive : enregistrer
+                // ce qu'on fait et le relire ne se monnaie pas. C'est le
+                // plan qui prescrit et les courbes qui analysent qui
+                // demandent Stride+.
                 switch pane {
                 case .plan where runs:
-                    RunPlanView(embedded: true)
+                    if store.isUnlocked(.runningPlan) {
+                        RunPlanView(embedded: true)
+                    } else {
+                        ScrollView {
+                            PlusLockedCard(feature: .runningPlan).padding(16)
+                        }
+                    }
                 case .stats:
-                    StatsView()
+                    if store.isUnlocked(.progressCurves) {
+                        StatsView()
+                    } else {
+                        ScrollView {
+                            PlusLockedCard(feature: .progressCurves).padding(16)
+                        }
+                    }
                 default:
                     JournalView()
                 }

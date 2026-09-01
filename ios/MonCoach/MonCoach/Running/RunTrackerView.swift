@@ -413,10 +413,14 @@ struct RunTrackerView: View {
                     sport: plannedRun == nil ? selectedSport : .run,
                     type: selectedSport.feedsRunningPlan ? selectedType : .easy
                 )
-                liveActivity.start(
-                    id: UUID(),
-                    snapshot: tracker.activitySnapshot(unit: unit, language: language)
-                )
+                // L'écran verrouillé fait partie de Stride+ ; la mesure
+                // de la sortie, non — elle tourne à l'identique sans.
+                if store.isUnlocked(.liveActivities) {
+                    liveActivity.start(
+                        id: UUID(),
+                        snapshot: tracker.activitySnapshot(unit: unit, language: language)
+                    )
+                }
             }
 
             // La carte avant le départ : voir le point bleu se poser sur la

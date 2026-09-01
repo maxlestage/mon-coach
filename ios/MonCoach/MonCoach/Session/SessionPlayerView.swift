@@ -81,7 +81,12 @@ struct SessionPlayerView: View {
             if restRemaining > 0 { restRemaining -= 1 }
         }
         .onAppear {
-            if let active { liveActivity.start(for: active, unit: unit, language: language) }
+            // L'écran verrouillé fait partie de Stride+. La séance, elle,
+            // se déroule exactement pareil sans : c'est un confort qu'on
+            // retire, jamais l'entraînement.
+            if let active, store.isUnlocked(.liveActivities) {
+                liveActivity.start(for: active, unit: unit, language: language)
+            }
         }
         .onDisappear {
             // Séance terminée ou lecteur fermé : l'écran verrouillé ne doit

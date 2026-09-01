@@ -3,14 +3,14 @@ import { useCopy } from "../i18n/language.tsx";
 const copy = {
   fr: {
     eyebrow: "Tarifs",
-    title: "Le premier bloc est complet, et gratuit",
-    lede: "Pas de démo bridée : la formule gratuite est le vrai coach, pendant tout un bloc d'entraînement. Stride+ débloque la suite — la continuité, le poignet, l'écran verrouillé. Et tes données ne sont jamais un otage : l'historique et l'export restent gratuits, pour toujours.",
-    freeName: "Gratuit",
-    freePrice: "0 €",
-    freePeriod: "pour toujours",
+    title: "Quatorze jours, tout ouvert",
+    lede: "Pas de démo bridée : pendant deux semaines, tu as le produit entier, sans carte à donner et sans rien à demander. Ensuite, Stride+ garde la continuité, le poignet et l'écran verrouillé — et un socle reste gratuit à vie, dont ton bloc en cours. Tes données ne sont jamais un otage : l'historique et l'export restent gratuits, y compris le jour où tu arrêtes de payer.",
+    freeName: "Essai puis gratuit",
+    freePrice: "14 jours",
+    freePeriod: "puis un socle gratuit à vie",
     freeFeatures: [
-      "Le questionnaire complet et ton profil",
-      "Un premier bloc entier (5 à 6 semaines) : séances, charges autorégulées, décharge",
+      "Ensuite et pour toujours : le questionnaire, ton profil et ton bloc en cours jusqu'à sa dernière séance",
+      "Quatorze jours avec absolument tout, sans carte bancaire",
       "Le mode guidé sur les quatre-vingt-douze mouvements du catalogue",
       "Check-in du jour et séance ajustée à ta forme",
       "Cibles caloriques et macros, expliquées",
@@ -35,14 +35,14 @@ const copy = {
   },
   en: {
     eyebrow: "Pricing",
-    title: "The first block is complete, and free",
-    lede: "No crippled demo: the free tier is the real coach, for a whole training block. Stride+ unlocks what comes next — continuity, the wrist, the lock screen. And your data is never a hostage: history and export stay free, forever.",
-    freeName: "Free",
-    freePrice: "€0",
-    freePeriod: "forever",
+    title: "Fourteen days, everything open",
+    lede: "No crippled demo: for two weeks you get the whole product, with no card to hand over and nothing to ask for. After that, Stride+ keeps continuity, the wrist and the lock screen — and a floor stays free for life, including the block you are in. Your data is never a hostage: history and export stay free, including the day you stop paying.",
+    freeName: "Trial, then free",
+    freePrice: "14 days",
+    freePeriod: "then a free floor for life",
     freeFeatures: [
-      "The full questionnaire and your profile",
-      "A complete first block (5 to 6 weeks): sessions, autoregulated loads, deload",
+      "Then and forever: the questionnaire, your profile and your current block down to its last session",
+      "Fourteen days with absolutely everything, no credit card",
       "Guided mode on all ninety-two movements in the catalogue",
       "Daily check-in and a session adjusted to your readiness",
       "Calorie and macro targets, explained",
@@ -67,14 +67,14 @@ const copy = {
   },
   es: {
     eyebrow: "Precios",
-    title: "El primer bloque es completo, y gratuito",
-    lede: "Nada de demos recortadas: el plan gratuito es el entrenador de verdad, durante un bloque entero. Stride+ desbloquea lo que viene después: la continuidad, la muñeca, la pantalla bloqueada. Y tus datos nunca son un rehén: el historial y la exportación siguen siendo gratis, para siempre.",
-    freeName: "Gratis",
-    freePrice: "0 €",
-    freePeriod: "para siempre",
+    title: "Catorce días, todo abierto",
+    lede: "Nada de demos recortadas: durante dos semanas tienes el producto entero, sin tarjeta y sin pedir nada. Después, Stride+ mantiene la continuidad, la muñeca y la pantalla bloqueada, y queda una base gratis de por vida, incluido el bloque que estás haciendo. Tus datos nunca son un rehén: el historial y la exportación siguen siendo gratis, incluso el día que dejes de pagar.",
+    freeName: "Prueba y luego gratis",
+    freePrice: "14 días",
+    freePeriod: "y luego una base gratis de por vida",
     freeFeatures: [
-      "El cuestionario completo y tu perfil",
-      "Un primer bloque entero (5 a 6 semanas): sesiones, cargas autorreguladas, descarga",
+      "Después y para siempre: el cuestionario, tu perfil y tu bloque actual hasta su última sesión",
+      "Catorce días con absolutamente todo, sin tarjeta",
       "El modo guiado en los noventa y dos movimientos del catálogo",
       "Check-in del día y sesión ajustada a tu forma",
       "Objetivos de calorías y macros, explicados",
@@ -102,10 +102,12 @@ const copy = {
 /**
  * La section tarifs : le modèle freemium, énoncé sans détour.
  *
- * Le principe est documenté dans docs/MODELE-ECONOMIQUE.md : le premier bloc
- * complet est gratuit — un vrai coach pendant cinq semaines, pas une démo —
- * et Stride+ débloque la continuité. Les données restent gratuites à vie,
- * parce qu'un export payant contredirait tout ce que la page promet.
+ * Quatorze jours avec le produit entier, sans carte bancaire : c'est assez
+ * long pour deux semaines pleines d'entraînement, donc pour juger sur pièces
+ * plutôt que sur une démonstration amputée. Ensuite Stride+ garde la
+ * continuité, et un socle reste gratuit à vie — dont le bloc en cours, qui
+ * n'est jamais interrompu au milieu. Les données restent gratuites quoi qu'il
+ * arrive, parce qu'un export payant contredirait tout ce que la page promet.
  */
 export function PricingSection() {
   const t = useCopy(copy);
