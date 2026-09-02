@@ -225,16 +225,16 @@ struct ProgressBar: View {
         }
         .onTabSelected {
             guard filled, !reduceMotion else { return }
-            Motion.replay { filled = false } then: { fill() }
+            Motion.replay { filled = false } then: { fill(after: Motion.splashHold) }
         }
         .animation(reduceMotion ? nil : Motion.settle, value: fraction)
     }
 
-    private func fill() {
+    private func fill(after lead: Double = 0) {
         if reduceMotion {
             filled = true
         } else {
-            withAnimation(Motion.settle.delay(0.1)) { filled = true }
+            withAnimation(Motion.settle.delay(lead + 0.1)) { filled = true }
         }
     }
 }
