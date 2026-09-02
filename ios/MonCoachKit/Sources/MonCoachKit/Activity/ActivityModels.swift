@@ -96,6 +96,13 @@ public struct ActivityLog: Codable, Sendable, Equatable, Identifiable {
     public var bestEfforts: [BestEffort]?
     /// Les battements mesurés pendant la sortie, si un capteur était là.
     public var heartRate: [HeartRateSample]
+    /// La dépense active mesurée par la montre, en kilocalories.
+    ///
+    /// Nil pour une sortie enregistrée au téléphone ou avant que la montre
+    /// la mesure : le moteur l'estime alors d'après la distance et le
+    /// dénivelé. Quand elle est là, c'est elle qui compte — une mesure au
+    /// poignet, cardio compris, vaut mieux qu'un modèle au kilomètre.
+    public var kilocalories: Double?
     /// Effort ressenti, 1 à 10, saisi après la sortie.
     public var perceivedEffort: Int?
     public var note: String?
@@ -122,6 +129,7 @@ public struct ActivityLog: Codable, Sendable, Equatable, Identifiable {
         splits: [Split] = [],
         bestEfforts: [BestEffort]? = nil,
         heartRate: [HeartRateSample] = [],
+        kilocalories: Double? = nil,
         perceivedEffort: Int? = nil,
         note: String? = nil,
         gearID: UUID? = nil,
@@ -139,6 +147,7 @@ public struct ActivityLog: Codable, Sendable, Equatable, Identifiable {
         self.splits = splits
         self.bestEfforts = bestEfforts
         self.heartRate = heartRate
+        self.kilocalories = kilocalories
         self.perceivedEffort = perceivedEffort
         self.note = note
         self.gearID = gearID

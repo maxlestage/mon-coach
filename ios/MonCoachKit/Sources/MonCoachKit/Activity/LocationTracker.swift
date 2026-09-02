@@ -288,9 +288,18 @@ public final class LocationTracker: NSObject {
         // Et seulement si l'application a le droit de le demander. Sans la
         // déclaration, mieux vaut une sortie qui s'arrête quand l'écran
         // s'éteint qu'une application qui meurt quand on appuie sur Démarrer.
+        #if os(watchOS)
+        // Sur la montre, il n'y a pas de mode d'arrière-plan « location » à
+        // déclarer : c'est la session d'entraînement HealthKit, ouverte par
+        // l'application avant d'appeler ici, qui donne le droit de
+        // continuer écran éteint. Sans elle, ce réglage ne fait rien — et
+        // avec elle, il est indispensable.
+        manager.allowsBackgroundLocationUpdates = true
+        #else
         if Self.declaresBackgroundLocation {
             manager.allowsBackgroundLocationUpdates = true
         }
+        #endif
         manager.startUpdatingLocation()
     }
 

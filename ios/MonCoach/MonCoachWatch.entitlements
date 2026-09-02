@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  La capacité HealthKit de l'application montre. Sans elle, HKHealthStore
+  refuse toute demande d'autorisation — silencieusement — et ni la session
+  d'entraînement ni le capteur cardiaque ne démarrent. C'est exactement ce
+  qui rendait la montre muette : le code demandait, l'entitlement manquait.
+
+  Le fichier vit à la racine du projet et non dans le dossier synchronisé de
+  la cible, pour que Xcode ne le prenne pas pour une ressource à copier.
+-->
+<plist version="1.0">
+<dict>
+	<key>com.apple.developer.healthkit</key>
+	<true/>
+	<key>com.apple.developer.healthkit.access</key>
+	<array/>
+</dict>
+</plist>

@@ -93,6 +93,27 @@ struct WatchTodayView: View {
             .frame(width: 44, height: 44)
         }
 
+        // Une sortie quittée d'un glissement continue — la session
+        // d'entraînement et le GPS vivent dans le magasin, pas dans
+        // l'écran. On la montre ici pour qu'on puisse y revenir.
+        if store.activityInProgress {
+            Button {
+                showsRun = true
+            } label: {
+                VStack(alignment: .leading, spacing: 4) {
+                    Label(WatchUI.activityInProgress[language], systemImage: store.tracker.sport.symbolName)
+                        .font(.system(.body, design: .rounded, weight: .semibold))
+                    Text(WatchUI.resumeActivity[language])
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(.orange.opacity(0.20), in: RoundedRectangle(cornerRadius: 12))
+            }
+            .buttonStyle(.plain)
+        }
+
         if store.activeSession != nil {
             Button {
                 showsSession = true
