@@ -668,19 +668,31 @@ struct FlowSelection<Item: Hashable>: View {
 
 /// One optional 1RM entry.
 struct OneRepMaxRow: View {
+    @Environment(\.language) private var language
     var name: String
     var unit: UnitSystem
     @Binding var valueKg: Double
 
     var body: some View {
-        HStack {
+        // Un nom d'exercice, une valeur et un pas-à-pas de largeur fixe :
+        // sans bride, les trois ensemble réclament plus que la carte, et
+        // une ligne trop large fait partir tout l'écran sur le côté.
+        HStack(spacing: 8) {
             Text(name)
                 .font(.system(size: 15, weight: .medium))
                 .foregroundStyle(Theme.primaryText)
-            Spacer()
-            Text(valueKg > 0 ? Format.weight(valueKg, unit: unit, decimals: 0) : "Je ne sais pas")
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+            Spacer(minLength: 4)
+            Text(
+                valueKg > 0
+                    ? Format.weight(valueKg, unit: unit, decimals: 0)
+                    : LocalizedText(fr: "Je ne sais pas", en: "I don't know", es: "No lo sé")[language]
+            )
                 .font(.system(size: 15, weight: .semibold, design: .rounded))
                 .foregroundStyle(valueKg > 0 ? Theme.accent : Theme.secondaryText)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
             Stepper("") {
                 valueKg = min(400, valueKg + 5)
             } onDecrement: {

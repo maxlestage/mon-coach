@@ -69,17 +69,21 @@ struct RootView: View {
                 .onChange(of: section) { _, now in
                     present(now)
                 }
-                .overlay {
-                    if let splash {
-                        SectionSplashView(section: splash) { dismissSplash() }
-                            .transition(.opacity)
-                            .zIndex(2)
-                    }
-                }
             } else {
                 OnboardingView { profile in
                     store.completeOnboarding(with: profile)
                 }
+            }
+        }
+        // La fiche d'onglet est posée par-dessus toute l'application, et
+        // non en surcouche de la barre d'onglets : la barre héberge sa
+        // propre navigation — le menu « Autre » pousse ses écrans dans une
+        // pile à elle — et lui greffer une surcouche revenait à se mêler
+        // d'une hiérarchie qui n'est pas la nôtre.
+        .overlay {
+            if let splash {
+                SectionSplashView(section: splash) { dismissSplash() }
+                    .transition(.opacity)
             }
         }
         // Toute l'interface est rendue dans la langue du magasin : changer

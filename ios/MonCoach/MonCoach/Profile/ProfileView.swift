@@ -157,7 +157,7 @@ struct ProfileView: View {
             LabeledRow(label: LocalizedText(fr: "Objectif", en: "Goal", es: "Objetivo")[language], value: profile.goal.label[language])
             LabeledRow(label: LocalizedText(fr: "Niveau", en: "Level", es: "Nivel")[language], value: profile.experience.label[language])
             LabeledRow(label: LocalizedText(fr: "Fréquence", en: "Frequency", es: "Frecuencia")[language], value: LocalizedText(fr: "\(profile.daysPerWeek) séances / semaine", en: "\(profile.daysPerWeek) sessions / week", es: "\(profile.daysPerWeek) sesiones / semana")[language])
-            LabeledRow(label: "Durée", value: Format.duration(minutes: profile.sessionMinutes))
+            LabeledRow(label: LocalizedText(fr: "Durée", en: "Duration", es: "Duración")[language], value: Format.duration(minutes: profile.sessionMinutes))
             LabeledRow(label: LocalizedText(fr: "Incrément", en: "Increment", es: "Incremento")[language], value: profile.loadIncrement.label[language])
             LabeledRow(label: LocalizedText(fr: "Sommeil", en: "Sleep", es: "Sueño")[language], value: "\(Format.number(profile.averageSleepHours, decimals: 1)) h")
             LabeledRow(label: LocalizedText(fr: "Activité", en: "Activity", es: "Actividad")[language], value: profile.activityLevel.label[language])
@@ -698,20 +698,38 @@ struct SettingRow<Control: View>: View {
     }
 }
 
+/// Un libellé à gauche, sa valeur à droite.
+///
+/// Les deux textes sont bridés, et c'est le fond du problème qu'ils ont
+/// causé : une ligne qui réclame plus large que la carte rend toute la
+/// vue défilable horizontalement, et l'écran entier part alors sur le
+/// côté — les titres et les libellés sortent par la gauche pendant que
+/// les valeurs restent visibles à droite. Une seule ligne trop longue
+/// suffit ; ici c'était « Sédentaire (bureau, peu de marche) ».
+///
+/// Le libellé garde donc la priorité et tient sur une ligne ; la valeur
+/// se replie sur deux lignes plutôt que de pousser, et rétrécit un peu
+/// avant de se couper.
 struct LabeledRow: View {
     var label: String
     var value: String
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline) {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
             Text(label)
                 .font(Theme.captionFont)
                 .foregroundStyle(Theme.secondaryText)
-            Spacer(minLength: 12)
+                .lineLimit(1)
+                .layoutPriority(1)
+            Spacer(minLength: 8)
             Text(value)
                 .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(Theme.primaryText)
                 .multilineTextAlignment(.trailing)
+                .lineLimit(2)
+                .minimumScaleFactor(0.8)
+                .fixedSize(horizontal: false, vertical: true)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
