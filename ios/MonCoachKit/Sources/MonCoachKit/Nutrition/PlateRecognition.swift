@@ -240,6 +240,11 @@ extension PlateVision {
     /// faut deux assiettes d'accord pour qu'elle parle — une seule fois ne
     /// fait pas une habitude, et se tromper de portion coûte plus cher que
     /// de ne rien proposer.
+    /// Le poids de l'a priori du plan : 20 % de mieux pour un aliment
+    /// attendu. Assez pour départager deux notes proches, pas assez pour
+    /// renverser une reconnaissance nette.
+    public static let planPrior: Double = 1.2
+
     public static func preferredPortion(
         for foodID: String,
         in plates: [PlateEstimate],
@@ -280,6 +285,7 @@ extension PlateVision {
         excluding excluded: Set<String> = [],
         corrections: [String: String] = [:],
         history: [PlateEstimate] = [],
+        expected: Set<String> = [],
         limit: Int = maximumItems
     ) -> PlateAnalysis {
         // Une étiquette peut revenir dans plusieurs zones : on la garde une
@@ -335,7 +341,15 @@ extension PlateVision {
             // même chose renforcent la même conviction.
             let agreement: Double = Double(entry.labels + entry.regions.count - 1)
             let boosted: Double = entry.confidence * (1 + 0.3 * (agreement - 1))
-            ranked.append(FusedFood(foodID: foodID, confidence: min(1, boosted), rank: entry.rank))
+            // Le plan du jour comme a priori. Ce qui est dans l'assiette est
+            // le plus souvent ce que le plan a prescrit ce jour-là ; quand le
+            // classificateur hésite entre deux aliments, celui que le plan
+            // attendait passe devant. Un a priori, pas une certitude : il ne
+            // fait jamais apparaître un aliment que personne n'a vu, et il
+            // ne suffit pas à faire passer un aliment vu de loin devant un
+            // aliment vu nettement.
+            let prior: Double = expected.contains(foodID) ? planPrior : 1
+            ranked.append(FusedFood(foodID: foodID, confidence: min(1, boosted * prior), rank: entry.rank))
         }
         ranked.sort { left, right in
             left.confidence == right.confidence

@@ -11,19 +11,19 @@ struct OnboardingView: View {
     enum Step: Int, CaseIterable {
         case welcome, identity, body, experience, goal, availability, equipment, limitations, lifestyle, baselines, summary
 
-        var title: String {
+        var title: LocalizedText {
             switch self {
-            case .welcome: "Bienvenue"
-            case .identity: "Toi"
-            case .body: "Ton corps"
-            case .experience: "Ton expérience"
-            case .goal: "Ton objectif"
-            case .availability: "Ta disponibilité"
-            case .equipment: "Ton matériel"
-            case .limitations: "Tes limites"
-            case .lifestyle: "Ton quotidien"
-            case .baselines: "Tes charges"
-            case .summary: "Ton programme"
+            case .welcome: LocalizedText(fr: "Bienvenue", en: "Welcome", es: "Bienvenido")
+            case .identity: LocalizedText(fr: "Toi", en: "You", es: "Tú")
+            case .body: LocalizedText(fr: "Ton corps", en: "Your body", es: "Tu cuerpo")
+            case .experience: LocalizedText(fr: "Ton expérience", en: "Your experience", es: "Tu experiencia")
+            case .goal: LocalizedText(fr: "Ton objectif", en: "Your goal", es: "Tu objetivo")
+            case .availability: LocalizedText(fr: "Ta disponibilité", en: "Your availability", es: "Tu disponibilidad")
+            case .equipment: LocalizedText(fr: "Ton matériel", en: "Your equipment", es: "Tu material")
+            case .limitations: LocalizedText(fr: "Tes limites", en: "Your limits", es: "Tus límites")
+            case .lifestyle: LocalizedText(fr: "Ton quotidien", en: "Your daily life", es: "Tu día a día")
+            case .baselines: LocalizedText(fr: "Tes charges", en: "Your loads", es: "Tus cargas")
+            case .summary: LocalizedText(fr: "Ton programme", en: "Your programme", es: "Tu programa")
             }
         }
     }
@@ -53,7 +53,7 @@ struct OnboardingView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text(step.title)
+                Text(step.title[language])
                     .font(Theme.titleFont)
                     .foregroundStyle(Theme.primaryText)
                 Spacer()
@@ -84,13 +84,13 @@ struct OnboardingView: View {
             }
 
             if step == .summary {
-                PrimaryButton(title: "Lancer mon programme", systemImage: "bolt.fill") {
+                PrimaryButton(title: LocalizedText(fr: "Lancer mon programme", en: "Start my programme", es: "Lanzar mi programa")[language], systemImage: "bolt.fill") {
                     onFinish(draft.makeProfile())
                 }
                 .disabled(!draft.isValid)
                 .opacity(draft.isValid ? 1 : 0.5)
             } else {
-                PrimaryButton(title: step == .welcome ? "Commencer" : "Continuer") {
+                PrimaryButton(title: step == .welcome ? LocalizedText(fr: "Commencer", en: "Get started", es: "Empezar")[language] : LocalizedText(fr: "Continuer", en: "Continue", es: "Continuar")[language]) {
                     move(1)
                 }
                 .disabled(!canAdvance)
@@ -137,21 +137,21 @@ struct OnboardingView: View {
 
     private var welcomeStep: some View {
         VStack(alignment: .leading, spacing: 18) {
-            Text("Un coach, pas un carnet de notes.")
+            Text(LocalizedText(fr: "Un coach, pas un carnet de notes.", en: "A coach, not a notebook.", es: "Un entrenador, no un cuaderno.")[language])
                 .font(.system(size: 32, weight: .bold, design: .rounded))
                 .foregroundStyle(Theme.primaryText)
-            Text("Une dizaine de questions, puis un programme construit pour toi : le bon nombre de séries, les bons exercices avec ton matériel, et des charges qui s'ajustent séance après séance en fonction de ce que tu fais réellement.")
+            Text(LocalizedText(fr: "Une dizaine de questions, puis un programme construit pour toi : le bon nombre de séries, les bons exercices avec ton matériel, et des charges qui s'ajustent séance après séance en fonction de ce que tu fais réellement.", en: "About ten questions, then a programme built for you: the right number of sets, the right exercises with your equipment, and loads that adjust session after session from what you actually do.", es: "Una decena de preguntas y luego un programa construido para ti: el número justo de series, los ejercicios adecuados con tu material, y cargas que se ajustan sesión tras sesión según lo que realmente haces.")[language])
                 .font(.system(size: 16))
                 .foregroundStyle(Theme.secondaryText)
 
             VStack(alignment: .leading, spacing: 12) {
-                promise(icon: "person.fill.checkmark", text: "Chaque réponse change quelque chose de concret dans ton plan. Aucune n'est là pour faire joli.")
-                promise(icon: "wifi.slash", text: "Tout est calculé sur ton téléphone. Rien ne part sur un serveur, aucun compte à créer.")
-                promise(icon: "arrow.triangle.2.circlepath", text: "Le programme se réécrit chaque semaine à partir de tes séances réelles.")
+                promise(icon: "person.fill.checkmark", text: LocalizedText(fr: "Chaque réponse change quelque chose de concret dans ton plan. Aucune n'est là pour faire joli.", en: "Every answer changes something concrete in your plan. None is there for show.", es: "Cada respuesta cambia algo concreto en tu plan. Ninguna está de adorno.")[language])
+                promise(icon: "wifi.slash", text: LocalizedText(fr: "Tout est calculé sur ton téléphone. Rien ne part sur un serveur, aucun compte à créer.", en: "Everything is computed on your phone. Nothing goes to a server, no account to create.", es: "Todo se calcula en tu teléfono. Nada va a un servidor, sin cuenta que crear.")[language])
+                promise(icon: "arrow.triangle.2.circlepath", text: LocalizedText(fr: "Le programme se réécrit chaque semaine à partir de tes séances réelles.", en: "The programme rewrites itself every week from your real sessions.", es: "El programa se reescribe cada semana a partir de tus sesiones reales.")[language])
             }
             .padding(.top, 6)
 
-            Text("Conçu et développé par Maxime Nathan Lestage")
+            Text(LocalizedText(fr: "Conçu et développé par Maxime Nathan Lestage", en: "Designed and developed by Maxime Nathan Lestage", es: "Diseñado y desarrollado por Maxime Nathan Lestage")[language])
                 .font(Theme.captionFont)
                 .foregroundStyle(Theme.secondaryText)
                 .padding(.top, 10)
@@ -173,21 +173,21 @@ struct OnboardingView: View {
 
     private var identityStep: some View {
         VStack(spacing: Theme.stackSpacing) {
-            Card(title: "Comment tu t'appelles ?") {
-                TextField("Prénom", text: $draft.firstName)
+            Card(title: LocalizedText(fr: "Comment tu t'appelles ?", en: "What's your name?", es: "¿Cómo te llamas?")[language]) {
+                TextField(LocalizedText(fr: "Prénom", en: "First name", es: "Nombre")[language], text: $draft.firstName)
                     .textFieldStyle(.plain)
                     .font(.system(size: 20, weight: .semibold, design: .rounded))
                     .foregroundStyle(Theme.primaryText)
                     .padding(12)
                     .background(Theme.surfaceRaised, in: RoundedRectangle(cornerRadius: 12))
             }
-            Card(title: "Date de naissance", subtitle: "L'âge entre dans le calcul du métabolisme et dans la vitesse de récupération attendue.") {
+            Card(title: LocalizedText(fr: "Date de naissance", en: "Date of birth", es: "Fecha de nacimiento")[language], subtitle: LocalizedText(fr: "L'âge entre dans le calcul du métabolisme et dans la vitesse de récupération attendue.", en: "Age goes into the metabolism calculation and the expected recovery speed.", es: "La edad entra en el cálculo del metabolismo y en la velocidad de recuperación esperada.")[language]) {
                 DatePicker("", selection: $draft.birthDate, in: ...Date(), displayedComponents: .date)
                     .datePickerStyle(.compact)
                     .labelsHidden()
                     .tint(Theme.accent)
             }
-            Card(title: "Sexe", subtitle: "Utilisé uniquement là où les formules en ont besoin : métabolisme de base, masse maigre estimée, repères de force.") {
+            Card(title: LocalizedText(fr: "Sexe", en: "Sex", es: "Sexo")[language], subtitle: LocalizedText(fr: "Utilisé uniquement là où les formules en ont besoin : métabolisme de base, masse maigre estimée, repères de force.", en: "Used only where the formulas need it: basal metabolism, estimated lean mass, strength benchmarks.", es: "Se usa solo donde las fórmulas lo necesitan: metabolismo basal, masa magra estimada, referencias de fuerza.")[language]) {
                 Picker("", selection: $draft.sex) {
                     ForEach(Sex.allCases, id: \.self) { Text($0.label[language]).tag($0) }
                 }
@@ -198,13 +198,13 @@ struct OnboardingView: View {
 
     private var bodyStep: some View {
         VStack(spacing: Theme.stackSpacing) {
-            Card(title: "Unités") {
+            Card(title: LocalizedText(fr: "Unités", en: "Units", es: "Unidades")[language]) {
                 Picker("", selection: $draft.unit) {
                     ForEach(UnitSystem.allCases, id: \.self) { Text($0.label[language]).tag($0) }
                 }
                 .pickerStyle(.segmented)
             }
-            Card(title: "Taille") {
+            Card(title: LocalizedText(fr: "Taille", en: "Height", es: "Estatura")[language]) {
                 SliderRow(
                     value: $draft.heightCm,
                     range: 130...220,
@@ -212,7 +212,7 @@ struct OnboardingView: View {
                     display: Format.height(draft.heightCm, unit: draft.unit)
                 )
             }
-            Card(title: "Poids actuel", subtitle: "Base de tes calories, de tes protéines et des charges de départ.") {
+            Card(title: LocalizedText(fr: "Poids actuel", en: "Current weight", es: "Peso actual")[language], subtitle: LocalizedText(fr: "Base de tes calories, de tes protéines et des charges de départ.", en: "The basis of your calories, your protein and your starting loads.", es: "Base de tus calorías, tus proteínas y tus cargas de partida.")[language]) {
                 SliderRow(
                     value: $draft.weightKg,
                     range: 35...200,
@@ -221,10 +221,10 @@ struct OnboardingView: View {
                 )
             }
             Card(
-                title: "Taux de masse grasse",
-                subtitle: "Facultatif. Si tu le connais, le coach passe sur des formules plus précises (Katch-McArdle) et calcule tes protéines sur la masse maigre."
+                title: LocalizedText(fr: "Taux de masse grasse", en: "Body fat percentage", es: "Porcentaje de grasa")[language],
+                subtitle: LocalizedText(fr: "Facultatif. Si tu le connais, le coach passe sur des formules plus précises (Katch-McArdle) et calcule tes protéines sur la masse maigre.", en: "Optional. If you know it, the coach switches to more precise formulas (Katch-McArdle) and computes your protein from lean mass.", es: "Opcional. Si lo conoces, el entrenador usa fórmulas más precisas (Katch-McArdle) y calcula tus proteínas sobre la masa magra.")[language]
             ) {
-                Toggle("Je connais mon taux", isOn: $draft.knowsBodyFat)
+                Toggle(LocalizedText(fr: "Je connais mon taux", en: "I know my percentage", es: "Conozco mi porcentaje")[language], isOn: $draft.knowsBodyFat)
                     .tint(Theme.accent)
                     .foregroundStyle(Theme.primaryText)
                 if draft.knowsBodyFat {
@@ -238,7 +238,7 @@ struct OnboardingView: View {
                         value: $draft.waistCm,
                         range: 55...150,
                         step: 0.5,
-                        display: "Tour de taille : \(Format.height(draft.waistCm, unit: draft.unit))"
+                        display: LocalizedText(fr: "Tour de taille : \(Format.height(draft.waistCm, unit: draft.unit))", en: "Waist: \(Format.height(draft.waistCm, unit: draft.unit))", es: "Cintura: \(Format.height(draft.waistCm, unit: draft.unit))")[language]
                     )
                 }
             }
@@ -248,8 +248,8 @@ struct OnboardingView: View {
     private var experienceStep: some View {
         VStack(spacing: Theme.stackSpacing) {
             Card(
-                title: "Depuis combien de temps tu t'entraînes sérieusement ?",
-                subtitle: "« Sérieusement » veut dire régulièrement, en notant ou en suivant une progression."
+                title: LocalizedText(fr: "Depuis combien de temps tu t'entraînes sérieusement ?", en: "How long have you been training seriously?", es: "¿Desde cuándo entrenas en serio?")[language],
+                subtitle: LocalizedText(fr: "« Sérieusement » veut dire régulièrement, en notant ou en suivant une progression.", en: "“Seriously” means regularly, logging or following a progression.", es: "«En serio» significa con regularidad, anotando o siguiendo una progresión.")[language]
             ) {
                 SliderRow(
                     value: Binding(
@@ -259,13 +259,13 @@ struct OnboardingView: View {
                     range: 0...120,
                     step: 1,
                     display: draft.trainingMonths == 0
-                        ? "Jamais / je reprends de zéro"
-                        : "\(draft.trainingMonths) mois"
+                        ? LocalizedText(fr: "Jamais / je reprends de zéro", en: "Never / starting from scratch", es: "Nunca / empiezo de cero")[language]
+                        : LocalizedText(fr: "\(draft.trainingMonths) mois", en: "\(draft.trainingMonths) months", es: "\(draft.trainingMonths) meses")[language]
                 )
             }
             Card(
-                title: "Niveau",
-                subtitle: "Déduit de ta réponse, mais tu peux le corriger. Il détermine ton volume de départ et la longueur de tes blocs."
+                title: LocalizedText(fr: "Niveau", en: "Level", es: "Nivel")[language],
+                subtitle: LocalizedText(fr: "Déduit de ta réponse, mais tu peux le corriger. Il détermine ton volume de départ et la longueur de tes blocs.", en: "Inferred from your answer, but you can correct it. It sets your starting volume and the length of your blocks.", es: "Deducido de tu respuesta, pero puedes corregirlo. Determina tu volumen de partida y la duración de tus bloques.")[language]
             ) {
                 Picker("", selection: Binding(
                     get: { draft.experience },
@@ -286,17 +286,17 @@ struct OnboardingView: View {
     private var experienceExplanation: String {
         switch draft.experience {
         case .beginner:
-            "Peu de séries, beaucoup de technique, et des blocs de 6 semaines. C'est le niveau où l'on progresse le plus vite en faisant le moins."
+            LocalizedText(fr: "Peu de séries, beaucoup de technique, et des blocs de 6 semaines. C'est le niveau où l'on progresse le plus vite en faisant le moins.", en: "Few sets, lots of technique, and 6-week blocks. It is the level where you progress fastest doing the least.", es: "Pocas series, mucha técnica y bloques de 6 semanas. Es el nivel en el que más rápido se progresa haciendo menos.")[language]
         case .intermediate:
-            "Volume standard, progression en double progression, blocs de 5 semaines."
+            LocalizedText(fr: "Volume standard, progression en double progression, blocs de 5 semaines.", en: "Standard volume, double progression, 5-week blocks.", es: "Volumen estándar, doble progresión, bloques de 5 semanas.")[language]
         case .advanced:
-            "Volume élevé, blocs courts de 4 semaines, décharges plus fréquentes : la récupération devient le facteur limitant."
+            LocalizedText(fr: "Volume élevé, blocs courts de 4 semaines, décharges plus fréquentes : la récupération devient le facteur limitant.", en: "High volume, short 4-week blocks, more frequent deloads: recovery becomes the limiting factor.", es: "Volumen alto, bloques cortos de 4 semanas, descargas más frecuentes: la recuperación pasa a ser el factor limitante.")[language]
         }
     }
 
     private var goalStep: some View {
         VStack(spacing: Theme.stackSpacing) {
-            Card(title: "Qu'est-ce que tu veux, précisément ?") {
+            Card(title: LocalizedText(fr: "Qu'est-ce que tu veux, précisément ?", en: "What do you want, precisely?", es: "¿Qué quieres, exactamente?")[language]) {
                 VStack(spacing: 8) {
                     ForEach(PrimaryGoal.allCases, id: \.self) { goal in
                         SelectableRow(
@@ -310,8 +310,8 @@ struct OnboardingView: View {
                     }
                 }
             }
-            Card(title: "Poids visé", subtitle: "Facultatif. Sert à estimer combien de semaines il te faut au rythme prescrit.") {
-                Toggle("J'ai un poids cible", isOn: $draft.hasTargetWeight)
+            Card(title: LocalizedText(fr: "Poids visé", en: "Target weight", es: "Peso objetivo")[language], subtitle: LocalizedText(fr: "Facultatif. Sert à estimer combien de semaines il te faut au rythme prescrit.", en: "Optional. Used to estimate how many weeks you need at the prescribed pace.", es: "Opcional. Sirve para estimar cuántas semanas necesitas al ritmo prescrito.")[language]) {
+                Toggle(LocalizedText(fr: "J'ai un poids cible", en: "I have a target weight", es: "Tengo un peso objetivo")[language], isOn: $draft.hasTargetWeight)
                     .tint(Theme.accent)
                     .foregroundStyle(Theme.primaryText)
                 if draft.hasTargetWeight {
@@ -322,7 +322,7 @@ struct OnboardingView: View {
                         display: Format.weight(draft.targetWeightKg, unit: draft.unit)
                     )
                 }
-                Toggle("J'ai une échéance", isOn: $draft.hasDeadline)
+                Toggle(LocalizedText(fr: "J'ai une échéance", en: "I have a deadline", es: "Tengo una fecha límite")[language], isOn: $draft.hasDeadline)
                     .tint(Theme.accent)
                     .foregroundStyle(Theme.primaryText)
                 if draft.hasDeadline {
@@ -337,19 +337,19 @@ struct OnboardingView: View {
 
     private func goalSubtitle(_ goal: PrimaryGoal) -> String {
         switch goal {
-        case .hypertrophy: "Séries de 6 à 12, léger surplus calorique, volume maximal que tu peux récupérer."
-        case .strength: "Séries de 3 à 6, repos longs, moins de séries mais plus lourdes."
-        case .fatLoss: "Déficit mesuré, protéines hautes, volume adapté à une récupération réduite."
-        case .recomposition: "Calories de maintien, protéines très hautes : progresser en salle sans bouger sur la balance."
-        case .generalHealth: "Deux à trois séances complètes, intensité modérée, zéro prise de tête."
+        case .hypertrophy: LocalizedText(fr: "Séries de 6 à 12, léger surplus calorique, volume maximal que tu peux récupérer.", en: "Sets of 6 to 12, slight calorie surplus, the most volume you can recover from.", es: "Series de 6 a 12, ligero superávit calórico, el máximo volumen que puedas recuperar.")[language]
+        case .strength: LocalizedText(fr: "Séries de 3 à 6, repos longs, moins de séries mais plus lourdes.", en: "Sets of 3 to 6, long rests, fewer but heavier sets.", es: "Series de 3 a 6, descansos largos, menos series pero más pesadas.")[language]
+        case .fatLoss: LocalizedText(fr: "Déficit mesuré, protéines hautes, volume adapté à une récupération réduite.", en: "Measured deficit, high protein, volume adapted to reduced recovery.", es: "Déficit medido, proteínas altas, volumen adaptado a una recuperación reducida.")[language]
+        case .recomposition: LocalizedText(fr: "Calories de maintien, protéines très hautes : progresser en salle sans bouger sur la balance.", en: "Maintenance calories, very high protein: progress in the gym without moving the scale.", es: "Calorías de mantenimiento, proteínas muy altas: progresar en el gimnasio sin mover la báscula.")[language]
+        case .generalHealth: LocalizedText(fr: "Deux à trois séances complètes, intensité modérée, zéro prise de tête.", en: "Two to three full-body sessions, moderate intensity, zero fuss.", es: "Dos o tres sesiones completas, intensidad moderada, cero complicaciones.")[language]
         }
     }
 
     private var availabilityStep: some View {
         VStack(spacing: Theme.stackSpacing) {
             Card(
-                title: "Combien de séances par semaine ?",
-                subtitle: "Réponds avec ce que tu tiendras un mois de suite, pas avec ce que tu voudrais tenir."
+                title: LocalizedText(fr: "Combien de séances par semaine ?", en: "How many sessions per week?", es: "¿Cuántas sesiones por semana?")[language],
+                subtitle: LocalizedText(fr: "Réponds avec ce que tu tiendras un mois de suite, pas avec ce que tu voudrais tenir.", en: "Answer with what you will keep up for a month straight, not what you would like to.", es: "Responde con lo que mantendrás un mes seguido, no con lo que te gustaría mantener.")[language]
             ) {
                 Picker("", selection: $draft.daysPerWeek) {
                     ForEach(2...7, id: \.self) { Text("\($0)").tag($0) }
@@ -362,8 +362,8 @@ struct OnboardingView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             Card(
-                title: "Combien de temps par séance ?",
-                subtitle: "Échauffement compris. Le coach ne prescrira jamais plus long que ça."
+                title: LocalizedText(fr: "Combien de temps par séance ?", en: "How long per session?", es: "¿Cuánto tiempo por sesión?")[language],
+                subtitle: LocalizedText(fr: "Échauffement compris. Le coach ne prescrira jamais plus long que ça.", en: "Warm-up included. The coach will never prescribe longer than this.", es: "Calentamiento incluido. El entrenador nunca prescribirá más que esto.")[language]
             ) {
                 SliderRow(
                     value: Binding(
@@ -380,16 +380,16 @@ struct OnboardingView: View {
 
     private var equipmentStep: some View {
         VStack(spacing: Theme.stackSpacing) {
-            Card(title: "Où t'entraînes-tu ?") {
+            Card(title: LocalizedText(fr: "Où t'entraînes-tu ?", en: "Where do you train?", es: "¿Dónde entrenas?")[language]) {
                 HStack(spacing: 8) {
-                    kitButton("Salle complète", Equipment.fullGym)
-                    kitButton("Maison", Equipment.homeGym)
-                    kitButton("Minimal", Equipment.minimal)
+                    kitButton(LocalizedText(fr: "Salle complète", en: "Full gym", es: "Gimnasio completo")[language], Equipment.fullGym)
+                    kitButton(LocalizedText(fr: "Maison", en: "Home", es: "Casa")[language], Equipment.homeGym)
+                    kitButton(LocalizedText(fr: "Minimal", en: "Minimal", es: "Mínimo")[language], Equipment.minimal)
                 }
             }
             Card(
-                title: "Détail du matériel",
-                subtitle: "Un exercice n'est proposé que si tu as tout ce qu'il demande. Mieux vaut décocher que d'improviser en salle."
+                title: LocalizedText(fr: "Détail du matériel", en: "Equipment details", es: "Detalle del material")[language],
+                subtitle: LocalizedText(fr: "Un exercice n'est proposé que si tu as tout ce qu'il demande. Mieux vaut décocher que d'improviser en salle.", en: "An exercise is only offered if you have everything it needs. Better to untick than to improvise at the gym.", es: "Un ejercicio solo se propone si tienes todo lo que requiere. Mejor desmarcar que improvisar en el gimnasio.")[language]
             ) {
                 FlowSelection(
                     items: Equipment.allCases,
@@ -405,8 +405,8 @@ struct OnboardingView: View {
                 )
             }
             Card(
-                title: "Plus petit incrément de charge",
-                subtitle: "Les charges suggérées sont arrondies à ce que tu peux vraiment charger."
+                title: LocalizedText(fr: "Plus petit incrément de charge", en: "Smallest load increment", es: "Incremento de carga mínimo")[language],
+                subtitle: LocalizedText(fr: "Les charges suggérées sont arrondies à ce que tu peux vraiment charger.", en: "Suggested loads are rounded to what you can actually load.", es: "Las cargas sugeridas se redondean a lo que realmente puedes cargar.")[language]
             ) {
                 Picker("", selection: $draft.loadIncrement) {
                     ForEach(LoadIncrement.allCases, id: \.self) { Text($0.label[language]).tag($0) }
@@ -437,8 +437,8 @@ struct OnboardingView: View {
     private var limitationsStep: some View {
         VStack(spacing: Theme.stackSpacing) {
             Card(
-                title: "Une zone qui te fait mal ?",
-                subtitle: "Tout exercice qui sollicite directement une zone cochée est retiré du catalogue. Rien ne sera « adapté » : il sera remplacé."
+                title: LocalizedText(fr: "Une zone qui te fait mal ?", en: "An area that hurts?", es: "¿Alguna zona que te duela?")[language],
+                subtitle: LocalizedText(fr: "Tout exercice qui sollicite directement une zone cochée est retiré du catalogue. Rien ne sera « adapté » : il sera remplacé.", en: "Any exercise that directly loads a ticked area is removed from the catalogue. Nothing will be “adapted”: it will be replaced.", es: "Todo ejercicio que solicite directamente una zona marcada se retira del catálogo. Nada se «adapta»: se sustituye.")[language]
             ) {
                 FlowSelection(
                     items: Limitation.allCases,
@@ -457,7 +457,7 @@ struct OnboardingView: View {
                 HStack(alignment: .top, spacing: 10) {
                     Image(systemName: "cross.case.fill")
                         .foregroundStyle(Theme.warning)
-                    Text("Une douleur qui dure n'est pas un problème de programmation. Cette application ne remplace pas un médecin ou un kinésithérapeute.")
+                    Text(LocalizedText(fr: "Une douleur qui dure n'est pas un problème de programmation. Cette application ne remplace pas un médecin ou un kinésithérapeute.", en: "A pain that lasts is not a programming problem. This app does not replace a doctor or a physiotherapist.", es: "Un dolor que dura no es un problema de programación. Esta aplicación no sustituye a un médico ni a un fisioterapeuta.")[language])
                         .font(Theme.captionFont)
                         .foregroundStyle(Theme.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)
@@ -468,14 +468,14 @@ struct OnboardingView: View {
 
     private var lifestyleStep: some View {
         VStack(spacing: Theme.stackSpacing) {
-            Card(title: "Activité en dehors des séances", subtitle: "Détermine ta dépense énergétique, donc tes calories.") {
+            Card(title: LocalizedText(fr: "Activité en dehors des séances", en: "Activity outside sessions", es: "Actividad fuera de las sesiones")[language], subtitle: LocalizedText(fr: "Détermine ta dépense énergétique, donc tes calories.", en: "Sets your energy expenditure, hence your calories.", es: "Determina tu gasto energético, y por tanto tus calorías.")[language]) {
                 Picker("", selection: $draft.activityLevel) {
                     ForEach(ActivityLevel.allCases, id: \.self) { Text($0.label[language]).tag($0) }
                 }
                 .pickerStyle(.inline)
                 .labelsHidden()
             }
-            Card(title: "Sommeil moyen", subtitle: "En dessous de 6 h, le coach réduit le volume : sinon tu accumules de la fatigue sans progresser.") {
+            Card(title: LocalizedText(fr: "Sommeil moyen", en: "Average sleep", es: "Sueño medio")[language], subtitle: LocalizedText(fr: "En dessous de 6 h, le coach réduit le volume : sinon tu accumules de la fatigue sans progresser.", en: "Below 6 h, the coach reduces volume: otherwise you accumulate fatigue without progressing.", es: "Por debajo de 6 h, el entrenador reduce el volumen: si no, acumulas fatiga sin progresar.")[language]) {
                 SliderRow(
                     value: $draft.sleepHours,
                     range: 4...10,
@@ -483,7 +483,7 @@ struct OnboardingView: View {
                     display: "\(Format.number(draft.sleepHours, decimals: 1)) h"
                 )
             }
-            Card(title: "Niveau de stress habituel", subtitle: "1 = serein, 5 = sous l'eau. Le stress chronique coûte de la récupération.") {
+            Card(title: LocalizedText(fr: "Niveau de stress habituel", en: "Usual stress level", es: "Nivel de estrés habitual")[language], subtitle: LocalizedText(fr: "1 = serein, 5 = sous l'eau. Le stress chronique coûte de la récupération.", en: "1 = calm, 5 = underwater. Chronic stress costs recovery.", es: "1 = tranquilo, 5 = desbordado. El estrés crónico cuesta recuperación.")[language]) {
                 SliderRow(
                     value: Binding(
                         get: { Double(draft.stressLevel) },
@@ -494,7 +494,7 @@ struct OnboardingView: View {
                     display: "\(draft.stressLevel) / 5"
                 )
             }
-            Card(title: "Alimentation", subtitle: "N'affecte pas les chiffres, seulement les conseils de répartition.") {
+            Card(title: LocalizedText(fr: "Alimentation", en: "Food", es: "Alimentación")[language], subtitle: LocalizedText(fr: "N'affecte pas les chiffres, seulement les conseils de répartition.", en: "Does not change the numbers, only the distribution advice.", es: "No afecta a las cifras, solo a los consejos de reparto.")[language]) {
                 Picker("", selection: $draft.dietPreference) {
                     ForEach(DietPreference.allCases, id: \.self) { Text($0.label[language]).tag($0) }
                 }
@@ -507,8 +507,8 @@ struct OnboardingView: View {
     private var baselinesStep: some View {
         VStack(spacing: Theme.stackSpacing) {
             Card(
-                title: "Tes maximums, si tu les connais",
-                subtitle: "Facultatif : sans ces valeurs, le coach part des repères de force pour ton poids, ton sexe et ton niveau, puis corrige dès la première séance."
+                title: LocalizedText(fr: "Tes maximums, si tu les connais", en: "Your maxes, if you know them", es: "Tus máximos, si los conoces")[language],
+                subtitle: LocalizedText(fr: "Facultatif : sans ces valeurs, le coach part des repères de force pour ton poids, ton sexe et ton niveau, puis corrige dès la première séance.", en: "Optional: without them, the coach starts from strength benchmarks for your weight, sex and level, then corrects from the first session.", es: "Opcional: sin estos valores, el entrenador parte de referencias de fuerza para tu peso, sexo y nivel, y corrige desde la primera sesión.")[language]
             ) {
                 VStack(spacing: 10) {
                     ForEach(ProfileDraft.baselineLiftIDs, id: \.self) { id in
@@ -535,27 +535,27 @@ struct OnboardingView: View {
     private var summaryStep: some View {
         let program = CoachEngine.buildProgram(for: previewProfile)
         return VStack(spacing: Theme.stackSpacing) {
-            Card(title: "Ce que le coach a décidé", subtitle: program.plan.split.label[language]) {
+            Card(title: LocalizedText(fr: "Ce que le coach a décidé", en: "What the coach decided", es: "Lo que decidió el entrenador")[language], subtitle: program.plan.split.label[language]) {
                 HStack(spacing: 12) {
-                    StatTile(value: "\(program.plan.weekCount)", label: "semaines dans le bloc")
-                    StatTile(value: "\(previewProfile.daysPerWeek)", label: "séances par semaine")
-                    StatTile(value: "\(program.plan.weeks[0].totalSets)", label: "séries la 1re semaine")
+                    StatTile(value: "\(program.plan.weekCount)", label: LocalizedText(fr: "semaines dans le bloc", en: "weeks in the block", es: "semanas en el bloque")[language])
+                    StatTile(value: "\(previewProfile.daysPerWeek)", label: LocalizedText(fr: "séances par semaine", en: "sessions per week", es: "sesiones por semana")[language])
+                    StatTile(value: "\(program.plan.weeks[0].totalSets)", label: LocalizedText(fr: "séries la 1re semaine", en: "sets in week 1", es: "series la 1.ª semana")[language])
                 }
             }
-            Card(title: "Tes cibles quotidiennes") {
+            Card(title: LocalizedText(fr: "Tes cibles quotidiennes", en: "Your daily targets", es: "Tus objetivos diarios")[language]) {
                 HStack(spacing: 12) {
                     StatTile(value: "\(program.nutrition.calories)", label: "kcal")
-                    StatTile(value: "\(program.nutrition.proteinG) g", label: "protéines")
-                    StatTile(value: "\(program.nutrition.carbsG) g", label: "glucides")
-                    StatTile(value: "\(program.nutrition.fatG) g", label: "lipides")
+                    StatTile(value: "\(program.nutrition.proteinG) g", label: LocalizedText(fr: "protéines", en: "protein", es: "proteína")[language])
+                    StatTile(value: "\(program.nutrition.carbsG) g", label: LocalizedText(fr: "glucides", en: "carbs", es: "hidratos")[language])
+                    StatTile(value: "\(program.nutrition.fatG) g", label: LocalizedText(fr: "lipides", en: "fat", es: "grasas")[language])
                 }
                 if let weeks = program.weeksToGoal {
-                    Text("Au rythme prescrit, ton poids cible est atteignable en environ \(weeks) semaines.")
+                    Text(LocalizedText(fr: "Au rythme prescrit, ton poids cible est atteignable en environ \(weeks) semaines.", en: "At the prescribed pace, your target weight is reachable in about \(weeks) weeks.", es: "Al ritmo prescrito, tu peso objetivo es alcanzable en unas \(weeks) semanas.")[language])
                         .font(Theme.captionFont)
                         .foregroundStyle(Theme.accent)
                 }
             }
-            Card(title: "Pourquoi ce plan et pas un autre") {
+            Card(title: LocalizedText(fr: "Pourquoi ce plan et pas un autre", en: "Why this plan and not another", es: "Por qué este plan y no otro")[language]) {
                 VStack(alignment: .leading, spacing: 10) {
                     ForEach(Array(program.plan.rationale.enumerated()), id: \.offset) { _, line in
                         HStack(alignment: .top, spacing: 8) {
@@ -571,7 +571,7 @@ struct OnboardingView: View {
                     }
                 }
             }
-            Card(title: "Ta première séance") {
+            Card(title: LocalizedText(fr: "Ta première séance", en: "Your first session", es: "Tu primera sesión")[language]) {
                 if let first = program.plan.weeks.first?.sessions.first {
                     SessionSummary(session: first, unit: draft.unit, owned: draft.equipment)
                 }

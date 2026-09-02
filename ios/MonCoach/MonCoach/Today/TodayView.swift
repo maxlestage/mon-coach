@@ -40,8 +40,8 @@ struct TodayView: View {
                         trialBanner.appears(5)
                         insightsCard.appears(6)
                     } else {
-                        Card(title: "Aucun programme") {
-                            Text("Le coach n'a pas encore de plan pour toi.")
+                        Card(title: LocalizedText(fr: "Aucun programme", en: "No programme", es: "Sin programa")[language]) {
+                            Text(LocalizedText(fr: "Le coach n'a pas encore de plan pour toi.", en: "The coach has no plan for you yet.", es: "El entrenador aún no tiene un plan para ti.")[language])
                                 .font(Theme.bodyFont)
                                 .foregroundStyle(Theme.secondaryText)
                         }
@@ -134,9 +134,9 @@ struct TodayView: View {
         let name = store.profile?.firstName ?? ""
         let hour = Calendar.current.component(.hour, from: now)
         let salutation = switch hour {
-        case 5..<12: "Bonjour"
-        case 12..<18: "Salut"
-        default: "Bonsoir"
+        case 5..<12: LocalizedText(fr: "Bonjour", en: "Good morning", es: "Buenos días")[language]
+        case 12..<18: LocalizedText(fr: "Salut", en: "Hi", es: "Hola")[language]
+        default: LocalizedText(fr: "Bonsoir", en: "Good evening", es: "Buenas tardes")[language]
         }
         return name.isEmpty ? salutation : "\(salutation), \(name)"
     }
@@ -144,7 +144,7 @@ struct TodayView: View {
     // MARK: - Cards
 
     private func readinessCard(_ briefing: TodayBriefing) -> some View {
-        Card(title: briefing.readiness.headline[language], subtitle: "Forme du jour") {
+        Card(title: briefing.readiness.headline[language], subtitle: LocalizedText(fr: "Forme du jour", en: "Today's readiness", es: "Forma del día")[language]) {
             HStack(alignment: .center, spacing: 16) {
                 ScoreRing(
                     score: briefing.readiness.score,
@@ -159,7 +159,7 @@ struct TodayView: View {
             }
 
             GhostButton(
-                title: hasCheckedInToday ? "Modifier mon check-in" : "Faire le check-in du jour",
+                title: hasCheckedInToday ? LocalizedText(fr: "Modifier mon check-in", en: "Edit my check-in", es: "Modificar mi check-in")[language] : LocalizedText(fr: "Faire le check-in du jour", en: "Do today's check-in", es: "Hacer el check-in de hoy")[language],
                 systemImage: "checkmark.circle"
             ) {
                 showingReadiness = true
@@ -186,8 +186,8 @@ struct TodayView: View {
             Card(
                 title: session.title[language],
                 subtitle: briefing.isDeloadWeek
-                    ? "Semaine \(briefing.weekIndex ?? 0) · décharge"
-                    : "Semaine \(briefing.weekIndex ?? 0)"
+                    ? LocalizedText(fr: "Semaine \(briefing.weekIndex ?? 0) · décharge", en: "Week \(briefing.weekIndex ?? 0) · deload", es: "Semana \(briefing.weekIndex ?? 0) · descarga")[language]
+                    : LocalizedText(fr: "Semaine \(briefing.weekIndex ?? 0)", en: "Week \(briefing.weekIndex ?? 0)", es: "Semana \(briefing.weekIndex ?? 0)")[language]
             ) {
                 if !session.focus.isEmpty {
                     FlowLayout(spacing: 6) {
@@ -198,10 +198,10 @@ struct TodayView: View {
                 }
                 SessionSummary(session: session, unit: unit, owned: store.profile?.equipment)
 
-                PrimaryButton(title: "Démarrer la séance", systemImage: "play.fill") {
+                PrimaryButton(title: LocalizedText(fr: "Démarrer la séance", en: "Start the session", es: "Empezar la sesión")[language], systemImage: "play.fill") {
                     store.startSession(session)
                 }
-                GhostButton(title: "Je ne peux pas aujourd'hui", systemImage: "calendar.badge.minus") {
+                GhostButton(title: LocalizedText(fr: "Je ne peux pas aujourd'hui", en: "I can't today", es: "Hoy no puedo")[language], systemImage: "calendar.badge.minus") {
                     store.skipTodaySession(at: now)
                 }
             }
@@ -212,8 +212,8 @@ struct TodayView: View {
             // milieu, lui, ne mérite pas « rien de prévu » : le moteur y pose
             // des mouvements à faire, et l'écran les propose.
             Card(
-                title: briefing.extras.isEmpty ? "Repos" : "Rien d'imposé aujourd'hui",
-                subtitle: "Semaine \(briefing.weekIndex ?? 0)"
+                title: briefing.extras.isEmpty ? LocalizedText(fr: "Repos", en: "Rest", es: "Descanso")[language] : LocalizedText(fr: "Rien d'imposé aujourd'hui", en: "Nothing imposed today", es: "Nada impuesto hoy")[language],
+                subtitle: LocalizedText(fr: "Semaine \(briefing.weekIndex ?? 0)", en: "Week \(briefing.weekIndex ?? 0)", es: "Semana \(briefing.weekIndex ?? 0)")[language]
             ) {
                 CoachText(
                     briefing.extras.isEmpty ? DailyExtras.realRest : DailyExtras.invitation
@@ -237,7 +237,7 @@ struct TodayView: View {
                 // jour même, à partir du check-in de ce matin-là.
                 if let next = briefing.nextSession {
                     Divider().overlay(Theme.separator)
-                    Text("Ta prochaine séance : \(next.title[language])")
+                    Text(LocalizedText(fr: "Ta prochaine séance : \(next.title[.french])", en: "Your next session: \(next.title[.english])", es: "Tu próxima sesión: \(next.title[.spanish])")[language])
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(Theme.primaryText)
                     SessionSummary(
@@ -248,8 +248,8 @@ struct TodayView: View {
             }
 
         case .blockFinished:
-            Card(title: "Bloc terminé", subtitle: "Bien joué") {
-                Text("Tu es arrivé au bout de ce bloc. Le coach peut en construire un nouveau à partir de ce que tes séances ont montré : volume, charges et calories seront ajustés.")
+            Card(title: LocalizedText(fr: "Bloc terminé", en: "Block complete", es: "Bloque terminado")[language], subtitle: LocalizedText(fr: "Bien joué", en: "Well done", es: "Bien hecho")[language]) {
+                Text(LocalizedText(fr: "Tu es arrivé au bout de ce bloc. Le coach peut en construire un nouveau à partir de ce que tes séances ont montré : volume, charges et calories seront ajustés.", en: "You have reached the end of this block. The coach can build a new one from what your sessions showed: volume, loads and calories will be adjusted.", es: "Has llegado al final de este bloque. El entrenador puede construir uno nuevo a partir de lo que mostraron tus sesiones: volumen, cargas y calorías se ajustarán.")[language])
                     .font(Theme.bodyFont)
                     .foregroundStyle(Theme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
@@ -328,12 +328,12 @@ struct TodayView: View {
     }
 
     private func nutritionCard(_ target: NutritionTarget) -> some View {
-        Card(title: "Aujourd'hui, côté assiette") {
+        Card(title: LocalizedText(fr: "Aujourd'hui, côté assiette", en: "Today, on the plate", es: "Hoy, en el plato")[language]) {
             HStack(spacing: 12) {
                 StatTile(value: "\(target.calories)", label: "kcal")
-                StatTile(value: "\(target.proteinG) g", label: "protéines")
-                StatTile(value: "\(target.carbsG) g", label: "glucides")
-                StatTile(value: "\(target.fatG) g", label: "lipides")
+                StatTile(value: "\(target.proteinG) g", label: LocalizedText(fr: "protéines", en: "protein", es: "proteína")[language])
+                StatTile(value: "\(target.carbsG) g", label: LocalizedText(fr: "glucides", en: "carbs", es: "hidratos")[language])
+                StatTile(value: "\(target.fatG) g", label: LocalizedText(fr: "lipides", en: "fat", es: "grasas")[language])
             }
             if let first = target.rationale.first {
                 Text(first[language])
@@ -348,7 +348,7 @@ struct TodayView: View {
     private var insightsCard: some View {
         let insights = store.latestInsights(on: now)
         if !insights.isEmpty {
-            Card(title: "Ce que le coach a remarqué", subtitle: "Bilan de la semaine dernière") {
+            Card(title: LocalizedText(fr: "Ce que le coach a remarqué", en: "What the coach noticed", es: "Lo que notó el entrenador")[language], subtitle: LocalizedText(fr: "Bilan de la semaine dernière", en: "Last week's review", es: "Balance de la semana pasada")[language]) {
                 VStack(alignment: .leading, spacing: 14) {
                     ForEach(insights.prefix(3)) { insight in
                         InsightRow(insight: insight)

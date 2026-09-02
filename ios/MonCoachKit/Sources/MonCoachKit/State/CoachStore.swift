@@ -553,13 +553,22 @@ public final class CoachStore {
     /// Les vues ne rassemblent pas ces trois-là elles-mêmes : elles
     /// oublieraient l'une des trois un jour, et la reconnaissance serait
     /// bonne à un endroit et médiocre à un autre.
-    public func analysePlate(_ readings: [PlateReading]) -> PlateAnalysis {
+    public func analysePlate(_ readings: [PlateReading], on date: Date = Date()) -> PlateAnalysis {
         PlateVision.analyse(
             readings,
             excluding: profile?.excludedFoods ?? [],
             corrections: plateCorrections,
-            history: recentPlates(days: 90)
+            history: recentPlates(days: 90),
+            expected: expectedFoods(on: date)
         )
+    }
+
+    /// Les aliments que le plan du jour a prescrits : l'a priori de la
+    /// reconnaissance d'assiette. On mange le plus souvent ce qui était
+    /// prévu, et le classificateur a le droit de le savoir.
+    public func expectedFoods(on date: Date = Date()) -> Set<String> {
+        guard let day = briefing(on: date)?.food else { return [] }
+        return Set(day.meals.flatMap { meal in meal.items.map(\.foodID) })
     }
 
     /// Efface les fichiers d'image que plus aucune sortie ne réclame.

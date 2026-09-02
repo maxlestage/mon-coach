@@ -33,13 +33,13 @@ struct SessionPlayerView: View {
                 if let active {
                     content(active)
                 } else {
-                    Text("Aucune séance en cours.")
+                    Text(LocalizedText(fr: "Aucune séance en cours.", en: "No session in progress.", es: "Ninguna sesión en curso.")[language])
                         .foregroundStyle(Theme.secondaryText)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .screenBackground()
                 }
             }
-            .navigationTitle(active?.session.title[language] ?? "Séance")
+            .navigationTitle(active?.session.title[language] ?? LocalizedText(fr: "Séance", en: "Session", es: "Sesión")[language])
             .sheet(item: $guidedExercise) { exercise in
                 GuidedTechniqueView(exercise: exercise, owned: store.profile?.equipment)
             }
@@ -57,22 +57,22 @@ struct SessionPlayerView: View {
                     Button("Fermer") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Terminer") { showingFinishConfirmation = true }
+                    Button(LocalizedText(fr: "Terminer", en: "Finish", es: "Terminar")[language]) { showingFinishConfirmation = true }
                         .disabled((active?.loggedSetCount ?? 0) == 0)
                 }
             }
             .confirmationDialog(
-                "Terminer la séance ?",
+                LocalizedText(fr: "Terminer la séance ?", en: "Finish the session?", es: "¿Terminar la sesión?")[language],
                 isPresented: $showingFinishConfirmation,
                 titleVisibility: .visible
             ) {
-                Button("Terminer et enregistrer") {
+                Button(LocalizedText(fr: "Terminer et enregistrer", en: "Finish and save", es: "Terminar y guardar")[language]) {
                     store.finishActiveSession()
                     dismiss()
                 }
-                Button("Continuer la séance", role: .cancel) {}
+                Button(LocalizedText(fr: "Continuer la séance", en: "Keep going", es: "Continuar la sesión")[language], role: .cancel) {}
             } message: {
-                Text("Les séries déjà enregistrées sont conservées. Les séries restantes seront simplement absentes du bilan.")
+                Text(LocalizedText(fr: "Les séries déjà enregistrées sont conservées. Les séries restantes seront simplement absentes du bilan.", en: "Sets already logged are kept. The remaining sets will simply be missing from the review.", es: "Las series ya registradas se conservan. Las restantes simplemente faltarán en el balance.")[language])
             }
         }
         .preferredColorScheme(.dark)
@@ -105,11 +105,11 @@ struct SessionPlayerView: View {
                     if let current = currentPrescription(active) {
                         currentCard(active, prescription: current)
                     } else {
-                        Card(title: "Séance terminée") {
-                            Text("Toutes les séries prévues sont enregistrées. Tu peux clôturer la séance.")
+                        Card(title: LocalizedText(fr: "Séance terminée", en: "Session complete", es: "Sesión terminada")[language]) {
+                            Text(LocalizedText(fr: "Toutes les séries prévues sont enregistrées. Tu peux clôturer la séance.", en: "All planned sets are logged. You can close the session.", es: "Todas las series previstas están registradas. Puedes cerrar la sesión.")[language])
                                 .font(Theme.bodyFont)
                                 .foregroundStyle(Theme.secondaryText)
-                            PrimaryButton(title: "Enregistrer la séance", systemImage: "checkmark") {
+                            PrimaryButton(title: LocalizedText(fr: "Enregistrer la séance", en: "Save the session", es: "Guardar la sesión")[language], systemImage: "checkmark") {
                                 store.finishActiveSession()
                                 dismiss()
                             }
@@ -236,7 +236,7 @@ struct SessionPlayerView: View {
 
                 entryControls(set: set)
 
-                PrimaryButton(title: "Valider la série", systemImage: "checkmark") {
+                PrimaryButton(title: LocalizedText(fr: "Valider la série", en: "Log the set", es: "Validar la serie")[language], systemImage: "checkmark") {
                     log(set: set, of: prescription, restSeconds: prescription.restSeconds)
                 }
             }
@@ -246,7 +246,7 @@ struct SessionPlayerView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     ForEach(done) { entry in
                         HStack {
-                            Text("Série \(entry.setIndex + 1)")
+                            Text(LocalizedText(fr: "Série \(entry.setIndex + 1)", en: "Set \(entry.setIndex + 1)", es: "Serie \(entry.setIndex + 1)")[language])
                                 .font(Theme.captionFont)
                                 .foregroundStyle(Theme.secondaryText)
                             Spacer()
@@ -256,7 +256,7 @@ struct SessionPlayerView: View {
                         }
                     }
                 }
-                GhostButton(title: "Annuler la dernière série", systemImage: "arrow.uturn.backward") {
+                GhostButton(title: LocalizedText(fr: "Annuler la dernière série", en: "Undo the last set", es: "Deshacer la última serie")[language], systemImage: "arrow.uturn.backward") {
                     store.activeSession?.undoLastSet(of: prescription)
                 }
             }
@@ -268,20 +268,20 @@ struct SessionPlayerView: View {
     private func entryControls(set: SetPrescription) -> some View {
         VStack(spacing: 14) {
             StepperRow(
-                label: "Charge",
+                label: LocalizedText(fr: "Charge", en: "Load", es: "Carga")[language],
                 value: Format.load(weightKg, unit: unit),
                 onDecrement: { weightKg = max(0, weightKg - increment) },
                 onIncrement: { weightKg += increment }
             )
             StepperRow(
-                label: "Répétitions",
+                label: LocalizedText(fr: "Répétitions", en: "Reps", es: "Repeticiones")[language],
                 value: "\(reps)",
                 onDecrement: { reps = max(0, reps - 1) },
                 onIncrement: { reps += 1 }
             )
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
-                    Text("Difficulté ressentie")
+                    Text(LocalizedText(fr: "Difficulté ressentie", en: "Perceived effort", es: "Dificultad percibida")[language])
                         .font(Theme.captionFont)
                         .foregroundStyle(Theme.secondaryText)
                     Spacer()
@@ -293,7 +293,7 @@ struct SessionPlayerView: View {
                     .tint(Theme.accent)
             }
             Toggle(isOn: $painFlag) {
-                Text("J'ai senti une douleur articulaire")
+                Text(LocalizedText(fr: "J'ai senti une douleur articulaire", en: "I felt joint pain", es: "Sentí dolor articular")[language])
                     .font(Theme.captionFont)
                     .foregroundStyle(Theme.primaryText)
             }
@@ -303,7 +303,7 @@ struct SessionPlayerView: View {
 
     private var rirLabel: String {
         let rir = Int((10 - rpe).rounded())
-        return rir <= 0 ? "aucune répétition en réserve" : "\(rir) répétition\(rir > 1 ? "s" : "") en réserve"
+        return rir <= 0 ? LocalizedText(fr: "aucune répétition en réserve", en: "no reps in reserve", es: "ninguna repetición en reserva")[language] : LocalizedText(fr: "\(rir) répétition\(rir > 1 ? "s" : "") en réserve", en: "\(rir) rep\(rir > 1 ? "s" : "") in reserve", es: "\(rir) repetición\(rir > 1 ? "es" : "") en reserva")[language]
     }
 
     private var increment: Double {
@@ -311,7 +311,7 @@ struct SessionPlayerView: View {
     }
 
     private func remainingCard(_ active: ActiveSession) -> some View {
-        Card(title: "Le reste de la séance") {
+        Card(title: LocalizedText(fr: "Le reste de la séance", en: "The rest of the session", es: "El resto de la sesión")[language]) {
             VStack(spacing: 10) {
                 ForEach(active.session.exercises) { prescription in
                     Button {

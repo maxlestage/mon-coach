@@ -355,3 +355,51 @@ struct PlateMemoryPersistenceTests {
         #expect(analysis.items.first?.portion == .large)
     }
 }
+
+
+@Suite("Le plan du jour comme a priori de l'assiette")
+struct PlatePriorTests {
+
+    @Test("À notes égales, l'aliment que le plan attendait passe devant")
+    func expectedFoodWinsTies() {
+        let readings = [
+            PlateReading(identifier: "rice", confidence: 0.5),
+            PlateReading(identifier: "chicken", confidence: 0.5),
+        ]
+        let plain = PlateVision.analyse(readings)
+        guard let chicken = plain.items.first(where: { $0.foodID.contains("poulet") })?.foodID,
+              let rice = plain.items.first(where: { $0.foodID.contains("riz") })?.foodID
+        else {
+            Issue.record("les étiquettes de départ ne se reconnaissent plus : \(plain.items.map(\.foodID))")
+            return
+        }
+        let withRice = PlateVision.analyse(readings, expected: [rice])
+        #expect(withRice.items.first?.foodID == rice)
+        let withChicken = PlateVision.analyse(readings, expected: [chicken])
+        #expect(withChicken.items.first?.foodID == chicken)
+    }
+
+    @Test("L'a priori ne fait pas apparaître un aliment que personne n'a vu")
+    func priorNeverInventsFood() {
+        let readings = [PlateReading(identifier: "rice", confidence: 0.5)]
+        let analysis = PlateVision.analyse(readings, expected: ["saumon", "poulet", "oeuf"])
+        #expect(analysis.items.count == 1)
+        #expect(analysis.items.first?.foodID.contains("riz") == true)
+    }
+
+    @Test("L'a priori ne renverse pas une reconnaissance nette")
+    func priorDoesNotOverturnAClearSighting() {
+        let readings = [
+            PlateReading(identifier: "chicken", confidence: 0.9),
+            PlateReading(identifier: "rice", confidence: 0.4),
+        ]
+        let plain = PlateVision.analyse(readings)
+        guard let rice = plain.items.first(where: { $0.foodID.contains("riz") })?.foodID else {
+            Issue.record("le riz ne se reconnaît plus")
+            return
+        }
+        let boosted = PlateVision.analyse(readings, expected: [rice])
+        #expect(boosted.items.first?.foodID.contains("poulet") == true)
+        #expect(PlateVision.planPrior < 1.5)
+    }
+}

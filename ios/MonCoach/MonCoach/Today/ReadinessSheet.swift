@@ -3,6 +3,7 @@ import MonCoachKit
 
 /// The 20-second check-in that lets the coach scale the day's session.
 struct ReadinessSheet: View {
+    @Environment(\.language) private var language
     var date: Date
     var onSave: (ReadinessCheck) -> Void
 
@@ -19,13 +20,13 @@ struct ReadinessSheet: View {
             ScrollView {
                 VStack(spacing: Theme.stackSpacing) {
                     Card {
-                        Text("Réponds vite et honnêtement. Ces quatre curseurs décident si la séance du jour se fait telle quelle, allégée, ou raccourcie.")
+                        Text(LocalizedText(fr: "Réponds vite et honnêtement. Ces quatre curseurs décident si la séance du jour se fait telle quelle, allégée, ou raccourcie.", en: "Answer quickly and honestly. These four sliders decide whether today's session runs as is, lighter, or shorter.", es: "Responde rápido y con sinceridad. Estos cuatro controles deciden si la sesión de hoy se hace tal cual, más ligera o más corta.")[language])
                             .font(Theme.bodyFont)
                             .foregroundStyle(Theme.secondaryText)
                             .fixedSize(horizontal: false, vertical: true)
                     }
-                    scale("Qualité du sommeil", value: $sleepQuality, low: "Horrible", high: "Excellente")
-                    Card(title: "Heures dormies") {
+                    scale(LocalizedText(fr: "Qualité du sommeil", en: "Sleep quality", es: "Calidad del sueño")[language], value: $sleepQuality, low: LocalizedText(fr: "Horrible", en: "Awful", es: "Horrible")[language], high: LocalizedText(fr: "Excellente", en: "Excellent", es: "Excelente")[language])
+                    Card(title: LocalizedText(fr: "Heures dormies", en: "Hours slept", es: "Horas dormidas")[language]) {
                         SliderRow(
                             value: $sleepHours,
                             range: 3...11,
@@ -33,9 +34,9 @@ struct ReadinessSheet: View {
                             display: "\(Format.number(sleepHours, decimals: 1)) h"
                         )
                     }
-                    scale("Courbatures", value: $soreness, low: "Aucune", high: "Très fortes")
-                    scale("Motivation", value: $motivation, low: "Zéro", high: "À fond")
-                    scale("Stress", value: $stress, low: "Serein", high: "Sous l'eau")
+                    scale(LocalizedText(fr: "Courbatures", en: "Soreness", es: "Agujetas")[language], value: $soreness, low: LocalizedText(fr: "Aucune", en: "None", es: "Ninguna")[language], high: LocalizedText(fr: "Très fortes", en: "Severe", es: "Muy fuertes")[language])
+                    scale(LocalizedText(fr: "Motivation", en: "Motivation", es: "Motivación")[language], value: $motivation, low: LocalizedText(fr: "Zéro", en: "Zero", es: "Cero")[language], high: LocalizedText(fr: "À fond", en: "All in", es: "A tope")[language])
+                    scale(LocalizedText(fr: "Stress", en: "Stress", es: "Estrés")[language], value: $stress, low: LocalizedText(fr: "Serein", en: "Calm", es: "Tranquilo")[language], high: LocalizedText(fr: "Sous l'eau", en: "Underwater", es: "Desbordado")[language])
 
                     PrimaryButton(title: "Enregistrer", systemImage: "checkmark") {
                         onSave(
@@ -58,7 +59,7 @@ struct ReadinessSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuler") { dismiss() }
+                    Button(UI.cancel[language]) { dismiss() }
                 }
             }
         }
@@ -100,6 +101,7 @@ struct ReadinessSheet: View {
 /// Records a weigh-in. Body weight drives calories and every load estimate,
 /// so it is one tap from the home screen.
 struct WeighInSheet: View {
+    @Environment(\.language) private var language
     var unit: UnitSystem
     var currentKg: Double
     var onSave: (BodyLog) -> Void
@@ -121,7 +123,7 @@ struct WeighInSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: Theme.stackSpacing) {
-                    Card(title: "Poids du jour", subtitle: "Le matin, à jeun, après être passé aux toilettes : c'est la mesure la moins bruitée.") {
+                    Card(title: LocalizedText(fr: "Poids du jour", en: "Today's weight", es: "Peso de hoy")[language], subtitle: LocalizedText(fr: "Le matin, à jeun, après être passé aux toilettes : c'est la mesure la moins bruitée.", en: "In the morning, fasted, after the bathroom: it is the least noisy reading.", es: "Por la mañana, en ayunas, después de ir al baño: es la medida menos ruidosa.")[language]) {
                         SliderRow(
                             value: $weightKg,
                             range: 35...200,
@@ -129,8 +131,8 @@ struct WeighInSheet: View {
                             display: Format.weight(weightKg, unit: unit)
                         )
                     }
-                    Card(title: "Masse grasse") {
-                        Toggle("Je suis aussi mon taux de gras", isOn: $tracksBodyFat)
+                    Card(title: LocalizedText(fr: "Masse grasse", en: "Body fat", es: "Grasa corporal")[language]) {
+                        Toggle(LocalizedText(fr: "Je suis aussi mon taux de gras", en: "I also track my body fat", es: "También sigo mi porcentaje de grasa")[language], isOn: $tracksBodyFat)
                             .tint(Theme.accent)
                             .foregroundStyle(Theme.primaryText)
                         if tracksBodyFat {
@@ -156,7 +158,7 @@ struct WeighInSheet: View {
                 .padding(20)
             }
             .screenBackground()
-            .navigationTitle("Pesée")
+            .navigationTitle(LocalizedText(fr: "Pesée", en: "Weigh-in", es: "Pesaje")[language])
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

@@ -57,7 +57,7 @@ struct ProfileEditorView: View {
             HStack(alignment: .top, spacing: 10) {
                 Image(systemName: "arrow.triangle.2.circlepath")
                     .foregroundStyle(Theme.warning)
-                Text("Enregistrer reconstruit ton bloc à partir d'aujourd'hui. Ton historique d'entraînement est conservé, et la progression sur les mouvements qui restent au programme repart d'où elle en était.")
+                Text(LocalizedText(fr: "Enregistrer reconstruit ton bloc à partir d'aujourd'hui. Ton historique d'entraînement est conservé, et la progression sur les mouvements qui restent au programme repart d'où elle en était.", en: "Saving rebuilds your block from today. Your training history is kept, and progression on the movements that stay in the programme resumes where it was.", es: "Guardar reconstruye tu bloque a partir de hoy. Tu historial de entrenamiento se conserva, y la progresión en los movimientos que siguen en el programa continúa donde estaba.")[language])
                     .font(Theme.captionFont)
                     .foregroundStyle(Theme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
@@ -90,7 +90,7 @@ struct ProfileEditorView: View {
                     display: "\(Format.number(draft.bodyFatPercent, decimals: 1)) %"
                 )
             }
-            Picker("Unités", selection: $draft.unit) {
+            Picker(LocalizedText(fr: "Unités", en: "Units", es: "Unidades")[language], selection: $draft.unit) {
                 ForEach(UnitSystem.allCases, id: \.self) { Text($0.label[language]).tag($0) }
             }
             .pickerStyle(.segmented)
@@ -98,14 +98,14 @@ struct ProfileEditorView: View {
     }
 
     private var goalSection: some View {
-        Card(title: "Objectif") {
+        Card(title: LocalizedText(fr: "Objectif", en: "Goal", es: "Objetivo")[language]) {
             Picker("", selection: $draft.goal) {
                 ForEach(PrimaryGoal.allCases, id: \.self) { Text($0.label[language]).tag($0) }
             }
             .pickerStyle(.inline)
             .labelsHidden()
 
-            Toggle("Poids cible", isOn: $draft.hasTargetWeight)
+            Toggle(LocalizedText(fr: "Poids cible", en: "Target weight", es: "Peso objetivo")[language], isOn: $draft.hasTargetWeight)
                 .tint(Theme.accent)
                 .foregroundStyle(Theme.primaryText)
             if draft.hasTargetWeight {
@@ -120,8 +120,8 @@ struct ProfileEditorView: View {
     }
 
     private var availabilitySection: some View {
-        Card(title: "Disponibilité") {
-            Picker("Séances par semaine", selection: $draft.daysPerWeek) {
+        Card(title: LocalizedText(fr: "Disponibilité", en: "Availability", es: "Disponibilidad")[language]) {
+            Picker(LocalizedText(fr: "Séances par semaine", en: "Sessions per week", es: "Sesiones por semana")[language], selection: $draft.daysPerWeek) {
                 ForEach(2...7, id: \.self) { Text("\($0)").tag($0) }
             }
             .pickerStyle(.segmented)
@@ -138,7 +138,7 @@ struct ProfileEditorView: View {
     }
 
     private var equipmentSection: some View {
-        Card(title: "Matériel") {
+        Card(title: LocalizedText(fr: "Matériel", en: "Equipment", es: "Material")[language]) {
             FlowSelection(
                 items: Equipment.allCases,
                 label: { $0.label[language] },
@@ -151,7 +151,7 @@ struct ProfileEditorView: View {
                     }
                 }
             )
-            Picker("Incrément", selection: $draft.loadIncrement) {
+            Picker(LocalizedText(fr: "Incrément", en: "Increment", es: "Incremento")[language], selection: $draft.loadIncrement) {
                 ForEach(LoadIncrement.allCases, id: \.self) { Text($0.label[language]).tag($0) }
             }
             .pickerStyle(.menu)
@@ -160,7 +160,7 @@ struct ProfileEditorView: View {
     }
 
     private var limitationsSection: some View {
-        Card(title: "Zones sensibles", subtitle: "Tout mouvement qui sollicite directement une zone cochée est retiré du programme.") {
+        Card(title: LocalizedText(fr: "Zones sensibles", en: "Sensitive areas", es: "Zonas sensibles")[language], subtitle: LocalizedText(fr: "Tout mouvement qui sollicite directement une zone cochée est retiré du programme.", en: "Any movement that directly loads a ticked area is removed from the programme.", es: "Todo movimiento que solicite directamente una zona marcada se retira del programa.")[language]) {
             FlowSelection(
                 items: Limitation.allCases,
                 label: { $0.label[language] },
@@ -177,8 +177,8 @@ struct ProfileEditorView: View {
     }
 
     private var lifestyleSection: some View {
-        Card(title: "Quotidien") {
-            Picker("Activité", selection: $draft.activityLevel) {
+        Card(title: LocalizedText(fr: "Quotidien", en: "Daily life", es: "Día a día")[language]) {
+            Picker(LocalizedText(fr: "Activité", en: "Activity", es: "Actividad")[language], selection: $draft.activityLevel) {
                 ForEach(ActivityLevel.allCases, id: \.self) { Text($0.label[language]).tag($0) }
             }
             .pickerStyle(.menu)
@@ -187,7 +187,7 @@ struct ProfileEditorView: View {
                 value: $draft.sleepHours,
                 range: 4...10,
                 step: 0.5,
-                display: "Sommeil : \(Format.number(draft.sleepHours, decimals: 1)) h"
+                display: LocalizedText(fr: "Sommeil : \(Format.number(draft.sleepHours, decimals: 1)) h", en: "Sleep: \(Format.number(draft.sleepHours, decimals: 1)) h", es: "Sueño: \(Format.number(draft.sleepHours, decimals: 1)) h")[language]
             )
             SliderRow(
                 value: Binding(
