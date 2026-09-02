@@ -15,6 +15,17 @@ final class WatchStore {
 
     private(set) var snapshot: WatchSnapshot?
     var activeSession: ActiveSession?
+
+    /// La session d'entraînement HealthKit, pour la séance comme pour les
+    /// sorties. Une seule, tenue ici : c'est elle qui garde l'application
+    /// éveillée, et elle doit survivre à l'écran qui l'a lancée.
+    let workout = WatchWorkout()
+
+    /// Le GPS d'une sortie. Tenu ici et non dans l'écran de course : une
+    /// vue qu'on quitte d'un glissement détruit son état, et un tracker
+    /// détruit est une sortie perdue. L'accueil montre la sortie en cours
+    /// et permet d'y revenir, comme pour la séance.
+    let tracker = LocationTracker()
     /// Séances terminées sur la montre, en attente de confirmation de départ
     /// vers le téléphone. WatchConnectivity garde sa propre file ; ceci ne
     /// sert qu'à l'affichage « en attente de synchronisation ».
@@ -93,10 +104,15 @@ final class WatchStore {
     func startSession() {
         guard let session = todaySession else { return }
         activeSession = ActiveSession(session: session)
+        // La séance de salle ouvre aussi sa session d'entraînement : c'est
+        // ce qui fait vibrer le poignet à la fin du repos même écran
+        // éteint, mesure le cardio entre les séries, et ferme les anneaux.
+        Task { await workout.start(sport: .weightTraining) }
     }
 
     func finishActiveSession(at date: Date = Date()) {
         guard let active = activeSession else { return }
+        Task { await workout.finish() }
         let log = active.log(finishedAt: date)
         if !log.sets.isEmpty {
             pendingUploads += 1
@@ -120,6 +136,7 @@ final class WatchStore {
     /// mot « abandonner » : l'écran le demande deux fois avant.
     func discardActiveSession() {
         activeSession = nil
+        workout.discard()
     }
 
     /// Remplace un exercice de la séance en cours au poignet.
@@ -134,6 +151,19 @@ final class WatchStore {
     }
 
     // MARK: - Course
+
+    /// Lance une sortie : la session d'entraînement, puis le GPS.
+    ///
+    /// La session d'abord, parce que c'est elle qui donne au GPS le droit
+    /// de continuer écran éteint ; le GPS ensuite, et seulement pour ce qui
+    /// se déplace — le tracker sait déjà ne rien allumer pour un rameur.
+    func startActivity(sport: Sport, type: RunType) {
+        tracker.start(sport: sport, type: type)
+        Task { await workout.start(sport: sport) }
+    }
+
+    /// Une sortie est-elle en cours, écran de course quitté ou non ?
+    var activityInProgress: Bool { tracker.isActive }
 
     /// Enregistre une sortie menée au poignet et la fait remonter.
     ///

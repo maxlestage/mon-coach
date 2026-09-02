@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Le complément de l'Info.plist engendré par Xcode pour la montre, sur le
+  même modèle que celui du téléphone : ici ne vivent que les clés qu'un
+  réglage de build ne sait pas écrire correctement.
+
+  WKBackgroundModes doit être un tableau, et le réglage INFOPLIST_KEY_… en
+  produit une chaîne que watchOS ne lit pas. Sans « workout-processing »,
+  la session d'entraînement est interrompue dès que l'application quitte
+  l'avant-plan — c'est-à-dire dès que le poignet baisse.
+-->
+<plist version="1.0">
+<dict>
+	<key>WKBackgroundModes</key>
+	<array>
+		<string>workout-processing</string>
+	</array>
+</dict>
+</plist>

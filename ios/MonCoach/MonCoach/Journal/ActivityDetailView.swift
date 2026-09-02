@@ -64,8 +64,10 @@ struct ActivityDetailView: View {
                                 label: UI.pace[language]
                             )
                         } else {
+                            // La dépense mesurée au poignet, cardio compris, avant le
+                            // modèle au kilomètre — quand la montre l'a mesurée.
                             StatTile(
-                                value: "\(Int(TraceMath.energyKcal(sport: activity.sport, meters: 0, movingSeconds: activity.duration, elevationGain: 0, weightKg: store.profile?.weightKg ?? 70)))",
+                                value: "\(Int(activity.kilocalories ?? TraceMath.energyKcal(sport: activity.sport, meters: 0, movingSeconds: activity.duration, elevationGain: 0, weightKg: store.profile?.weightKg ?? 70)))",
                                 label: UI.calories[language],
                                 tint: Theme.warning
                             )

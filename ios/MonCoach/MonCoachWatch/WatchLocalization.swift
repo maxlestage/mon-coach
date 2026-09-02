@@ -123,6 +123,59 @@ enum WatchUI {
         en: "Today's run is logged",
         es: "Rodaje de hoy registrado"
     )
+    static let measuredByWatch = LocalizedText(
+        fr: "Mesuré par la montre",
+        en: "Measured by the watch",
+        es: "Medido por el reloj"
+    )
+    static let locationDenied = LocalizedText(
+        fr: "Autorise la localisation sur la montre pour mesurer une sortie.",
+        en: "Allow location on the watch to measure an activity.",
+        es: "Permite la ubicación en el reloj para medir una salida."
+    )
+    /// Santé refusé ou absent : la sortie continue, sans cardio ni anneaux.
+    static let noHealth = LocalizedText(
+        fr: "Sans Santé : ni cardio, ni anneaux",
+        en: "Without Health: no heart rate, no rings",
+        es: "Sin Salud: ni pulso, ni anillos"
+    )
+    static let firstSplit = LocalizedText(
+        fr: "Le premier kilomètre s'affichera ici.",
+        en: "Your first kilometre will show up here.",
+        es: "Tu primer kilómetro aparecerá aquí."
+    )
+    static let summary = LocalizedText(fr: "Bilan", en: "Summary", es: "Resumen")
+    static let time = LocalizedText(fr: "Temps", en: "Time", es: "Tiempo")
+    static let distance = LocalizedText(fr: "Distance", en: "Distance", es: "Distancia")
+    static let averageBpm = LocalizedText(fr: "bpm moy.", en: "avg bpm", es: "ppm med.")
+    static let tooShort = LocalizedText(
+        fr: "Trop court pour être enregistré.",
+        en: "Too short to be saved.",
+        es: "Demasiado corto para guardarse."
+    )
+    static let close = LocalizedText(fr: "Fermer", en: "Close", es: "Cerrar")
+    static let save = LocalizedText(fr: "Enregistrer", en: "Save", es: "Guardar")
+    static let discardActivity = LocalizedText(
+        fr: "Ne pas enregistrer",
+        en: "Don't save",
+        es: "No guardar"
+    )
+    /// La distance d'une machine, demandée à la couronne.
+    static let machineDistance = LocalizedText(
+        fr: "Distance affichée par la machine",
+        en: "Distance shown by the machine",
+        es: "Distancia que muestra la máquina"
+    )
+    static let activityInProgress = LocalizedText(
+        fr: "Sortie en cours",
+        en: "Activity in progress",
+        es: "Salida en curso"
+    )
+    static let resumeActivity = LocalizedText(
+        fr: "Appuie pour la retrouver",
+        en: "Tap to get back to it",
+        es: "Toca para volver a ella"
+    )
     static let credit = LocalizedText(
         fr: "Conçu et développé par Maxime Nathan Lestage",
         en: "Designed and developed by Maxime Nathan Lestage",

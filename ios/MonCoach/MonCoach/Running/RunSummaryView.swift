@@ -97,7 +97,7 @@ struct RunSummaryView: View {
                             // donnait le triple, et n'avait rien à dire du
                             // tout d'une heure de yoga.
                             StatTile(
-                                value: "\(Int(TraceMath.energyKcal(sport: run.sport, meters: run.meters, movingSeconds: run.duration, elevationGain: run.elevationGain, weightKg: weightKg)))",
+                                value: "\(Int(run.kilocalories ?? TraceMath.energyKcal(sport: run.sport, meters: run.meters, movingSeconds: run.duration, elevationGain: run.elevationGain, weightKg: weightKg)))",
                                 label: UI.calories[language],
                                 tint: Theme.warning
                             )
