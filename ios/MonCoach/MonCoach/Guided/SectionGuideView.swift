@@ -199,5 +199,10 @@ extension View {
                 SectionGuideButton(section: section)
             }
         }
+        // Le même appel dit aussi aux cartes de l'écran à quel onglet elles
+        // appartiennent, pour qu'elles rejouent leur arrivée quand on le
+        // choisit. Un seul endroit à écrire par écran, donc un seul à
+        // oublier — et il est déjà là.
+        .appSection(section)
     }
 }

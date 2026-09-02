@@ -10,36 +10,53 @@ struct RootView: View {
     /// voit à la fois le magasin et le cycle de vie de l'application.
     @State private var watchLink = WatchLink()
 
+    /// L'onglet affiché. Tenu ici plutôt que laissé à la barre d'onglets
+    /// pour une raison : les écrans ont besoin de savoir quand on arrive
+    /// sur eux. La barre le sait, mais ne le dit à personne ; on le lui
+    /// demande, et on le passe dans l'environnement pour que chaque carte
+    /// rejoue son arrivée au moment où son onglet est choisi.
+    @State private var section: AppSection = .today
+
+    private var showsActivities: Bool {
+        // L'onglet n'apparaît que s'il a quelque chose à dire : un plan de
+        // course, ou des activités déjà enregistrées. Un onglet vide en
+        // permanence apprend surtout à ne plus regarder la barre d'onglets.
+        store.profile?.runs == true || !store.history.activities.isEmpty
+    }
+
     var body: some View {
         @Bindable var store = store
 
         Group {
             if store.isOnboarded {
-                TabView {
-                    Tab(UI.today[store.language], systemImage: "bolt.fill") {
+                TabView(selection: $section) {
+                    Tab(UI.today[store.language], systemImage: "bolt.fill", value: AppSection.today) {
                         TodayView()
                     }
-                    Tab(UI.plan[store.language], systemImage: "list.bullet.rectangle") {
+                    Tab(UI.plan[store.language], systemImage: "list.bullet.rectangle", value: AppSection.plan) {
                         PlanView()
                     }
-                    // L'onglet n'apparaît que s'il a quelque chose à dire :
-                    // un plan de course, ou des activités déjà enregistrées.
-                    // Un onglet vide en permanence apprend surtout à ne plus
-                    // regarder la barre d'onglets.
-                    if store.profile?.runs == true || !store.history.activities.isEmpty {
-                        Tab(UI.running[store.language], systemImage: "figure.run") {
+                    if showsActivities {
+                        Tab(UI.running[store.language], systemImage: "figure.run", value: AppSection.running) {
                             ActivitiesHomeView()
                         }
                     }
-                    Tab(UI.food[store.language], systemImage: "fork.knife") {
+                    Tab(UI.food[store.language], systemImage: "fork.knife", value: AppSection.food) {
                         FoodView()
                     }
-                    Tab(UI.progress[store.language], systemImage: "chart.line.uptrend.xyaxis") {
+                    Tab(UI.progress[store.language], systemImage: "chart.line.uptrend.xyaxis", value: AppSection.progress) {
                         ProgressDashboardView()
                     }
-                    Tab(UI.profile[store.language], systemImage: "person.fill") {
+                    Tab(UI.profile[store.language], systemImage: "person.fill", value: AppSection.profile) {
                         ProfileView()
                     }
+                }
+                .environment(\.selectedSection, section)
+                // Si l'onglet des activités disparaît pendant qu'on est
+                // dessus — profil modifié, dernière sortie supprimée — la
+                // sélection pointerait sur un onglet qui n'existe plus.
+                .onChange(of: showsActivities) { _, shown in
+                    if !shown, section == .running { section = .today }
                 }
             } else {
                 OnboardingView { profile in

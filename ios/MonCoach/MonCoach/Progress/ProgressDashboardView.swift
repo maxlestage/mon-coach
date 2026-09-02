@@ -205,14 +205,22 @@ struct ProgressDashboardView: View {
             .animation(reduceMotion ? nil : Motion.settle, value: measure)
             .onAppear {
                 guard !grown else { return }
-                if reduceMotion {
-                    grown = true
-                } else {
-                    withAnimation(Motion.settle.delay(0.15)) { grown = true }
-                }
+                grow()
+            }
+            .onTabSelected {
+                guard grown, !reduceMotion else { return }
+                Motion.replay { grown = false } then: { grow() }
             }
 
             volumeStanding(weeks: weeks, average: average, best: best)
+        }
+    }
+
+    private func grow() {
+        if reduceMotion {
+            grown = true
+        } else {
+            withAnimation(Motion.settle.delay(0.15)) { grown = true }
         }
     }
 

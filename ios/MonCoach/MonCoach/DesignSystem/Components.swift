@@ -221,13 +221,21 @@ struct ProgressBar: View {
         .frame(height: 8)
         .onAppear {
             guard !filled else { return }
-            if reduceMotion {
-                filled = true
-            } else {
-                withAnimation(Motion.settle.delay(0.1)) { filled = true }
-            }
+            fill()
+        }
+        .onTabSelected {
+            guard filled, !reduceMotion else { return }
+            Motion.replay { filled = false } then: { fill() }
         }
         .animation(reduceMotion ? nil : Motion.settle, value: fraction)
+    }
+
+    private func fill() {
+        if reduceMotion {
+            filled = true
+        } else {
+            withAnimation(Motion.settle.delay(0.1)) { filled = true }
+        }
     }
 }
 

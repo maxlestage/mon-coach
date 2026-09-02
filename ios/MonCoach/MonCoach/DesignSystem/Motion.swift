@@ -12,9 +12,11 @@ import MonCoachKit
 ///
 /// D'où trois règles tenues partout dans le fichier :
 ///
-/// 1. **Une animation d'arrivée se joue une fois.** Celle qui rejoue chaque
-///    fois qu'on revient sur un écran déjà vu est exactement celle qu'on
-///    déteste au troisième jour.
+/// 1. **Une animation d'arrivée se joue quand on arrive.** Quand on choisit
+///    l'onglet, donc, et pas quand on revient d'une feuille posée dessus :
+///    la première est une navigation, la seconde un retour au même endroit,
+///    et une carte qui refait son entrée à chaque aller-retour est une
+///    carte qui clignote.
 /// 2. **Une animation d'état se joue quand l'état change**, jamais « en
 ///    boucle pour faire joli ». Une pastille qui pulse en permanence apprend
 ///    surtout à ne plus la regarder.
@@ -47,6 +49,84 @@ enum Motion {
     static func delay(forCardAt index: Int) -> Double {
         MotionTiming.delay(forCardAt: index)
     }
+
+    /// Remet une vue à son état de départ sans animation, puis la fait
+    /// repartir au tour de boucle suivant.
+    ///
+    /// Les deux changements ne peuvent pas se faire dans la même passe :
+    /// SwiftUI ne rend que l'état final, et « faux puis vrai » dans une
+    /// même passe est « vrai », sans rien à animer. Le retour à zéro doit
+    /// être dessiné une image avant le départ.
+    @MainActor
+    static func replay(_ reset: () -> Void, then restart: @escaping @MainActor () -> Void) {
+        var still = Transaction()
+        still.disablesAnimations = true
+        withTransaction(still) { reset() }
+        // Le bloc part après le passage de rendu en cours : la vue est
+        // dessinée à zéro, puis l'animation la ramène. Un `Task` ferait
+        // pareil ; la file principale est simplement plus explicite sur le
+        // moment où ça part.
+        DispatchQueue.main.async {
+            MainActor.assumeIsolated { restart() }
+        }
+    }
+}
+
+// MARK: - Savoir quand on arrive sur un onglet
+
+/// L'onglet auquel une vue appartient, posé par `.sectionGuide(_:)`.
+private struct AppSectionKey: EnvironmentKey {
+    static let defaultValue: AppSection? = nil
+}
+
+/// L'onglet affiché en ce moment, posé par la vue racine.
+private struct SelectedSectionKey: EnvironmentKey {
+    static let defaultValue: AppSection? = nil
+}
+
+extension EnvironmentValues {
+    var appSection: AppSection? {
+        get { self[AppSectionKey.self] }
+        set { self[AppSectionKey.self] = newValue }
+    }
+
+    var selectedSection: AppSection? {
+        get { self[SelectedSectionKey.self] }
+        set { self[SelectedSectionKey.self] = newValue }
+    }
+}
+
+/// Appelle l'action chaque fois que l'onglet de la vue est choisi.
+///
+/// Pourquoi ce n'est pas `onAppear` : dans une barre d'onglets, les écrans
+/// restent vivants une fois visités. Revenir dessus ne les recrée pas, et
+/// selon la version du système `onAppear` se rappelle ou non. La sélection
+/// de l'onglet, elle, change à coup sûr — c'est le seul signal fiable pour
+/// dire « on vient d'arriver ici ».
+private struct OnTabSelected: ViewModifier {
+    var action: () -> Void
+
+    @Environment(\.appSection) private var section
+    @Environment(\.selectedSection) private var selected
+
+    func body(content: Content) -> some View {
+        content.onChange(of: selected) { _, now in
+            guard let section, now == section else { return }
+            action()
+        }
+    }
+}
+
+extension View {
+    /// Déclare à quel onglet la vue appartient.
+    func appSection(_ section: AppSection) -> some View {
+        environment(\.appSection, section)
+    }
+
+    /// Rejoue quelque chose chaque fois qu'on arrive sur l'onglet.
+    func onTabSelected(_ action: @escaping () -> Void) -> some View {
+        modifier(OnTabSelected(action: action))
+    }
 }
 
 // MARK: - L'arrivée d'une carte
@@ -71,18 +151,28 @@ private struct Appears: ViewModifier {
             .offset(y: shown || reduceMotion ? 0 : 12)
             .scaleEffect(shown || reduceMotion ? 1 : 0.985, anchor: .top)
             .onAppear {
-                // Une seule fois. `onAppear` peut se rappeler — retour depuis
-                // une feuille, changement de langue — et une carte qui
-                // réapparaît en fondu à chaque aller-retour est une carte
-                // qui clignote.
+                // Pas au retour d'une feuille : `onAppear` se rappelle
+                // alors, et une carte qui réapparaît en fondu à chaque
+                // aller-retour est une carte qui clignote.
                 guard !shown else { return }
-                withAnimation(
-                    (reduceMotion ? Motion.plain : Motion.entrance)
-                        .delay(Motion.delay(forCardAt: index))
-                ) {
-                    shown = true
-                }
+                enter()
             }
+            // Mais bien à chaque fois qu'on choisit l'onglet : c'est là
+            // qu'on « navigue », et c'est là qu'une arrivée se lit comme
+            // une arrivée.
+            .onTabSelected {
+                guard shown else { return }
+                Motion.replay { shown = false } then: { enter() }
+            }
+    }
+
+    private func enter() {
+        withAnimation(
+            (reduceMotion ? Motion.plain : Motion.entrance)
+                .delay(Motion.delay(forCardAt: index))
+        ) {
+            shown = true
+        }
     }
 }
 
@@ -188,18 +278,26 @@ struct ScoreRing: View {
         }
         .onAppear {
             guard !drawn else { return }
-            if reduceMotion {
-                drawn = true
-            } else {
-                // Un temps mort avant le tracé : la carte finit d'arriver,
-                // puis l'anneau se dessine. Les deux en même temps se
-                // brouillent et on ne regarde ni l'un ni l'autre.
-                withAnimation(Motion.settle.delay(0.12)) { drawn = true }
-            }
+            draw()
+        }
+        .onTabSelected {
+            guard drawn, !reduceMotion else { return }
+            Motion.replay { drawn = false } then: { draw() }
         }
         // Le score change quand on refait le check-in du jour : l'anneau
         // suit, sans se retracer depuis zéro.
         .animation(reduceMotion ? nil : Motion.settle, value: score)
+    }
+
+    private func draw() {
+        if reduceMotion {
+            drawn = true
+        } else {
+            // Un temps mort avant le tracé : la carte finit d'arriver,
+            // puis l'anneau se dessine. Les deux en même temps se
+            // brouillent et on ne regarde ni l'un ni l'autre.
+            withAnimation(Motion.settle.delay(0.12)) { drawn = true }
+        }
     }
 }
 
