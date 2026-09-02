@@ -5,6 +5,12 @@
   même modèle que celui du téléphone : ici ne vivent que les clés qu'un
   réglage de build ne sait pas écrire correctement.
 
+  Il vit à la racine du projet et non dans le dossier synchronisé de la
+  cible : posé dedans, Xcode le copiait aussi comme ressource, et
+  l'archive s'arrêtait sur « Multiple commands produce …/Info.plist ». Le
+  dossier du téléphone a une exception déclarée pour le sien ; celui de la
+  montre n'en a pas, et un fichier hors du dossier n'en a pas besoin.
+
   WKBackgroundModes doit être un tableau, et le réglage INFOPLIST_KEY_… en
   produit une chaîne que watchOS ne lit pas. Sans « workout-processing »,
   la session d'entraînement est interrompue dès que l'application quitte
