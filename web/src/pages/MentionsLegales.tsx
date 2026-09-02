@@ -13,7 +13,7 @@ const copy = {
     ip: "Propriété intellectuelle",
     ipBody: "L'ensemble du site, de l'application et de leur contenu — textes, interfaces, code, marques et logos — est la propriété exclusive de Maxime Nathan Lestage. Tous droits réservés. Toute reproduction ou réutilisation, totale ou partielle, sans autorisation écrite préalable est interdite.",
     map: "Données cartographiques",
-    mapBody: "Les fonds de carte affichés dans l'application et sur ce site proviennent d'OpenStreetMap et de ses contributeurs, publiés sous licence ODbL. Le tracé de tes sorties, lui, t'appartient et reste sur ton appareil.",
+    mapBody: "Le fond de carte de l'application est Apple Plans, fourni par iOS et soumis aux conditions d'Apple. Celui de ce site provient d'OpenStreetMap et de ses contributeurs, publié sous licence ODbL. Le tracé de tes sorties, lui, t'appartient et reste sur ton appareil.",
     oss: "Composants tiers",
     ossBody: "Ce site et l'application embarquent des composants libres, reproduits ici avec leurs notices — la minification du code retire les commentaires, elle ne retire pas les obligations :",
     report: "Signaler un problème",
@@ -30,7 +30,7 @@ const copy = {
     ip: "Intellectual property",
     ipBody: "The whole of this site, the app and their content — text, interfaces, code, trademarks and logos — is the exclusive property of Maxime Nathan Lestage. All rights reserved. Any reproduction or reuse, in whole or in part, without prior written permission is prohibited.",
     map: "Map data",
-    mapBody: "The map backgrounds shown in the app and on this site come from OpenStreetMap and its contributors, published under the ODbL licence. The trace of your runs, on the other hand, belongs to you and stays on your device.",
+    mapBody: "The app's map background is Apple Maps, provided by iOS and subject to Apple's terms. This site's comes from OpenStreetMap and its contributors, published under the ODbL licence. The trace of your activities, on the other hand, belongs to you and stays on your device.",
     oss: "Third-party components",
     ossBody: "This site and the app ship open-source components, whose notices are reproduced here — minification strips comments, not obligations:",
     report: "Reporting a problem",
@@ -47,7 +47,7 @@ const copy = {
     ip: "Propiedad intelectual",
     ipBody: "La totalidad del sitio, de la aplicación y de su contenido —textos, interfaces, código, marcas y logotipos— es propiedad exclusiva de Maxime Nathan Lestage. Todos los derechos reservados. Queda prohibida cualquier reproducción o reutilización, total o parcial, sin autorización escrita previa.",
     map: "Datos cartográficos",
-    mapBody: "Los fondos de mapa mostrados en la aplicación y en este sitio provienen de OpenStreetMap y sus colaboradores, publicados bajo licencia ODbL. La traza de tus rodajes, en cambio, te pertenece y permanece en tu dispositivo.",
+    mapBody: "El fondo de mapa de la aplicación es Apple Plans, incluido en iOS y sujeto a las condiciones de Apple. El de este sitio proviene de OpenStreetMap y sus colaboradores, publicado bajo licencia ODbL. La traza de tus salidas, en cambio, te pertenece y permanece en tu dispositivo.",
     oss: "Componentes de terceros",
     ossBody: "Este sitio y la aplicación incluyen componentes libres, cuyas notas se reproducen aquí — la minificación elimina comentarios, no obligaciones:",
     report: "Señalar un problema",
@@ -88,12 +88,6 @@ export function MentionsLegales() {
           MapLibre GL JS — © 2023 MapLibre contributors, © 2020 Mapbox —{" "}
           <a href="https://github.com/maplibre/maplibre-gl-js/blob/main/LICENSE.txt" rel="noopener noreferrer">
             3-Clause BSD License
-          </a>
-        </li>
-        <li>
-          MapLibre Native (iOS) — © MapLibre contributors —{" "}
-          <a href="https://github.com/maplibre/maplibre-native/blob/main/LICENSES.md" rel="noopener noreferrer">
-            BSD License
           </a>
         </li>
         <li>
