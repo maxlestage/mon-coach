@@ -17,8 +17,15 @@
   lui-même qu'elle deviendra obligatoire. La déclarer à « non » dit ce qui
   est vrai : cette application n'est pas un jeu.
 
-  MetalHudEnabled enfin : le HUD de diagnostic graphique n'a rien à faire
+  MetalHudEnabled : le HUD de diagnostic graphique n'a rien à faire
   au-dessus de la carte d'un athlète, on le refuse explicitement.
+
+  UILaunchScreen enfin. Le premier écran est dessiné par le système avant
+  qu'une ligne de l'application ne tourne, et l'écran engendré par Xcode
+  prend le fond du système — un noir pur, pas le bleu-nuit de l'application.
+  Le passage de l'un à l'autre se voit comme un clignotement. La couleur
+  du catalogue est la même que celle de l'écran de lancement dessiné
+  ensuite en SwiftUI, et la transition disparaît.
 -->
 <plist version="1.0">
 <dict>
@@ -30,5 +37,10 @@
 	<false/>
 	<key>MetalHudEnabled</key>
 	<false/>
+	<key>UILaunchScreen</key>
+	<dict>
+		<key>UIColorName</key>
+		<string>LaunchBackground</string>
+	</dict>
 </dict>
 </plist>
