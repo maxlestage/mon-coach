@@ -131,7 +131,11 @@ struct RunTrackerView: View {
                 SportPickerView(selection: $selectedSport, recents: recentSports)
             }
             .onAppear {
-                if plannedRun == nil, let saved = Sport(rawValue: lastSportRaw) {
+                // Une sortie prescrite propose la course, elle ne l'impose
+                // plus : le choix reste ouvert juste en dessous.
+                if plannedRun != nil {
+                    selectedSport = .run
+                } else if let saved = Sport(rawValue: lastSportRaw) {
                     selectedSport = saved
                 }
             }
@@ -282,7 +286,11 @@ struct RunTrackerView: View {
                     }
                 }
             }
-            if let plannedRun {
+            // La sortie prescrite ne se montre que tant qu'on va bien la
+            // faire : un plan de course affiché au-dessus d'un choix
+            // « natation » prescrirait une allure au kilomètre pour des
+            // longueurs de bassin.
+            if let plannedRun, selectedSport.feedsRunningPlan {
                 Card(title: plannedRun.type.label[language]) {
                     VStack(alignment: .leading, spacing: 10) {
                         CoachText(plannedRun.note, color: Theme.primaryText)
@@ -311,73 +319,94 @@ struct RunTrackerView: View {
             }
 
             // Le sport d'abord : c'est lui qui règle les filtres GPS et la
-            // façon de dire la vitesse. Une sortie prescrite est de la
-            // course, le choix disparaît.
-            if plannedRun == nil {
-                Card(title: LocalizedText(fr: "Sport", en: "Sport", es: "Deporte")[language]) {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Button {
-                            showsSportPicker = true
-                        } label: {
-                            HStack(spacing: 12) {
-                                Image(systemName: selectedSport.symbolName)
-                                    .font(.system(size: 18))
-                                    .foregroundStyle(Theme.accent)
-                                    .frame(width: 28)
-                                VStack(alignment: .leading, spacing: 1) {
-                                    Text(selectedSport.label[language])
-                                        .font(Theme.headlineFont)
-                                        .foregroundStyle(Theme.primaryText)
-                                    Text(selectedSport.family.label[language])
-                                        .font(.system(size: 11))
-                                        .foregroundStyle(Theme.secondaryText)
-                                }
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 13, weight: .semibold))
+            // façon de dire la vitesse.
+            //
+            // Il s'affiche toujours, y compris quand une sortie est
+            // prescrite. Le masquer alors partait d'une bonne intention —
+            // « une sortie prescrite est de la course » — et se retournait
+            // contre l'athlète : cet écran est celui qu'on ouvre depuis la
+            // séance du jour, c'est-à-dire presque toujours, et les
+            // quarante-huit sports y devenaient introuvables. Le plan
+            // informe, il ne décide pas : quelqu'un qui préfère pédaler
+            // aujourd'hui a ses raisons.
+            Card(title: LocalizedText(fr: "Sport", en: "Sport", es: "Deporte")[language]) {
+                VStack(alignment: .leading, spacing: 10) {
+                    Button {
+                        showsSportPicker = true
+                    } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: selectedSport.symbolName)
+                                .font(.system(size: 18))
+                                .foregroundStyle(Theme.accent)
+                                .frame(width: 28)
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(selectedSport.label[language])
+                                    .font(Theme.headlineFont)
+                                    .foregroundStyle(Theme.primaryText)
+                                Text(selectedSport.family.label[language])
+                                    .font(.system(size: 11))
                                     .foregroundStyle(Theme.secondaryText)
                             }
-                            .contentShape(Rectangle())
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(Theme.secondaryText)
                         }
-                        .buttonStyle(.plain)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
 
-                        // Les trois derniers, sous la main : un athlète ne
-                        // fait pas quarante-huit sports, il en fait trois.
-                        if recentSports.count > 1 {
-                            FlowLayout(spacing: 8) {
-                                ForEach(recentSports) { sport in
-                                    Button {
-                                        selectedSport = sport
-                                    } label: {
-                                        HStack(spacing: 5) {
-                                            Image(systemName: sport.symbolName)
-                                                .font(.system(size: 12))
-                                            Text(sport.label[language])
-                                        }
-                                        .font(.system(size: 13, weight: .medium))
-                                        .foregroundStyle(selectedSport == sport ? Theme.background : Theme.primaryText)
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 7)
-                                        .background(
-                                            selectedSport == sport ? Theme.accent : Theme.surfaceRaised,
-                                            in: Capsule()
-                                        )
+                    // Les trois derniers, sous la main : un athlète ne
+                    // fait pas quarante-huit sports, il en fait trois.
+                    if recentSports.count > 1 {
+                        FlowLayout(spacing: 8) {
+                            ForEach(recentSports) { sport in
+                                Button {
+                                    selectedSport = sport
+                                } label: {
+                                    HStack(spacing: 5) {
+                                        Image(systemName: sport.symbolName)
+                                            .font(.system(size: 12))
+                                        Text(sport.label[language])
                                     }
-                                    .buttonStyle(.plain)
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundStyle(selectedSport == sport ? Theme.background : Theme.primaryText)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 7)
+                                    .background(
+                                        selectedSport == sport ? Theme.accent : Theme.surfaceRaised,
+                                        in: Capsule()
+                                    )
                                 }
+                                .buttonStyle(.plain)
                             }
                         }
+                    }
 
-                        if !selectedSport.tracksLocation {
-                            CoachText(
-                                LocalizedText(
-                                    fr: "Pas de GPS pour ce sport : on compte le temps et le cardio, et la dépense se déduit de la durée. C'est ce qui se mesure honnêtement à l'intérieur.",
-                                    en: "No GPS for this sport: we count time and heart rate, and the energy cost comes from the duration. That is what can honestly be measured indoors.",
-                                    es: "Sin GPS para este deporte: contamos tiempo y pulso, y el gasto se deduce de la duración. Es lo que se puede medir con honestidad en interior."
-                                ),
-                                font: .system(size: 12)
-                            )
-                        }
+                    if !selectedSport.tracksLocation {
+                        CoachText(
+                            LocalizedText(
+                                fr: "Pas de GPS pour ce sport : on compte le temps et le cardio, et la dépense se déduit de la durée. C'est ce qui se mesure honnêtement à l'intérieur.",
+                                en: "No GPS for this sport: we count time and heart rate, and the energy cost comes from the duration. That is what can honestly be measured indoors.",
+                                es: "Sin GPS para este deporte: contamos tiempo y pulso, y el gasto se deduce de la duración. Es lo que se puede medir con honestidad en interior."
+                            ),
+                            font: .system(size: 12)
+                        )
+                    }
+
+                    // Dit une fois, sans reproche : la sortie prévue
+                    // n'est pas perdue, elle attend. Sans cette phrase,
+                    // le plan disparaît de l'écran et on croit l'avoir
+                    // effacé en changeant de sport.
+                    if plannedRun != nil, !selectedSport.feedsRunningPlan {
+                        CoachText(
+                            LocalizedText(
+                                fr: "La sortie prévue reste au plan : elle t'attend pour un autre jour, et ce que tu fais maintenant compte quand même dans ta charge.",
+                                en: "The planned run stays on the plan: it waits for another day, and what you do now still counts towards your load.",
+                                es: "El rodaje previsto sigue en el plan: te espera para otro día, y lo que hagas ahora cuenta igualmente en tu carga."
+                            ),
+                            font: .system(size: 12)
+                        )
                     }
                 }
             }
@@ -410,7 +439,7 @@ struct RunTrackerView: View {
             PrimaryButton(title: UI.start[language], systemImage: selectedSport.symbolName) {
                 wasOffRoute = false
                 tracker.start(
-                    sport: plannedRun == nil ? selectedSport : .run,
+                    sport: selectedSport,
                     type: selectedSport.feedsRunningPlan ? selectedType : .easy
                 )
                 // L'écran verrouillé fait partie de Stride+ ; la mesure
