@@ -29,6 +29,16 @@ struct ProgressDashboardView: View {
     /// elles ne mentent pas au même endroit.
     @State private var measure: VolumeMeasure = .sets
 
+    /// Vrai une fois que les barres ont poussé. Une seule fois : revenir
+    /// sur l'onglet ne doit pas rejouer la croissance, sinon la mise en
+    /// scène devient une attente qu'on subit à chaque coup d'œil.
+    @State private var grown = false
+
+    /// Les animations ne partent pas si le téléphone demande moins de
+    /// mouvement — les barres sont alors à leur hauteur dès la première
+    /// image, et le graphique se lit exactement pareil.
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     /// Douze semaines : trois mois se lisent d'un coup d'œil au pouce, et
     /// c'est la durée d'un bloc et demi — assez pour qu'une tendance ait un
     /// sens, assez court pour que chaque barre reste distincte.
@@ -42,14 +52,14 @@ struct ProgressDashboardView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: Theme.stackSpacing) {
-                    summaryCard
-                    volumeCard
-                    bodyWeightCard
-                    strengthCard
+                    summaryCard.appears(0)
+                    volumeCard.appears(1)
+                    bodyWeightCard.appears(2)
+                    strengthCard.appears(3)
                     if store.isUnlocked(.weeklyReview) {
-                        weeklyReviewCard
+                        weeklyReviewCard.appears(4)
                     } else {
-                        PlusLockedCard(feature: .weeklyReview)
+                        PlusLockedCard(feature: .weeklyReview).appears(4)
                     }
                 }
                 .padding(20)
@@ -139,7 +149,16 @@ struct ProgressDashboardView: View {
                 ForEach(weeks) { week in
                     BarMark(
                         x: .value("Semaine", week.start, unit: .weekOfYear),
-                        y: .value(measure.label[language], measure.value(of: week)),
+                        // Les barres poussent depuis le bas à l'ouverture,
+                        // et se réajustent quand on change de mesure. Un
+                        // graphique qui apparaît fini est une image ; un
+                        // graphique qui pousse fait lire les hauteurs les
+                        // unes par rapport aux autres, ce qui est tout ce
+                        // qu'on lui demande.
+                        y: .value(
+                            measure.label[language],
+                            grown ? measure.value(of: week) : 0
+                        ),
                         width: .ratio(0.6)
                     )
                     .foregroundStyle(
@@ -183,6 +202,15 @@ struct ProgressDashboardView: View {
                 }
             }
             .frame(height: 170)
+            .animation(reduceMotion ? nil : Motion.settle, value: measure)
+            .onAppear {
+                guard !grown else { return }
+                if reduceMotion {
+                    grown = true
+                } else {
+                    withAnimation(Motion.settle.delay(0.15)) { grown = true }
+                }
+            }
 
             volumeStanding(weeks: weeks, average: average, best: best)
         }

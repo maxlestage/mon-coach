@@ -22,23 +22,30 @@ struct TodayView: View {
             ScrollView {
                 VStack(spacing: Theme.stackSpacing) {
                     if let briefing {
+                        // Les cartes arrivent dans l'ordre où on les lit. Le
+                        // numéro est écrit à la main parce que la pile n'est
+                        // pas une liste : les cartes ne sont pas du même
+                        // type, certaines n'existent pas tous les jours, et
+                        // c'est l'ordre de lecture qui compte, pas l'ordre
+                        // d'apparition dans le code.
                         if let step = beginnerStep {
-                            FirstSessionsCard(step: step)
+                            FirstSessionsCard(step: step).appears(0)
                         }
-                        readinessCard(briefing)
-                        stateCard(briefing)
+                        readinessCard(briefing).appears(1)
+                        stateCard(briefing).appears(2)
                         if let run = briefing.plannedRun {
-                            plannedRunCard(run, done: briefing.recordedRun)
+                            plannedRunCard(run, done: briefing.recordedRun).appears(3)
                         }
-                        nutritionCard(briefing.nutrition)
-                        trialBanner
-                        insightsCard
+                        nutritionCard(briefing.nutrition).appears(4)
+                        trialBanner.appears(5)
+                        insightsCard.appears(6)
                     } else {
                         Card(title: "Aucun programme") {
                             Text("Le coach n'a pas encore de plan pour toi.")
                                 .font(Theme.bodyFont)
                                 .foregroundStyle(Theme.secondaryText)
                         }
+                        .appears(0)
                     }
                 }
                 .padding(20)
@@ -139,17 +146,10 @@ struct TodayView: View {
     private func readinessCard(_ briefing: TodayBriefing) -> some View {
         Card(title: briefing.readiness.headline[language], subtitle: "Forme du jour") {
             HStack(alignment: .center, spacing: 16) {
-                ZStack {
-                    Circle()
-                        .stroke(Theme.surfaceRaised, lineWidth: 8)
-                    Circle()
-                        .trim(from: 0, to: Double(briefing.readiness.score) / 100)
-                        .stroke(scoreColor(briefing.readiness.score), style: StrokeStyle(lineWidth: 8, lineCap: .round))
-                        .rotationEffect(.degrees(-90))
-                    Text("\(briefing.readiness.score)")
-                        .font(.system(size: 20, weight: .bold, design: .rounded))
-                        .foregroundStyle(Theme.primaryText)
-                }
+                ScoreRing(
+                    score: briefing.readiness.score,
+                    tint: scoreColor(briefing.readiness.score)
+                )
                 .frame(width: 64, height: 64)
 
                 Text(briefing.readiness.advice[language])
