@@ -43,6 +43,13 @@ enum Motion {
     /// Un fondu reste : il dit que quelque chose a changé sans rien déplacer.
     static let plain = Animation.easeInOut(duration: 0.22)
 
+    // MARK: La fiche entre deux onglets
+
+    /// Le temps pendant lequel la fiche d'un onglet reste posée avant de se
+    /// retirer. Les cartes de l'écran attendent ce délai avant d'arriver :
+    /// elles entrent pendant que la fiche s'efface, pas derrière elle.
+    static let splashHold: Double = 0.55
+
     // MARK: La cascade
 
     /// Le délai de la carte à cette position, borné par le moteur.
@@ -162,14 +169,16 @@ private struct Appears: ViewModifier {
             // une arrivée.
             .onTabSelected {
                 guard shown else { return }
-                Motion.replay { shown = false } then: { enter() }
+                Motion.replay { shown = false } then: { enter(after: Motion.splashHold) }
             }
     }
 
-    private func enter() {
+    /// - Parameter lead: un temps mort avant la cascade — celui de la fiche
+    ///   d'onglet, quand on arrive par la barre du bas.
+    private func enter(after lead: Double = 0) {
         withAnimation(
             (reduceMotion ? Motion.plain : Motion.entrance)
-                .delay(Motion.delay(forCardAt: index))
+                .delay(lead + Motion.delay(forCardAt: index))
         ) {
             shown = true
         }
@@ -282,21 +291,21 @@ struct ScoreRing: View {
         }
         .onTabSelected {
             guard drawn, !reduceMotion else { return }
-            Motion.replay { drawn = false } then: { draw() }
+            Motion.replay { drawn = false } then: { draw(after: Motion.splashHold) }
         }
         // Le score change quand on refait le check-in du jour : l'anneau
         // suit, sans se retracer depuis zéro.
         .animation(reduceMotion ? nil : Motion.settle, value: score)
     }
 
-    private func draw() {
+    private func draw(after lead: Double = 0) {
         if reduceMotion {
             drawn = true
         } else {
             // Un temps mort avant le tracé : la carte finit d'arriver,
             // puis l'anneau se dessine. Les deux en même temps se
             // brouillent et on ne regarde ni l'un ni l'autre.
-            withAnimation(Motion.settle.delay(0.12)) { drawn = true }
+            withAnimation(Motion.settle.delay(lead + 0.12)) { drawn = true }
         }
     }
 }

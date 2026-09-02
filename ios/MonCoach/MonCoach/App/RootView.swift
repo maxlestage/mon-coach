@@ -17,6 +17,14 @@ struct RootView: View {
     /// rejoue son arrivée au moment où son onglet est choisi.
     @State private var section: AppSection = .today
 
+    /// La fiche affichée entre deux onglets, et la tâche qui la retire.
+    ///
+    /// Elle n'apparaît qu'au changement, jamais à l'ouverture : l'écran de
+    /// lancement a déjà dit le nom de l'application, et une fiche
+    /// « Aujourd'hui » par-dessus serait deux portes pour la même entrée.
+    @State private var splash: AppSection?
+    @State private var splashTask: Task<Void, Never>?
+
     private var showsActivities: Bool {
         // L'onglet n'apparaît que s'il a quelque chose à dire : un plan de
         // course, ou des activités déjà enregistrées. Un onglet vide en
@@ -58,6 +66,16 @@ struct RootView: View {
                 .onChange(of: showsActivities) { _, shown in
                     if !shown, section == .running { section = .today }
                 }
+                .onChange(of: section) { _, now in
+                    present(now)
+                }
+                .overlay {
+                    if let splash {
+                        SectionSplashView(section: splash) { dismissSplash() }
+                            .transition(.opacity)
+                            .zIndex(2)
+                    }
+                }
             } else {
                 OnboardingView { profile in
                     store.completeOnboarding(with: profile)
@@ -81,5 +99,21 @@ struct RootView: View {
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { watchLink.push() }
         }
+    }
+
+    /// Pose la fiche de l'onglet choisi, et programme son retrait.
+    private func present(_ section: AppSection) {
+        splashTask?.cancel()
+        withAnimation(.easeOut(duration: 0.12)) { splash = section }
+        splashTask = Task {
+            try? await Task.sleep(for: .seconds(Motion.splashHold))
+            guard !Task.isCancelled else { return }
+            dismissSplash()
+        }
+    }
+
+    private func dismissSplash() {
+        splashTask?.cancel()
+        withAnimation(.easeInOut(duration: 0.32)) { splash = nil }
     }
 }
