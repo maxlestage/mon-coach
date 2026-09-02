@@ -20,13 +20,18 @@ struct FlowLayout: Layout {
         for row in rows {
             var x = bounds.minX
             for index in row.indices {
-                let size = subviews[index].sizeThatFits(.unspecified)
+                let natural = subviews[index].sizeThatFits(.unspecified)
+                // Une pastille plus large que la ligne est resserrée plutôt
+                // que laissée déborder : un débordement dessine hors de la
+                // carte, et le texte le plus long finirait par sortir de
+                // l'écran.
+                let width = min(natural.width, bounds.width)
                 subviews[index].place(
                     at: CGPoint(x: x, y: y),
                     anchor: .topLeading,
-                    proposal: ProposedViewSize(size)
+                    proposal: ProposedViewSize(width: width, height: natural.height)
                 )
-                x += size.width + spacing
+                x += width + spacing
             }
             y += row.height + spacing
         }

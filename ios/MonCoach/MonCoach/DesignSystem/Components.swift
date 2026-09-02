@@ -245,6 +245,13 @@ struct ScreenBackground: ViewModifier {
         content
             .background(Theme.background)
             .scrollContentBackground(.hidden)
+            // Aucun écran ne se lit de gauche à droite. Sans cette garde,
+            // une seule ligne trop large rend la vue défilable
+            // horizontalement, et il suffit alors d'un geste de travers
+            // pour que tout l'écran parte sur le côté, titres coupés. Les
+            // lignes fautives se corrigent une par une ; ce verrou-ci
+            // évite que la prochaine ait le même effet.
+            .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
     }
 }
 
