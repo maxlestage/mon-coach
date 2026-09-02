@@ -63,6 +63,18 @@ struct TodayView: View {
                     }
                     .tint(Theme.accent)
                 }
+                // Le profil, à la place où toutes les applications le
+                // mettent. Il n'est plus un onglet : à six onglets, iOS en
+                // cache deux derrière un menu qui empile sa propre barre
+                // de navigation par-dessus la leur.
+                ToolbarItem(placement: .topBarTrailing) {
+                    NavigationLink {
+                        ProfileView(embedded: true)
+                    } label: {
+                        Image(systemName: "person.crop.circle")
+                    }
+                    .tint(Theme.accent)
+                }
             }
             .sheet(isPresented: $showsPaywall) { PaywallView() }
             .sheet(isPresented: $showingReadiness) {
