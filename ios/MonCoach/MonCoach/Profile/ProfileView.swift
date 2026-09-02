@@ -69,20 +69,20 @@ struct ProfileView: View {
             ScrollView {
                 VStack(spacing: Theme.stackSpacing) {
                     if let profile = store.profile, let program = store.program {
-                        identityCard(profile)
-                        derivedCard(program)
-                        trainingCard(profile)
-                        constraintsCard(profile)
-                        preferencesCard(profile)
-                        runningCard(profile)
-                        benefitsCard
-                        subscriptionCard
-                        refusedFoodsCard
-                        gearCard
-                        dataCard
-                        creditFooter
+                        identityCard(profile).appears(0)
+                        derivedCard(program).appears(1)
+                        trainingCard(profile).appears(2)
+                        constraintsCard(profile).appears(3)
+                        preferencesCard(profile).appears(4)
+                        runningCard(profile).appears(5)
+                        benefitsCard.appears(6)
+                        subscriptionCard.appears(7)
+                        refusedFoodsCard.appears(8)
+                        gearCard.appears(9)
+                        dataCard.appears(10)
+                        creditFooter.appears(11)
                     } else {
-                        Card(title: "Profil vide") { EmptyView() }
+                        Card(title: "Profil vide") { EmptyView() }.appears(0)
                     }
                 }
                 .padding(20)

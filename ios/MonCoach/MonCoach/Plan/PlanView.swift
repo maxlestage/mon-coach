@@ -24,10 +24,14 @@ struct PlanView: View {
             ScrollView {
                 VStack(spacing: Theme.stackSpacing) {
                     if let plan = store.plan {
-                        overviewCard(plan)
-                        volumeCard(plan)
-                        ForEach(plan.weeks) { week in
-                            weekCard(week, plan: plan)
+                        overviewCard(plan).appears(0)
+                        volumeCard(plan).appears(1)
+                        // Un bloc fait huit à douze semaines : le décalage
+                        // se ferait sentir jusqu'à la fin de la liste si le
+                        // moteur ne plafonnait pas le délai. Il le plafonne,
+                        // et les semaines sous le pli arrivent ensemble.
+                        ForEach(Array(plan.weeks.enumerated()), id: \.element.id) { index, week in
+                            weekCard(week, plan: plan).appears(index + 2)
                         }
                     } else {
                         Card(title: "Aucun bloc en cours") {
@@ -35,6 +39,7 @@ struct PlanView: View {
                                 .font(Theme.bodyFont)
                                 .foregroundStyle(Theme.secondaryText)
                         }
+                        .appears(0)
                     }
                 }
                 .padding(20)

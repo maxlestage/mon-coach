@@ -34,27 +34,35 @@ struct ActivitiesHomeView: View {
                 // ce qu'on fait et le relire ne se monnaie pas. C'est le
                 // plan qui prescrit et les courbes qui analysent qui
                 // demandent Stride+.
-                switch pane {
-                case .plan where runs:
-                    if store.isUnlocked(.runningPlan) {
-                        RunPlanView(embedded: true)
-                    } else {
-                        ScrollView {
-                            PlusLockedCard(feature: .runningPlan).padding(16)
+                // Les trois volets se croisent en fondu plutôt que de se
+                // remplacer d'un coup. La carte de chaleur et le journal
+                // n'ont rien en commun visuellement : sans transition, on
+                // ne sait pas une demi-seconde ce qu'on regarde.
+                Group {
+                    switch pane {
+                    case .plan where runs:
+                        if store.isUnlocked(.runningPlan) {
+                            RunPlanView(embedded: true)
+                        } else {
+                            ScrollView {
+                                PlusLockedCard(feature: .runningPlan).padding(16)
+                            }
                         }
-                    }
-                case .stats:
-                    if store.isUnlocked(.progressCurves) {
-                        StatsView()
-                    } else {
-                        ScrollView {
-                            PlusLockedCard(feature: .progressCurves).padding(16)
+                    case .stats:
+                        if store.isUnlocked(.progressCurves) {
+                            StatsView()
+                        } else {
+                            ScrollView {
+                                PlusLockedCard(feature: .progressCurves).padding(16)
+                            }
                         }
+                    default:
+                        JournalView()
                     }
-                default:
-                    JournalView()
                 }
+                .transition(.opacity)
             }
+            .animation(Motion.plain, value: pane)
             .screenBackground()
             .navigationTitle(UI.activities[language])
             .sectionGuide(.running)

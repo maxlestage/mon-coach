@@ -32,6 +32,10 @@ struct Card<Content: View>: View {
             RoundedRectangle(cornerRadius: Theme.cornerRadius)
                 .stroke(Theme.separator, lineWidth: 1)
         )
+        // Toute l'application est faite de cartes : poser la respiration au
+        // défilement ici la pose sur les six onglets d'un coup, et surtout
+        // elle ne peut plus manquer sur celui qu'on oublierait.
+        .revealsOnScroll()
     }
 }
 
@@ -41,13 +45,27 @@ struct StatTile: View {
     var label: String
     var tint: Color = Theme.accent
 
+    /// Le nombre derrière le texte, quand il en existe un.
+    ///
+    /// Les valeurs affichées sont déjà formatées — « 82,5 kg », « 5,4 km »,
+    /// « 1 h 12 ». Pour animer le passage d'une valeur à l'autre il faut la
+    /// grandeur, pas sa mise en forme ; on la donne quand on l'a, et sans
+    /// elle la tuile se comporte comme avant.
+    var amount: Double?
+
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(value)
-                .font(.system(size: 22, weight: .bold, design: .rounded))
-                .foregroundStyle(tint)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
+            Group {
+                if let amount {
+                    RollingNumber(value: amount, text: value, color: tint)
+                } else {
+                    Text(value)
+                        .font(.system(size: 22, weight: .bold, design: .rounded))
+                        .foregroundStyle(tint)
+                }
+            }
+            .lineLimit(1)
+            .minimumScaleFactor(0.6)
             Text(label)
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(Theme.secondaryText)
@@ -94,7 +112,7 @@ struct PrimaryButton: View {
             .background(tint, in: RoundedRectangle(cornerRadius: 14))
             .foregroundStyle(Theme.background)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PressableStyle())
     }
 }
 
@@ -118,7 +136,7 @@ struct GhostButton: View {
             .background(Theme.surfaceRaised, in: RoundedRectangle(cornerRadius: 14))
             .foregroundStyle(Theme.primaryText)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PressableStyle())
     }
 }
 
@@ -127,6 +145,8 @@ struct InsightRow: View {
     @Environment(\.language) private var language
     var insight: CoachInsight
 
+    @State private var noticed = false
+
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: icon)
@@ -134,6 +154,11 @@ struct InsightRow: View {
                 .foregroundStyle(tint)
                 .frame(width: 24, height: 24)
                 .background(tint.opacity(0.14), in: Circle())
+                // Un rebond unique à l'arrivée. C'est le seul endroit de
+                // l'application où quelque chose attire l'œil sans qu'on l'ait
+                // demandé, et c'est justifié : un message du coach qu'on ne
+                // remarque pas est un message qu'on n'a pas écrit.
+                .symbolEffect(.bounce, value: noticed)
             VStack(alignment: .leading, spacing: 3) {
                 Text(insight.title[language])
                     .font(.system(size: 14, weight: .semibold))
@@ -143,6 +168,10 @@ struct InsightRow: View {
                     .foregroundStyle(Theme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
             }
+        }
+        .onAppear {
+            guard !noticed else { return }
+            noticed = true
         }
     }
 
@@ -172,16 +201,33 @@ struct ProgressBar: View {
     var value: Double
     var tint: Color = Theme.accent
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// La barre part vide et se remplit. Une barre déjà pleine à l'ouverture
+    /// est un trait de couleur ; une barre qui se remplit est une mesure, et
+    /// on lit la proportion parce qu'on a vu le trajet.
+    @State private var filled = false
+
+    private var fraction: Double { max(0, min(1, value)) }
+
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
                 Capsule().fill(Theme.surfaceRaised)
                 Capsule()
                     .fill(tint)
-                    .frame(width: max(0, min(1, value)) * geometry.size.width)
+                    .frame(width: (filled ? fraction : 0) * geometry.size.width)
             }
         }
         .frame(height: 8)
+        .onAppear {
+            guard !filled else { return }
+            if reduceMotion {
+                filled = true
+            } else {
+                withAnimation(Motion.settle.delay(0.1)) { filled = true }
+            }
+        }
+        .animation(reduceMotion ? nil : Motion.settle, value: fraction)
     }
 }
 

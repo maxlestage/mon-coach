@@ -27,12 +27,20 @@ struct FoodView: View {
                     }
                     .pickerStyle(.segmented)
 
-                    switch tab {
-                    case .today: todayTab
-                    case .guide: guideTab
+                    // Les deux volets se croisent en fondu. Sans transition,
+                    // basculer donne l'impression d'un écran qui saute ;
+                    // avec, on comprend qu'on a changé de vue et pas
+                    // d'application.
+                    Group {
+                        switch tab {
+                        case .today: todayTab
+                        case .guide: guideTab
+                        }
                     }
+                    .transition(.opacity)
                 }
                 .padding(16)
+                .animation(Motion.plain, value: tab)
             }
             .screenBackground()
             .navigationTitle(UI.food[language])
@@ -112,23 +120,44 @@ struct FoodView: View {
 
             Card {
                 HStack(spacing: 12) {
-                    StatTile(value: "\(target.calories)", label: "kcal")
-                    StatTile(value: "\(target.proteinG) g", label: LocalizedText(fr: "Protéines", en: "Protein", es: "Proteína")[language])
-                    StatTile(value: "\(target.carbsG) g", label: LocalizedText(fr: "Glucides", en: "Carbs", es: "Hidratos")[language])
-                    StatTile(value: "\(target.fatG) g", label: LocalizedText(fr: "Lipides", en: "Fat", es: "Grasas")[language])
+                    // Les quatre chiffres du jour roulent vers leur nouvelle
+                    // valeur quand la cible bouge — jour de séance, jour de
+                    // repos, semaine de décharge. Un remplacement sec ne dit
+                    // pas dans quel sens ça a changé ; un compteur, si.
+                    StatTile(
+                        value: "\(target.calories)", label: "kcal",
+                        amount: Double(target.calories)
+                    )
+                    StatTile(
+                        value: "\(target.proteinG) g",
+                        label: LocalizedText(fr: "Protéines", en: "Protein", es: "Proteína")[language],
+                        amount: Double(target.proteinG)
+                    )
+                    StatTile(
+                        value: "\(target.carbsG) g",
+                        label: LocalizedText(fr: "Glucides", en: "Carbs", es: "Hidratos")[language],
+                        amount: Double(target.carbsG)
+                    )
+                    StatTile(
+                        value: "\(target.fatG) g",
+                        label: LocalizedText(fr: "Lipides", en: "Fat", es: "Grasas")[language],
+                        amount: Double(target.fatG)
+                    )
                 }
             }
+            .appears(0)
 
-            eatenCard(target: target)
+            eatenCard(target: target).appears(1)
 
-            ForEach(day.meals) { meal in
-                MealCard(meal: meal)
+            ForEach(Array(day.meals.enumerated()), id: \.element.id) { index, meal in
+                MealCard(meal: meal).appears(index + 2)
             }
 
-            exclusionsCard
+            exclusionsCard.appears(day.meals.count + 2)
 
-            ForEach(day.notes, id: \.self) { note in
+            ForEach(Array(day.notes.enumerated()), id: \.offset) { index, note in
                 Card { CoachText(note, color: Theme.primaryText) }
+                    .appears(day.meals.count + 3 + index)
             }
 
             Card(title: LocalizedText(fr: "Pourquoi ces chiffres", en: "Why these numbers", es: "Por qué estas cifras")[language]) {
@@ -138,12 +167,14 @@ struct FoodView: View {
                     }
                 }
             }
+            .appears(day.meals.count + day.notes.count + 3)
         } else {
             Card { CoachText(LocalizedText(
                 fr: "Le programme alimentaire arrive avec ton premier bloc d'entraînement.",
                 en: "The food plan arrives with your first training block.",
                 es: "El plan de alimentación llega con tu primer bloque de entrenamiento."
             )) }
+            .appears(0)
         }
     }
 
