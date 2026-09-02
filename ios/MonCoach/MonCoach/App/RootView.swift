@@ -55,9 +55,20 @@ struct RootView: View {
                     Tab(UI.progress[store.language], systemImage: "chart.line.uptrend.xyaxis", value: AppSection.progress) {
                         ProgressDashboardView()
                     }
-                    Tab(UI.profile[store.language], systemImage: "person.fill", value: AppSection.profile) {
-                        ProfileView()
-                    }
+                    // Le profil n'est pas un onglet, et c'est réfléchi.
+                    //
+                    // Une barre d'onglets n'en montre que cinq. Au sixième,
+                    // iOS range le surplus derrière un menu « Autre » qui a
+                    // sa propre pile de navigation : le profil s'ouvrait
+                    // alors avec un bouton de retour au-dessus de sa propre
+                    // barre, deux bandeaux empilés pour un seul écran, et
+                    // la progression se retrouvait cachée derrière trois
+                    // petits points.
+                    //
+                    // Cinq onglets tiennent, tous visibles. Le profil vit
+                    // derrière un bouton sur « Aujourd'hui » — c'est un
+                    // écran qu'on visite pour changer quelque chose, pas un
+                    // écran où l'on passe sa séance.
                 }
                 .environment(\.selectedSection, section)
                 // Si l'onglet des activités disparaît pendant qu'on est
@@ -66,6 +77,10 @@ struct RootView: View {
                 .onChange(of: showsActivities) { _, shown in
                     if !shown, section == .running { section = .today }
                 }
+                // Le profil n'a plus d'onglet : si la sélection y pointait
+                // encore — état restauré d'une version précédente — elle
+                // désignerait un onglet qui n'existe pas.
+                .onAppear { if section == .profile { section = .today } }
                 .onChange(of: section) { _, now in
                     present(now)
                 }

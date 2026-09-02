@@ -64,70 +64,82 @@ struct ProfileView: View {
         .buttonStyle(.plain)
     }
 
+    /// Vrai quand l'écran est poussé depuis un autre : la barre du haut a
+    /// déjà sa pile, en ajouter une seconde empile deux bandeaux.
+    var embedded = false
+
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: Theme.stackSpacing) {
-                    if let profile = store.profile, let program = store.program {
-                        identityCard(profile).appears(0)
-                        derivedCard(program).appears(1)
-                        trainingCard(profile).appears(2)
-                        constraintsCard(profile).appears(3)
-                        preferencesCard(profile).appears(4)
-                        runningCard(profile).appears(5)
-                        benefitsCard.appears(6)
-                        subscriptionCard.appears(7)
-                        refusedFoodsCard.appears(8)
-                        gearCard.appears(9)
-                        dataCard.appears(10)
-                        creditFooter.appears(11)
-                    } else {
-                        Card(title: LocalizedText(fr: "Profil vide", en: "Empty profile", es: "Perfil vacío")[language]) { EmptyView() }.appears(0)
-                    }
-                }
-                .padding(20)
-            }
-            .screenBackground()
-            .navigationTitle(UI.profile[language])
-            .sectionGuide(.profile)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(LocalizedText(fr: "Modifier", en: "Edit", es: "Editar")[language]) { showingEditor = true }
-                        .disabled(store.profile == nil)
+        Group {
+            if embedded { content } else { NavigationStack { content } }
+        }
+    }
+
+    private var content: some View {
+        ScrollView {
+            VStack(spacing: Theme.stackSpacing) {
+                if let profile = store.profile, let program = store.program {
+                    identityCard(profile).appears(0)
+                    derivedCard(program).appears(1)
+                    trainingCard(profile).appears(2)
+                    constraintsCard(profile).appears(3)
+                    preferencesCard(profile).appears(4)
+                    runningCard(profile).appears(5)
+                    benefitsCard.appears(6)
+                    subscriptionCard.appears(7)
+                    refusedFoodsCard.appears(8)
+                    gearCard.appears(9)
+                    dataCard.appears(10)
+                    creditFooter.appears(11)
+                } else {
+                    Card(title: LocalizedText(fr: "Profil vide", en: "Empty profile", es: "Perfil vacío")[language]) { EmptyView() }.appears(0)
                 }
             }
-            .sheet(isPresented: $showingPaywall) { PaywallView() }
-            .sheet(isPresented: $showingBenefits) { BenefitsView() }
-            .sheet(isPresented: $showingEditor) {
-                if let profile = store.profile {
-                    ProfileEditorView(profile: profile) { updated in
-                        store.updateProfile(updated)
-                    }
-                }
-            }
-            .confirmationDialog(
-                LocalizedText(fr: "Tout effacer ?", en: "Erase everything?", es: "¿Borrar todo?")[language],
-                isPresented: $showingResetConfirmation,
-                titleVisibility: .visible
-            ) {
-                Button(LocalizedText(fr: "Effacer définitivement", en: "Erase permanently", es: "Borrar definitivamente")[language], role: .destructive) {
-                    store.resetEverything()
-                }
-                Button(UI.cancel[language], role: .cancel) {}
-            } message: {
-                Text(LocalizedText(fr: "Ton profil, ton programme et l'intégralité de ton historique d'entraînement seront supprimés de cet appareil. C'est irréversible.", en: "Your profile, your programme and your entire training history will be deleted from this device. This cannot be undone.", es: "Tu perfil, tu programa y todo tu historial de entrenamiento se borrarán de este dispositivo. Es irreversible.")[language])
+            .padding(20)
+        }
+        .screenBackground()
+        .navigationTitle(UI.profile[language])
+        .sectionGuide(.profile)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(LocalizedText(fr: "Modifier", en: "Edit", es: "Editar")[language]) { showingEditor = true }
+                    .disabled(store.profile == nil)
             }
         }
+        .sheet(isPresented: $showingPaywall) { PaywallView() }
+        .sheet(isPresented: $showingBenefits) { BenefitsView() }
+        .sheet(isPresented: $showingEditor) {
+            if let profile = store.profile {
+                ProfileEditorView(profile: profile) { updated in
+                    store.updateProfile(updated)
+                }
+            }
+        }
+        .confirmationDialog(
+            LocalizedText(fr: "Tout effacer ?", en: "Erase everything?", es: "¿Borrar todo?")[language],
+            isPresented: $showingResetConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button(LocalizedText(fr: "Effacer définitivement", en: "Erase permanently", es: "Borrar definitivamente")[language], role: .destructive) {
+                store.resetEverything()
+            }
+            Button(UI.cancel[language], role: .cancel) {}
+        } message: {
+            Text(LocalizedText(fr: "Ton profil, ton programme et l'intégralité de ton historique d'entraînement seront supprimés de cet appareil. C'est irréversible.", en: "Your profile, your programme and your entire training history will be deleted from this device. This cannot be undone.", es: "Tu perfil, tu programa y todo tu historial de entrenamiento se borrarán de este dispositivo. Es irreversible.")[language])
+        }
+        // Poussé depuis « Aujourd'hui », le titre reste dans la barre :
+        // un grand titre par-dessus un bouton de retour fait deux
+        // étages pour dire une seule chose.
+        .navigationBarTitleDisplayMode(embedded ? .inline : .large)
         .tint(Theme.accent)
     }
 
     private func identityCard(_ profile: UserProfile) -> some View {
         Card(title: profile.firstName, subtitle: LocalizedText(fr: "\(profile.age()) ans · \(profile.sex.label[.french])", en: "\(profile.age()) years old · \(profile.sex.label[.english])", es: "\(profile.age()) años · \(profile.sex.label[.spanish])")[language]) {
             HStack(spacing: 12) {
-                StatTile(value: Format.height(profile.heightCm, unit: profile.unit), label: "taille")
-                StatTile(value: Format.weight(profile.weightKg, unit: profile.unit), label: "poids")
+                StatTile(value: Format.height(profile.heightCm, unit: profile.unit), label: LocalizedText(fr: "taille", en: "height", es: "estatura")[language])
+                StatTile(value: Format.weight(profile.weightKg, unit: profile.unit), label: LocalizedText(fr: "poids", en: "weight", es: "peso")[language])
                 if let fat = profile.bodyFatPercent {
-                    StatTile(value: "\(Format.number(fat, decimals: 1)) %", label: "masse grasse")
+                    StatTile(value: "\(Format.number(fat, decimals: 1)) %", label: LocalizedText(fr: "masse grasse", en: "body fat", es: "grasa")[language])
                 }
             }
         }
@@ -138,9 +150,9 @@ struct ProfileView: View {
             ? LocalizedText(fr: "Masse maigre estimée (formule de Boer) — renseigne ton taux de gras pour affiner", en: "Estimated lean mass (Boer formula) — enter your body fat to refine", es: "Masa magra estimada (fórmula de Boer): indica tu grasa corporal para afinar")[language]
             : LocalizedText(fr: "Calculs basés sur ta masse maigre mesurée", en: "Calculations based on your measured lean mass", es: "Cálculos basados en tu masa magra medida")[language]) {
             HStack(spacing: 12) {
-                StatTile(value: "\(Int(program.metrics.bmr))", label: LocalizedText(fr: "métabolisme de base", en: "basal metabolism", es: "metabolismo basal")[language])
-                StatTile(value: "\(Int(program.metrics.tdee))", label: LocalizedText(fr: "dépense quotidienne", en: "daily expenditure", es: "gasto diario")[language])
-                StatTile(value: Format.weight(program.metrics.leanBodyMassKg, unit: program.profile.unit, decimals: 1), label: "masse maigre")
+                StatTile(value: "\(Int(program.metrics.bmr))", label: LocalizedText(fr: "métabolisme", en: "metabolism", es: "metabolismo")[language])
+                StatTile(value: "\(Int(program.metrics.tdee))", label: LocalizedText(fr: "dépense / jour", en: "spend / day", es: "gasto / día")[language])
+                StatTile(value: Format.weight(program.metrics.leanBodyMassKg, unit: program.profile.unit, decimals: 1), label: LocalizedText(fr: "masse maigre", en: "lean mass", es: "masa magra")[language])
                 if let ffmi = program.metrics.ffmi {
                     StatTile(value: Format.number(ffmi, decimals: 1), label: "FFMI")
                 }
