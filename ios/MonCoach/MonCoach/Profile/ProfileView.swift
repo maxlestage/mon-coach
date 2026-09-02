@@ -82,17 +82,17 @@ struct ProfileView: View {
                         dataCard.appears(10)
                         creditFooter.appears(11)
                     } else {
-                        Card(title: "Profil vide") { EmptyView() }.appears(0)
+                        Card(title: LocalizedText(fr: "Profil vide", en: "Empty profile", es: "Perfil vacío")[language]) { EmptyView() }.appears(0)
                     }
                 }
                 .padding(20)
             }
             .screenBackground()
-            .navigationTitle("Profil")
+            .navigationTitle(UI.profile[language])
             .sectionGuide(.profile)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Modifier") { showingEditor = true }
+                    Button(LocalizedText(fr: "Modifier", en: "Edit", es: "Editar")[language]) { showingEditor = true }
                         .disabled(store.profile == nil)
                 }
             }
@@ -106,23 +106,23 @@ struct ProfileView: View {
                 }
             }
             .confirmationDialog(
-                "Tout effacer ?",
+                LocalizedText(fr: "Tout effacer ?", en: "Erase everything?", es: "¿Borrar todo?")[language],
                 isPresented: $showingResetConfirmation,
                 titleVisibility: .visible
             ) {
-                Button("Effacer définitivement", role: .destructive) {
+                Button(LocalizedText(fr: "Effacer définitivement", en: "Erase permanently", es: "Borrar definitivamente")[language], role: .destructive) {
                     store.resetEverything()
                 }
-                Button("Annuler", role: .cancel) {}
+                Button(UI.cancel[language], role: .cancel) {}
             } message: {
-                Text("Ton profil, ton programme et l'intégralité de ton historique d'entraînement seront supprimés de cet appareil. C'est irréversible.")
+                Text(LocalizedText(fr: "Ton profil, ton programme et l'intégralité de ton historique d'entraînement seront supprimés de cet appareil. C'est irréversible.", en: "Your profile, your programme and your entire training history will be deleted from this device. This cannot be undone.", es: "Tu perfil, tu programa y todo tu historial de entrenamiento se borrarán de este dispositivo. Es irreversible.")[language])
             }
         }
         .tint(Theme.accent)
     }
 
     private func identityCard(_ profile: UserProfile) -> some View {
-        Card(title: profile.firstName, subtitle: "\(profile.age()) ans · \(profile.sex.label[language])") {
+        Card(title: profile.firstName, subtitle: LocalizedText(fr: "\(profile.age()) ans · \(profile.sex.label[.french])", en: "\(profile.age()) years old · \(profile.sex.label[.english])", es: "\(profile.age()) años · \(profile.sex.label[.spanish])")[language]) {
             HStack(spacing: 12) {
                 StatTile(value: Format.height(profile.heightCm, unit: profile.unit), label: "taille")
                 StatTile(value: Format.weight(profile.weightKg, unit: profile.unit), label: "poids")
@@ -134,18 +134,18 @@ struct ProfileView: View {
     }
 
     private func derivedCard(_ program: CoachingProgram) -> some View {
-        Card(title: "Ce que le coach en déduit", subtitle: program.metrics.leanMassIsEstimated
-            ? "Masse maigre estimée (formule de Boer) — renseigne ton taux de gras pour affiner"
-            : "Calculs basés sur ta masse maigre mesurée") {
+        Card(title: LocalizedText(fr: "Ce que le coach en déduit", en: "What the coach infers", es: "Lo que deduce el entrenador")[language], subtitle: program.metrics.leanMassIsEstimated
+            ? LocalizedText(fr: "Masse maigre estimée (formule de Boer) — renseigne ton taux de gras pour affiner", en: "Estimated lean mass (Boer formula) — enter your body fat to refine", es: "Masa magra estimada (fórmula de Boer): indica tu grasa corporal para afinar")[language]
+            : LocalizedText(fr: "Calculs basés sur ta masse maigre mesurée", en: "Calculations based on your measured lean mass", es: "Cálculos basados en tu masa magra medida")[language]) {
             HStack(spacing: 12) {
-                StatTile(value: "\(Int(program.metrics.bmr))", label: "métabolisme de base")
-                StatTile(value: "\(Int(program.metrics.tdee))", label: "dépense quotidienne")
+                StatTile(value: "\(Int(program.metrics.bmr))", label: LocalizedText(fr: "métabolisme de base", en: "basal metabolism", es: "metabolismo basal")[language])
+                StatTile(value: "\(Int(program.metrics.tdee))", label: LocalizedText(fr: "dépense quotidienne", en: "daily expenditure", es: "gasto diario")[language])
                 StatTile(value: Format.weight(program.metrics.leanBodyMassKg, unit: program.profile.unit, decimals: 1), label: "masse maigre")
                 if let ffmi = program.metrics.ffmi {
                     StatTile(value: Format.number(ffmi, decimals: 1), label: "FFMI")
                 }
             }
-            Text("IMC \(Format.number(program.metrics.bmi, decimals: 1)) — \(program.metrics.bmiCategory). L'IMC ignore la composition corporelle : à masse musculaire élevée, il se trompe systématiquement.")
+            Text(LocalizedText(fr: "IMC \(Format.number(program.metrics.bmi, decimals: 1)) — \(program.metrics.bmiCategory). L'IMC ignore la composition corporelle : à masse musculaire élevée, il se trompe systématiquement.", en: "BMI \(Format.number(program.metrics.bmi, decimals: 1)) — \(program.metrics.bmiCategory). BMI ignores body composition: with high muscle mass it is systematically wrong.", es: "IMC \(Format.number(program.metrics.bmi, decimals: 1)) — \(program.metrics.bmiCategory). El IMC ignora la composición corporal: con mucha masa muscular se equivoca sistemáticamente.")[language])
                 .font(Theme.captionFont)
                 .foregroundStyle(Theme.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
@@ -153,21 +153,21 @@ struct ProfileView: View {
     }
 
     private func trainingCard(_ profile: UserProfile) -> some View {
-        Card(title: "Entraînement") {
-            LabeledRow(label: "Objectif", value: profile.goal.label[language])
-            LabeledRow(label: "Niveau", value: profile.experience.label[language])
-            LabeledRow(label: "Fréquence", value: "\(profile.daysPerWeek) séances / semaine")
+        Card(title: LocalizedText(fr: "Entraînement", en: "Training", es: "Entrenamiento")[language]) {
+            LabeledRow(label: LocalizedText(fr: "Objectif", en: "Goal", es: "Objetivo")[language], value: profile.goal.label[language])
+            LabeledRow(label: LocalizedText(fr: "Niveau", en: "Level", es: "Nivel")[language], value: profile.experience.label[language])
+            LabeledRow(label: LocalizedText(fr: "Fréquence", en: "Frequency", es: "Frecuencia")[language], value: LocalizedText(fr: "\(profile.daysPerWeek) séances / semaine", en: "\(profile.daysPerWeek) sessions / week", es: "\(profile.daysPerWeek) sesiones / semana")[language])
             LabeledRow(label: "Durée", value: Format.duration(minutes: profile.sessionMinutes))
-            LabeledRow(label: "Incrément", value: profile.loadIncrement.label[language])
-            LabeledRow(label: "Sommeil", value: "\(Format.number(profile.averageSleepHours, decimals: 1)) h")
-            LabeledRow(label: "Activité", value: profile.activityLevel.label[language])
+            LabeledRow(label: LocalizedText(fr: "Incrément", en: "Increment", es: "Incremento")[language], value: profile.loadIncrement.label[language])
+            LabeledRow(label: LocalizedText(fr: "Sommeil", en: "Sleep", es: "Sueño")[language], value: "\(Format.number(profile.averageSleepHours, decimals: 1)) h")
+            LabeledRow(label: LocalizedText(fr: "Activité", en: "Activity", es: "Actividad")[language], value: profile.activityLevel.label[language])
         }
     }
 
     private func constraintsCard(_ profile: UserProfile) -> some View {
-        Card(title: "Matériel et contraintes") {
+        Card(title: LocalizedText(fr: "Matériel et contraintes", en: "Equipment and constraints", es: "Material y limitaciones")[language]) {
             VStack(alignment: .leading, spacing: 10) {
-                Text("Matériel disponible")
+                Text(LocalizedText(fr: "Matériel disponible", en: "Available equipment", es: "Material disponible")[language])
                     .font(Theme.captionFont)
                     .foregroundStyle(Theme.secondaryText)
                 FlowLayout(spacing: 6) {
@@ -176,7 +176,7 @@ struct ProfileView: View {
                     }
                 }
                 if !profile.limitations.isEmpty {
-                    Text("Zones épargnées")
+                    Text(LocalizedText(fr: "Zones épargnées", en: "Protected areas", es: "Zonas protegidas")[language])
                         .font(Theme.captionFont)
                         .foregroundStyle(Theme.secondaryText)
                         .padding(.top, 4)
@@ -202,10 +202,10 @@ struct ProfileView: View {
         Card(
             title: "Stride+",
             subtitle: status.isSubscribed
-                ? "Abonnement actif. Merci — c'est ce qui paie le développement."
+                ? LocalizedText(fr: "Abonnement actif. Merci — c'est ce qui paie le développement.", en: "Subscription active. Thank you — this is what pays for development.", es: "Suscripción activa. Gracias: es lo que paga el desarrollo.")[language]
                 : daysLeft > 0
-                    ? "Essai en cours : \(daysLeft) jour\(daysLeft > 1 ? "s" : "") restant\(daysLeft > 1 ? "s" : ""). Tout est ouvert."
-                    : "Essai terminé. Ton historique, ton bloc en cours et tes repas continuent."
+                    ? LocalizedText(fr: "Essai en cours : \(daysLeft) jour\(daysLeft > 1 ? "s" : "") restant\(daysLeft > 1 ? "s" : ""). Tout est ouvert.", en: "Trial in progress: \(daysLeft) day\(daysLeft > 1 ? "s" : "") left. Everything is open.", es: "Prueba en curso: \(daysLeft) día\(daysLeft > 1 ? "s" : "") restante\(daysLeft > 1 ? "s" : ""). Todo está abierto.")[language]
+                    : LocalizedText(fr: "Essai terminé. Ton historique, ton bloc en cours et tes repas continuent.", en: "Trial over. Your history, your current block and your meals carry on.", es: "Prueba terminada. Tu historial, tu bloque en curso y tus comidas continúan.")[language]
         ) {
             VStack(alignment: .leading, spacing: 10) {
                 if status.isSubscribed {
@@ -216,7 +216,7 @@ struct ProfileView: View {
                     // La résiliation passe par Apple : lui proposer un
                     // chemin ailleurs serait l'envoyer dans le mur.
                     Link(destination: URL(string: "https://apps.apple.com/account/subscriptions")!) {
-                        Text("Gérer l'abonnement")
+                        Text(LocalizedText(fr: "Gérer l'abonnement", en: "Manage subscription", es: "Gestionar la suscripción")[language])
                             .font(.system(size: 14, weight: .medium))
                             .foregroundStyle(Theme.accent)
                     }
@@ -388,12 +388,12 @@ struct ProfileView: View {
     }
 
     private var dataCard: some View {
-        Card(title: "Tes données", subtitle: "Tout est stocké sur cet appareil. Rien n'est envoyé nulle part.") {
+        Card(title: LocalizedText(fr: "Tes données", en: "Your data", es: "Tus datos")[language], subtitle: LocalizedText(fr: "Tout est stocké sur cet appareil. Rien n'est envoyé nulle part.", en: "Everything is stored on this device. Nothing is sent anywhere.", es: "Todo se guarda en este dispositivo. No se envía nada a ninguna parte.")[language]) {
             if let exportedURL {
                 ShareLink(item: exportedURL) {
                     HStack {
                         Image(systemName: "square.and.arrow.up")
-                        Text("Partager l'export")
+                        Text(LocalizedText(fr: "Partager l'export", en: "Share the export", es: "Compartir la exportación")[language])
                     }
                     .font(.system(size: 15, weight: .medium))
                     .frame(maxWidth: .infinity)
@@ -402,14 +402,14 @@ struct ProfileView: View {
                     .foregroundStyle(Theme.primaryText)
                 }
             } else {
-                GhostButton(title: "Exporter mes données (JSON)", systemImage: "square.and.arrow.up") {
+                GhostButton(title: LocalizedText(fr: "Exporter mes données (JSON)", en: "Export my data (JSON)", es: "Exportar mis datos (JSON)")[language], systemImage: "square.and.arrow.up") {
                     exportedURL = writeExport()
                 }
             }
             Button(role: .destructive) {
                 showingResetConfirmation = true
             } label: {
-                Text("Tout effacer")
+                Text(LocalizedText(fr: "Tout effacer", en: "Erase everything", es: "Borrar todo")[language])
                     .font(.system(size: 15, weight: .medium))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 13)
@@ -451,9 +451,9 @@ struct ProfileView: View {
                             .foregroundStyle(Theme.primaryText)
                         CoachText(
                             LocalizedText(
-                                fr: "Les cartes de tes sorties chargent des tuiles OpenStreetMap. C'est la seule chose, dans toute l'application, qui contacte un serveur. Désactive-le et tu gardes ton tracé, dessiné sur le téléphone à partir de tes propres points.",
-                                en: "Your run maps load OpenStreetMap tiles. It is the only thing in the whole app that contacts a server. Turn it off and you keep your route, drawn on the phone from your own points.",
-                                es: "Los mapas de tus rodajes cargan teselas de OpenStreetMap. Es lo único en toda la aplicación que contacta con un servidor. Desactívalo y conservas tu traza, dibujada en el teléfono con tus propios puntos."
+                                fr: "Les cartes de tes sorties sont celles d'Apple Plans, servies par le système. C'est la seule chose, dans toute l'application, qui contacte un serveur. Désactive-le et tu gardes ton tracé, dessiné sur le téléphone à partir de tes propres points.",
+                                en: "Your activity maps are Apple Maps, served by the system. It is the only thing in the whole app that contacts a server. Turn it off and you keep your route, drawn on the phone from your own points.",
+                                es: "Los mapas de tus salidas son los de Apple Plans, servidos por el sistema. Es lo único en toda la aplicación que contacta con un servidor. Desactívalo y conservas tu traza, dibujada en el teléfono con tus propios puntos."
                             ),
                             font: .system(size: 11)
                         )
@@ -643,7 +643,7 @@ struct ProfileView: View {
 
     private var creditFooter: some View {
         VStack(spacing: 10) {
-            Text("Stride — conçu et développé par Maxime Nathan Lestage")
+            Text(LocalizedText(fr: "Stride — conçu et développé par Maxime Nathan Lestage", en: "Stride — designed and developed by Maxime Nathan Lestage", es: "Stride — diseñado y desarrollado por Maxime Nathan Lestage")[language])
                 .font(Theme.captionFont)
                 .foregroundStyle(Theme.secondaryText)
                 .frame(maxWidth: .infinity)
@@ -662,9 +662,9 @@ struct ProfileView: View {
 
     private var licencesText: LocalizedText {
         LocalizedText(
-            fr: "Cartes : MapLibre Native, licence BSD, © MapLibre contributors. Fond de carte © OpenStreetMap contributors, licence ODbL.",
-            en: "Maps: MapLibre Native, BSD licence, © MapLibre contributors. Map data © OpenStreetMap contributors, ODbL licence.",
-            es: "Mapas: MapLibre Native, licencia BSD, © MapLibre contributors. Datos de mapa © OpenStreetMap contributors, licencia ODbL."
+            fr: "Cartes : Apple Plans (MapKit), fourni par iOS. Aucune bibliothèque tierce n'est embarquée dans l'application.",
+            en: "Maps: Apple Maps (MapKit), provided by iOS. No third-party library is bundled in the app.",
+            es: "Mapas: Apple Plans (MapKit), incluido en iOS. La aplicación no incorpora ninguna biblioteca de terceros."
         )
     }
 

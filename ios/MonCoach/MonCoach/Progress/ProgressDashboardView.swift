@@ -65,7 +65,7 @@ struct ProgressDashboardView: View {
                 .padding(20)
             }
             .screenBackground()
-            .navigationTitle("Progression")
+            .navigationTitle(UI.progress[language])
             .sectionGuide(.progress)
         }
         .tint(Theme.accent)
@@ -77,17 +77,17 @@ struct ProgressDashboardView: View {
         let completed = history.sessions.filter { !$0.skipped }
         let tonnage = completed.reduce(0.0) { $0 + $1.totalVolumeKg }
         let streak = TrainingVolume.streak(from: history.sessions)
-        return Card(title: "Depuis le début") {
+        return Card(title: LocalizedText(fr: "Depuis le début", en: "Since the start", es: "Desde el principio")[language]) {
             HStack(spacing: 12) {
                 StatTile(
                     value: "\(completed.count)",
-                    label: completed.count > 1 ? "séances" : "séance"
+                    label: completed.count > 1 ? LocalizedText(fr: "séances", en: "sessions", es: "sesiones")[language] : LocalizedText(fr: "séance", en: "session", es: "sesión")[language]
                 )
-                StatTile(value: "\(completed.reduce(0) { $0 + $1.sets.count })", label: "séries")
-                StatTile(value: Self.tonnage(tonnage, unit: unit), label: "soulevé en tout")
+                StatTile(value: "\(completed.reduce(0) { $0 + $1.sets.count })", label: LocalizedText(fr: "séries", en: "sets", es: "series")[language])
+                StatTile(value: Self.tonnage(tonnage, unit: unit), label: LocalizedText(fr: "soulevé en tout", en: "lifted in total", es: "levantado en total")[language])
                 StatTile(
                     value: "\(streak)",
-                    label: streak > 1 ? "semaines d'affilée" : "semaine d'affilée"
+                    label: streak > 1 ? LocalizedText(fr: "semaines d'affilée", en: "weeks in a row", es: "semanas seguidas")[language] : LocalizedText(fr: "semaine d'affilée", en: "week in a row", es: "semana seguida")[language]
                 )
             }
         }
@@ -135,7 +135,7 @@ struct ProgressDashboardView: View {
         let worked = weeks.filter { !$0.isEmpty }
 
         Card(
-            title: "Volume par semaine",
+            title: LocalizedText(fr: "Volume par semaine", en: "Volume per week", es: "Volumen por semana")[language],
             subtitle: measure.explanation[language]
         ) {
             Picker("", selection: $measure) {
@@ -172,7 +172,7 @@ struct ProgressDashboardView: View {
                         .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
                         .foregroundStyle(Theme.primaryText.opacity(0.45))
                         .annotation(position: .top, alignment: .leading) {
-                            Text("moyenne \(Self.format(average, measure: measure, unit: unit))")
+                            Text(LocalizedText(fr: "moyenne \(Self.format(average, measure: measure, unit: unit))", en: "average \(Self.format(average, measure: measure, unit: unit))", es: "media \(Self.format(average, measure: measure, unit: unit))")[language])
                                 .font(.system(size: 10))
                                 .foregroundStyle(Theme.secondaryText)
                         }
@@ -238,20 +238,20 @@ struct ProgressDashboardView: View {
         HStack(spacing: 12) {
             StatTile(
                 value: Self.format(current, measure: measure, unit: unit),
-                label: "cette semaine",
+                label: LocalizedText(fr: "cette semaine", en: "this week", es: "esta semana")[language],
                 tint: current > 0 ? Theme.accent : Theme.secondaryText
             )
             if let average {
                 StatTile(
                     value: Self.format(average, measure: measure, unit: unit),
-                    label: "moyenne",
+                    label: LocalizedText(fr: "moyenne", en: "average", es: "media")[language],
                     tint: Theme.secondaryText
                 )
             }
             if let best {
                 StatTile(
                     value: Self.format(measure.value(of: best), measure: measure, unit: unit),
-                    label: "meilleure semaine",
+                    label: LocalizedText(fr: "meilleure semaine", en: "best week", es: "mejor semana")[language],
                     tint: Theme.secondaryText
                 )
             }
@@ -269,19 +269,19 @@ struct ProgressDashboardView: View {
     private func volumeSentence(weeks: [VolumeWeek]) -> String {
         let worked = weeks.filter { !$0.isEmpty }.count
         guard worked > 0 else {
-            return "Rien d'enregistré sur les trois derniers mois. La première barre apparaîtra à ta première séance terminée."
+            return LocalizedText(fr: "Rien d'enregistré sur les trois derniers mois. La première barre apparaîtra à ta première séance terminée.", en: "Nothing logged over the last three months. The first bar will appear after your first completed session.", es: "Nada registrado en los últimos tres meses. La primera barra aparecerá tras tu primera sesión terminada.")[language]
         }
         guard worked >= 3, let standing = TrainingVolume.standing(of: weeks, measure: measure) else {
-            return "\(worked) semaine\(worked > 1 ? "s" : "") travaillée\(worked > 1 ? "s" : "") sur \(Self.window). C'est encore trop peu pour une tendance — les barres se comparent à partir de trois semaines."
+            return LocalizedText(fr: "\(worked) semaine\(worked > 1 ? "s" : "") travaillée\(worked > 1 ? "s" : "") sur \(Self.window). C'est encore trop peu pour une tendance — les barres se comparent à partir de trois semaines.", en: "\(worked) week\(worked > 1 ? "s" : "") worked out of \(Self.window). Still too few for a trend — bars compare from three weeks on.", es: "\(worked) semana\(worked > 1 ? "s" : "") trabajada\(worked > 1 ? "s" : "") de \(Self.window). Aún es poco para una tendencia: las barras se comparan a partir de tres semanas.")[language]
         }
         let gap = standing.difference
         if abs(gap) < 0.5 {
-            return "Cette semaine est dans ta moyenne. C'est exactement ce qu'on cherche : la progression vient de la régularité, pas d'une séance héroïque."
+            return LocalizedText(fr: "Cette semaine est dans ta moyenne. C'est exactement ce qu'on cherche : la progression vient de la régularité, pas d'une séance héroïque.", en: "This week is within your average. That is exactly what we want: progress comes from consistency, not from a heroic session.", es: "Esta semana está en tu media. Es exactamente lo que buscamos: el progreso viene de la regularidad, no de una sesión heroica.")[language]
         }
         let word = Self.format(abs(gap), measure: measure, unit: unit)
         return gap > 0
-            ? "Cette semaine dépasse ta moyenne de \(word). Une bonne semaine ne se paie que si les suivantes tiennent — ne fais pas de ce pic la nouvelle norme."
-            : "Cette semaine est en retrait de \(word) sur ta moyenne. Rien de grave si la semaine n'est pas finie ; c'est en la répétant que ça se voit dans trois mois."
+            ? LocalizedText(fr: "Cette semaine dépasse ta moyenne de \(word). Une bonne semaine ne se paie que si les suivantes tiennent — ne fais pas de ce pic la nouvelle norme.", en: "This week is \(word) above your average. A good week only pays off if the next ones hold — don't make this peak the new norm.", es: "Esta semana supera tu media en \(word). Una buena semana solo cuenta si las siguientes aguantan: no conviertas este pico en la nueva norma.")[language]
+            : LocalizedText(fr: "Cette semaine est en retrait de \(word) sur ta moyenne. Rien de grave si la semaine n'est pas finie ; c'est en la répétant que ça se voit dans trois mois.", en: "This week is \(word) below your average. No big deal if the week isn't over; it is by repeating it that it shows in three months.", es: "Esta semana está \(word) por debajo de tu media. Nada grave si la semana no ha terminado; es al repetirla cuando se nota en tres meses.")[language]
     }
 
     /// Le chiffre d'une mesure, écrit comme on le dit.
@@ -309,10 +309,10 @@ struct ProgressDashboardView: View {
         let trend = StrengthMath.trendPerDay(logs.map { (date: $0.date, value: $0.weightKg) })
 
         return Card(
-            title: "Poids de corps",
+            title: LocalizedText(fr: "Poids de corps", en: "Body weight", es: "Peso corporal")[language],
             subtitle: logs.count >= 2
-                ? "\(logs.count) pesée\(logs.count > 1 ? "s" : "") · la tendance se lit sur quatre semaines, jamais sur deux points."
-                : "Deux pesées suffisent pour tracer une courbe ; quatre semaines pour en tirer une conclusion."
+                ? LocalizedText(fr: "\(logs.count) pesée\(logs.count > 1 ? "s" : "") · la tendance se lit sur quatre semaines, jamais sur deux points.", en: "\(logs.count) weigh-in\(logs.count > 1 ? "s" : "") · the trend is read over four weeks, never from two points.", es: "\(logs.count) pesaje\(logs.count > 1 ? "s" : "") · la tendencia se lee en cuatro semanas, nunca en dos puntos.")[language]
+                : LocalizedText(fr: "Deux pesées suffisent pour tracer une courbe ; quatre semaines pour en tirer une conclusion.", en: "Two weigh-ins are enough to draw a curve; four weeks to draw a conclusion.", es: "Dos pesajes bastan para trazar una curva; cuatro semanas para sacar una conclusión.")[language]
         ) {
             if logs.count >= 2 {
                 Chart(logs) { log in
@@ -352,7 +352,7 @@ struct ProgressDashboardView: View {
                 if let trend {
                     let weekly = trend * 7
                     HStack {
-                        Text("Tendance")
+                        Text(LocalizedText(fr: "Tendance", en: "Trend", es: "Tendencia")[language])
                             .font(Theme.captionFont)
                             .foregroundStyle(Theme.secondaryText)
                         Spacer()
@@ -362,7 +362,7 @@ struct ProgressDashboardView: View {
                     }
                 }
             } else {
-                Text("Pèse-toi le matin, à jeun. Le coach ajuste tes calories à partir de la tendance sur quatre semaines, jamais d'une seule mesure.")
+                Text(LocalizedText(fr: "Pèse-toi le matin, à jeun. Le coach ajuste tes calories à partir de la tendance sur quatre semaines, jamais d'une seule mesure.", en: "Weigh yourself in the morning, fasted. The coach adjusts your calories from the four-week trend, never from a single reading.", es: "Pésate por la mañana, en ayunas. El entrenador ajusta tus calorías según la tendencia de cuatro semanas, nunca por una sola medida.")[language])
                     .font(Theme.bodyFont)
                     .foregroundStyle(Theme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
@@ -399,7 +399,7 @@ struct ProgressDashboardView: View {
     }
 
     private var strengthCard: some View {
-        Card(title: "Force estimée", subtitle: "1RM déduit de chaque série, RPE compris") {
+        Card(title: LocalizedText(fr: "Force estimée", en: "Estimated strength", es: "Fuerza estimada")[language], subtitle: LocalizedText(fr: "1RM déduit de chaque série, RPE compris", en: "1RM inferred from each set, RPE included", es: "1RM deducido de cada serie, RPE incluido")[language]) {
             let lifts = trackedLiftIDs.compactMap { id -> LiftHistory? in
                 guard let exercise = ExerciseCatalog.exercise(id: id) else { return nil }
                 let sets = history.sets(for: id)
@@ -407,7 +407,7 @@ struct ProgressDashboardView: View {
             }
 
             if lifts.isEmpty {
-                Text("Aucune série enregistrée pour l'instant. Les courbes apparaîtront après ta première séance.")
+                Text(LocalizedText(fr: "Aucune série enregistrée pour l'instant. Les courbes apparaîtront après ta première séance.", en: "No set logged yet. The curves will appear after your first session.", es: "Aún no hay series registradas. Las curvas aparecerán tras tu primera sesión.")[language])
                     .font(Theme.bodyFont)
                     .foregroundStyle(Theme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
@@ -486,7 +486,7 @@ struct ProgressDashboardView: View {
                     .foregroundStyle(gap >= 0 ? Theme.accent : Theme.secondaryText)
                 }
             } else {
-                Text("Une seule journée enregistrée : la courbe démarre à la deuxième.")
+                Text(LocalizedText(fr: "Une seule journée enregistrée : la courbe démarre à la deuxième.", en: "Only one day logged: the curve starts on the second.", es: "Solo un día registrado: la curva empieza en el segundo.")[language])
                     .font(.system(size: 11))
                     .foregroundStyle(Theme.secondaryText)
             }
@@ -509,14 +509,14 @@ struct ProgressDashboardView: View {
     @ViewBuilder
     private var weeklyReviewCard: some View {
         if let week = store.currentWeekIndex(), week > 1, let review = store.review(weekIndex: week - 1) {
-            Card(title: "Bilan de la semaine \(week - 1)") {
+            Card(title: LocalizedText(fr: "Bilan de la semaine \(week - 1)", en: "Week \(week - 1) review", es: "Balance de la semana \(week - 1)")[language]) {
                 HStack(spacing: 12) {
-                    StatTile(value: "\(Int(review.adherence * 100)) %", label: "séances faites")
-                    StatTile(value: "\(review.setsCompleted)/\(review.setsPlanned)", label: "séries")
+                    StatTile(value: "\(Int(review.adherence * 100)) %", label: LocalizedText(fr: "séances faites", en: "sessions done", es: "sesiones hechas")[language])
+                    StatTile(value: "\(review.setsCompleted)/\(review.setsPlanned)", label: LocalizedText(fr: "séries", en: "sets", es: "series")[language])
                     if review.calorieAdjustment != 0 {
                         StatTile(
                             value: Format.signed(Double(review.calorieAdjustment), decimals: 0),
-                            label: "kcal conseillées",
+                            label: LocalizedText(fr: "kcal conseillées", en: "kcal advised", es: "kcal aconsejadas")[language],
                             tint: Theme.warning
                         )
                     }

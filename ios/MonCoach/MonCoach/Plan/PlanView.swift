@@ -34,8 +34,8 @@ struct PlanView: View {
                             weekCard(week, plan: plan).appears(index + 2)
                         }
                     } else {
-                        Card(title: "Aucun bloc en cours") {
-                            Text("Termine l'inscription pour obtenir ton programme.")
+                        Card(title: LocalizedText(fr: "Aucun bloc en cours", en: "No block in progress", es: "Sin bloque en curso")[language]) {
+                            Text(LocalizedText(fr: "Termine l'inscription pour obtenir ton programme.", en: "Finish signing up to get your programme.", es: "Termina el registro para obtener tu programa.")[language])
                                 .font(Theme.bodyFont)
                                 .foregroundStyle(Theme.secondaryText)
                         }
@@ -61,7 +61,7 @@ struct PlanView: View {
                     .tint(Theme.accent)
                 }
             }
-            .navigationTitle("Mon plan")
+            .navigationTitle(UI.plan[language])
             .sectionGuide(.plan)
         }
         .tint(Theme.accent)
@@ -70,11 +70,11 @@ struct PlanView: View {
     private func overviewCard(_ plan: Mesocycle) -> some View {
         Card(title: plan.split.label[language], subtitle: plan.goal.label[language]) {
             HStack(spacing: 12) {
-                StatTile(value: "\(plan.weekCount)", label: "semaines")
-                StatTile(value: "\(plan.weeks.first?.sessions.count ?? 0)", label: "séances / semaine")
+                StatTile(value: "\(plan.weekCount)", label: LocalizedText(fr: "semaines", en: "weeks", es: "semanas")[language])
+                StatTile(value: "\(plan.weeks.first?.sessions.count ?? 0)", label: LocalizedText(fr: "séances / semaine", en: "sessions / week", es: "sesiones / semana")[language])
                 StatTile(
                     value: "\(store.currentWeekIndex() ?? plan.weekCount)",
-                    label: "semaine en cours"
+                    label: LocalizedText(fr: "semaine en cours", en: "current week", es: "semana en curso")[language]
                 )
             }
             Text(plan.split.rationale[language])
@@ -93,7 +93,7 @@ struct PlanView: View {
             .sorted { $0.sets > $1.sets }
         let maximum = entries.map(\.sets).max() ?? 1
 
-        return Card(title: "Volume hebdomadaire visé", subtitle: "Séries dures par groupe musculaire") {
+        return Card(title: LocalizedText(fr: "Volume hebdomadaire visé", en: "Weekly volume target", es: "Volumen semanal objetivo")[language], subtitle: LocalizedText(fr: "Séries dures par groupe musculaire", en: "Hard sets per muscle group", es: "Series duras por grupo muscular")[language]) {
             VStack(spacing: 8) {
                 ForEach(entries) { entry in
                     HStack(spacing: 10) {
@@ -117,11 +117,11 @@ struct PlanView: View {
     private func weekCard(_ week: PlannedWeek, plan: Mesocycle) -> some View {
         let isCurrent = store.currentWeekIndex() == week.index
         return Card(
-            title: week.isDeload ? "Semaine \(week.index) · décharge" : "Semaine \(week.index)",
-            subtitle: "\(week.sessions.count) séances · \(week.totalSets) séries"
+            title: week.isDeload ? LocalizedText(fr: "Semaine \(week.index) · décharge", en: "Week \(week.index) · deload", es: "Semana \(week.index) · descarga")[language] : LocalizedText(fr: "Semaine \(week.index)", en: "Week \(week.index)", es: "Semana \(week.index)")[language],
+            subtitle: LocalizedText(fr: "\(week.sessions.count) séances · \(week.totalSets) séries", en: "\(week.sessions.count) sessions · \(week.totalSets) sets", es: "\(week.sessions.count) sesiones · \(week.totalSets) series")[language]
         ) {
             if isCurrent {
-                Pill(text: "En cours")
+                Pill(text: LocalizedText(fr: "En cours", en: "In progress", es: "En curso")[language])
             }
             Button {
                 withAnimation(.easeInOut(duration: 0.2)) {
@@ -129,7 +129,7 @@ struct PlanView: View {
                 }
             } label: {
                 HStack {
-                    Text(expandedWeek == week.index ? "Masquer le détail" : "Voir le détail")
+                    Text(expandedWeek == week.index ? LocalizedText(fr: "Masquer le détail", en: "Hide details", es: "Ocultar el detalle")[language] : LocalizedText(fr: "Voir le détail", en: "Show details", es: "Ver el detalle")[language])
                         .font(.system(size: 14, weight: .medium))
                     Spacer()
                     Image(systemName: expandedWeek == week.index ? "chevron.up" : "chevron.down")

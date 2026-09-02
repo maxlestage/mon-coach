@@ -115,6 +115,30 @@ struct WatchSessionView: View {
                     .font(.system(.body, design: .rounded, weight: .bold))
                     .lineLimit(2)
 
+                // Le cardio et la dépense de la session d'entraînement, quand
+                // elle tourne. Entre deux séries, c'est le cardio qui dit si
+                // le repos a suffi — mieux qu'un chrono seul.
+                if store.workout.heartRateBpm > 0 || store.workout.kilocalories > 0 {
+                    HStack(spacing: 10) {
+                        if store.workout.heartRateBpm > 0 {
+                            HStack(spacing: 3) {
+                                Image(systemName: "heart.fill")
+                                    .font(.system(size: 9))
+                                    .foregroundStyle(.red)
+                                Text("\(Int(store.workout.heartRateBpm))")
+                                    .font(.system(.caption2, design: .rounded, weight: .semibold))
+                                    .contentTransition(.numericText())
+                            }
+                        }
+                        if store.workout.kilocalories > 0 {
+                            Text("\(Int(store.workout.kilocalories)) kcal")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                                .contentTransition(.numericText())
+                        }
+                    }
+                }
+
                 if let set {
                     Text(
                         LocalizedText(
