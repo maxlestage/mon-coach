@@ -1,0 +1,104 @@
+name: Compilation iOS
+
+# Ce que ce workflow répare
+#
+# Toute la CI tourne sur Linux, où ni SwiftUI, ni HealthKit, ni CoreBluetooth,
+# ni UserNotifications n'existent. Le moteur y est testé six cents fois ;
+# l'application, elle, n'est lue par aucun compilateur avant l'archive
+# TestFlight — quinze minutes plus tard, après une signature et un envoi.
+#
+# Six builds ont été perdus d'affilée sur des erreurs qu'un compilateur
+# trouve en trois minutes : un cas d'énumération inexistant, des constantes
+# non-Sendable, un await mal placé, des parenthèses manquantes, un objet
+# Objective-C envoyé à travers une frontière de concurrence. Aucune n'était
+# subtile ; toutes étaient invisibles depuis Linux.
+#
+# Ici, sans signature ni certificat ni clé d'API : on ne demande au
+# compilateur que de lire. C'est ce qui rend l'étape rapide et sans effet de
+# bord — aucun certificat créé, aucune place prise chez Apple.
+#
+# Pourquoi seulement sur ios/**
+#
+# Les exécuteurs macOS sont facturés dix fois le tarif Linux. Une correction
+# de recette ou une retouche du site n'a aucune raison d'en réveiller un.
+# Le filtre de chemins fait que ce workflow ne se déclenche que lorsqu'il
+# peut trouver quelque chose.
+
+on:
+  pull_request:
+    paths:
+      - "ios/**"
+      - ".github/workflows/ios-compile.yml"
+  push:
+    branches: ["master"]
+    paths:
+      - "ios/**"
+      - ".github/workflows/ios-compile.yml"
+
+# Une seule compilation par branche : pousser trois fois de suite ne doit pas
+# occuper trois exécuteurs macOS pour un résultat dont deux seront jetés.
+concurrency:
+  group: ios-compile-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compiler:
+    name: L'application compile
+    runs-on: macos-15
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Choisir Xcode
+        env:
+          # Même règle que pour l'archive : épingler se fait par une variable
+          # de dépôt, jamais en dur ici. Vide = la plus récente installée, et
+          # le journal dit toujours laquelle.
+          PINNED: ${{ vars.XCODE_VERSION }}
+        run: |
+          if [ -n "$PINNED" ]; then
+            APP="/Applications/Xcode_${PINNED}.app"
+            if [ ! -d "$APP" ]; then
+              echo "::error::Xcode $PINNED absent de l'exécuteur. Disponibles :"
+              ls -d /Applications/Xcode*.app
+              exit 1
+            fi
+          else
+            APP="$(ls -d /Applications/Xcode*.app | sort -V | tail -1)"
+          fi
+          sudo xcode-select -switch "$APP"
+          echo "Xcode : $(xcodebuild -version | head -1)"
+
+      - name: Compiler l'iPhone, la montre et les widgets
+        run: |
+          # Le schéma MonCoach entraîne les trois cibles : l'application, la
+          # montre et l'extension de widgets. Les trois sont donc lues.
+          #
+          # Sans signature : c'est la compilation qu'on vérifie, pas le droit
+          # de distribuer. Cela évite de créer un certificat — un compte n'en
+          # a droit qu'à deux — et d'ajouter une dépendance à l'état du
+          # compte Apple dans un contrôle qui doit rester local et rapide.
+          set -o pipefail
+          xcodebuild build \
+            -project ios/MonCoach/MonCoach.xcodeproj \
+            -scheme MonCoach \
+            -configuration Debug \
+            -destination 'generic/platform=iOS' \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            2>&1 | tee "$RUNNER_TEMP/compilation.log" | \
+            (xcbeautify --renderer github-actions || cat)
+
+      - name: Ce que le compilateur a refusé
+        if: failure()
+        run: |
+          # Les mêmes lignes que dans le workflow d'archive, pour la même
+          # raison : noyées au milieu du journal, elles se cherchent à
+          # l'aveugle ; ici, en dernier, elles se lisent d'un coup d'œil.
+          echo "::group::Ce que le compilateur a refusé"
+          grep -E "error:" "$RUNNER_TEMP/compilation.log" \
+            | sed 's|.*/mon-coach/||' | sort -u | head -40 \
+            || echo "Aucune erreur de compilation : l'échec vient d'ailleurs."
+          echo "::endgroup::"
