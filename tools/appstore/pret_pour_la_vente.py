@@ -17,7 +17,9 @@ Il ne modifie rien. C'est un état des lieux, pas une correction.
 from __future__ import annotations
 
 import os
+import re
 import sys
+from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -182,6 +184,58 @@ def show(title: str, rows: list[str], marker: str) -> None:
         print(f"  {marker} {row}")
 
 
+# Le chemin des entitlements, depuis ce fichier : tools/appstore/… → racine.
+ENTITLEMENTS = [
+    Path(__file__).resolve().parents[2] / "ios/MonCoach" / name
+    for name in (
+        "MonCoach.entitlements",
+        "MonCoachWidgets.entitlements",
+        "MonCoachWatch.entitlements",
+        "MonCoachWatchWidgets.entitlements",
+    )
+]
+
+APP_GROUP = "group.com.maxlestage.fitnesscoach"
+
+
+def app_group(report: Report) -> None:
+    """Le groupe partagé sans lequel les widgets restent muets.
+
+    Ce contrôle-ci ne demande rien à Apple : l'App Store Connect API n'expose
+    pas les groupes d'applications, et `xcodebuild -allowProvisioningUpdates`
+    ne sait pas les créer non plus. C'est une action humaine, faite une fois
+    sur le portail développeur — et donc, exactement le genre de chose qui
+    s'oublie. Le code la signale ici plutôt que d'attendre que quelqu'un se
+    demande pourquoi son widget est vide.
+    """
+    declared = []
+    for path in ENTITLEMENTS:
+        try:
+            text = path.read_text()
+        except OSError:
+            continue
+        # Les commentaires XML sont retirés : mis en sommeil, le groupe est
+        # encore écrit dans le fichier mais n'est plus lu par Xcode.
+        active = re.sub(r"<!--.*?-->", "", text, flags=re.DOTALL)
+        if APP_GROUP in active:
+            declared.append(path.name)
+
+    if len(declared) == len(ENTITLEMENTS):
+        report.done.append(f"Le groupe {APP_GROUP} est déclaré partout.")
+    elif declared:
+        report.blocking.append(
+            f"Le groupe {APP_GROUP} n'est déclaré que dans {', '.join(declared)} : "
+            "l'archive échouera à la signature. Tout ou rien."
+        )
+    else:
+        report.comfort.append(
+            f"Créer le groupe {APP_GROUP} sur developer.apple.com "
+            "(Certificates, Identifiers & Profiles → Identifiers → App Groups), "
+            "puis décommenter les quatre fichiers d'entitlements. "
+            "Sans lui, les widgets et la complication s'installent mais restent vides."
+        )
+
+
 def main() -> int:
     bundle_id = os.environ.get("BUNDLE_ID", "com.maxlestage.fitnesscoach")
     try:
@@ -201,6 +255,8 @@ def main() -> int:
     except AppleRefused as refusal:
         print(refusal.explain(), file=sys.stderr)
         return 1
+
+    app_group(report)
 
     show("Bloque la vente :", report.blocking, "::error::")
     show("Bloque l'examen :", report.review, "-")

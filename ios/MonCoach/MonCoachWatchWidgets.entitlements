@@ -9,9 +9,36 @@
 -->
 <plist version="1.0">
 <dict>
+	<!--
+	  DORMANT — à réactiver dès que le groupe existe chez Apple.
+
+	  Un groupe d'applications est un identifiant de compte, comme un App ID :
+	  il doit exister dans « Certificates, Identifiers & Profiles » avant
+	  qu'un profil puisse le porter. `xcodebuild -allowProvisioningUpdates`
+	  crée les App ID et les profils, mais pas les groupes, et l'App Store
+	  Connect API n'expose pas les groupes non plus — c'est une action
+	  humaine, faite une fois, sur le portail développeur.
+
+	  Tant qu'il n'existe pas, déclarer l'entitlement fait échouer la
+	  signature des quatre cibles :
+
+	      Provisioning profile "…" doesn't match the entitlements file's
+	      value for the com.apple.security.application-groups entitlement.
+
+	  Les widgets et la complication compilent et s'installent ; ils ne
+	  trouvent simplement pas de conteneur partagé, cas que le code prévoit
+	  (`WidgetSnapshotStore.shared()` rend une URL nulle et ne fait rien).
+
+	  Pour réactiver : créer le groupe `group.com.maxlestage.fitnesscoach`
+	  sur developer.apple.com, puis retirer ces quatre commentaires — un par
+	  fichier d'entitlements. Un test du moteur vérifie qu'ils sont tous les
+	  quatre dans le même état : à moitié activé, la signature casse.
+	-->
+	<!--
 	<key>com.apple.security.application-groups</key>
 	<array>
 		<string>group.com.maxlestage.fitnesscoach</string>
 	</array>
+	-->
 </dict>
 </plist>

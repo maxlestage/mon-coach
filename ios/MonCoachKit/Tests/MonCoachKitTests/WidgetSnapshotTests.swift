@@ -286,11 +286,23 @@ struct WidgetSnapshotTests {
         #expect(snapshot.weekLabel == nil)
     }
 
-    /// Le groupe d'applications est écrit à trois endroits : ici, et dans
-    /// les deux fichiers d'entitlements. S'ils divergent, le widget ne lit
-    /// jamais rien — et sans erreur, sans plantage, sans le moindre indice.
-    @Test("Le groupe d'applications est le même dans le code et dans les entitlements")
-    func theAppGroupMatchesTheEntitlements() throws {
+    /// Le groupe d'applications est déclaré au même endroit dans les quatre
+    /// fichiers d'entitlements — ou dans aucun.
+    ///
+    /// Deux états sont corrects. Les quatre le déclarent : les widgets lisent
+    /// ce que l'application écrit. Aucun ne le déclare : le groupe n'existe
+    /// pas encore chez Apple, les widgets s'installent mais restent muets, et
+    /// la signature passe.
+    ///
+    /// L'état à moitié activé, lui, ne se voit qu'au moment de l'archive, et
+    /// il la fait échouer sur les quatre cibles à la fois :
+    ///
+    ///     Provisioning profile "…" doesn't match the entitlements file's
+    ///     value for the com.apple.security.application-groups entitlement.
+    ///
+    /// C'est le build 74. D'où ce test.
+    @Test("Les quatre entitlements déclarent le même groupe, ou aucun ne le déclare")
+    func theAppGroupIsAllOrNothing() throws {
         let root = URL(filePath: #filePath)
             .deletingLastPathComponent()  // MonCoachKitTests
             .deletingLastPathComponent()  // Tests
@@ -303,13 +315,35 @@ struct WidgetSnapshotTests {
             "MonCoachWatch.entitlements",
             "MonCoachWatchWidgets.entitlements",
         ]
+
+        var declaring: [String] = []
         for name in files {
-            let url = root.appending(path: name)
-            let text = try String(contentsOf: url, encoding: .utf8)
-            #expect(
-                text.contains("<string>\(WidgetSnapshotStore.groupIdentifier)</string>"),
-                Comment(rawValue: "\(name) ne déclare pas \(WidgetSnapshotStore.groupIdentifier)")
-            )
+            let text = try String(contentsOf: root.appending(path: name), encoding: .utf8)
+            // Sans retirer les commentaires XML, un groupe mis en sommeil
+            // continuerait de compter comme déclaré : la chaîne est encore
+            // dans le fichier, elle n'est simplement plus lue par Xcode.
+            if active(text).contains("<string>\(WidgetSnapshotStore.groupIdentifier)</string>") {
+                declaring.append(name)
+            }
         }
+
+        #expect(
+            declaring.isEmpty || declaring.count == files.count,
+            Comment(rawValue: "seuls \(declaring.joined(separator: ", ")) déclarent le groupe")
+        )
+    }
+
+    /// Le fichier privé de ses commentaires XML.
+    private func active(_ text: String) -> String {
+        var result = ""
+        var rest = Substring(text)
+        while let open = rest.range(of: "<!--") {
+            result += rest[rest.startIndex..<open.lowerBound]
+            guard let close = rest.range(of: "-->", range: open.upperBound..<rest.endIndex) else {
+                return result
+            }
+            rest = rest[close.upperBound...]
+        }
+        return result + rest
     }
 }
