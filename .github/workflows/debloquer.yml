@@ -13,6 +13,18 @@ name: Débloquer la mise en vente
 #   2. Les trois langues de la fiche. L'application est traduite en français,
 #      anglais et espagnol ; sa fiche n'avait pas une description dans une
 #      seule des trois.
+#   3. La classification d'âge et les étiquettes de confidentialité. Deux
+#      formulaires longs, à cases à cocher, dont les réponses sont connues
+#      d'avance et ne bougeront pas — et sans lesquels l'examen ne démarre
+#      pas.
+#
+# Les prix sont une option à part, décochée par défaut. Apple refuse toute
+# tarification tant que le contrat « Paid Applications » n'est pas actif, et
+# le refus qu'il rend ne nomme pas la cause : cinq formes de requête
+# différentes ont été essayées, toutes refusées à l'identique. Les réessayer
+# à chaque passage remplirait le journal d'erreurs rouges qui ne sont pas des
+# régressions, et une erreur qu'on apprend à ignorer est une erreur qu'on
+# ignorera le jour où elle compte.
 #
 # Le groupe d'applications, lui, n'y est pas — et c'est une réponse, pas un
 # oubli. Interrogée le 3 septembre 2026, l'API rend 404 sur la ressource
@@ -35,6 +47,14 @@ on:
         description: "Remplir la fiche dans les trois langues"
         type: boolean
         default: true
+      declarations:
+        description: "Déclarer la classification d'âge et la confidentialité"
+        type: boolean
+        default: true
+      prix:
+        description: "Poser les prix (exige le contrat Paid Applications actif)"
+        type: boolean
+        default: false
 
 jobs:
   debloquer:
@@ -74,6 +94,7 @@ jobs:
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID || secrets.APPSTORE_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID || secrets.APPSTORE_ISSUER_ID }}
+          POSER_LES_PRIX: ${{ inputs.prix }}
         run: |
           # pipefail, sans quoi le code de sortie est celui de `tee` et non
           # celui du script : une erreur 500 d'Apple a ainsi fait passer un
@@ -94,6 +115,17 @@ jobs:
           python3 tools/appstore/ajouter_les_langues.py | tee "$RUNNER_TEMP/langues.txt"
           echo "::endgroup::"
 
+      - name: Âge et confidentialité
+        if: inputs.declarations
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID || secrets.APPSTORE_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID || secrets.APPSTORE_ISSUER_ID }}
+        run: |
+          set -o pipefail
+          echo "::group::Déclarations"
+          python3 tools/appstore/declarer_la_fiche.py | tee "$RUNNER_TEMP/declarations.txt"
+          echo "::endgroup::"
+
       - name: Ce qui manque encore
         if: always()
         env:
@@ -112,7 +144,7 @@ jobs:
           {
             echo "## Ce qui a été fait chez Apple"
             echo
-            for f in abonnements langues etat; do
+            for f in abonnements langues declarations etat; do
               if [ -f "$RUNNER_TEMP/$f.txt" ]; then
                 echo "### $f"
                 echo '```'

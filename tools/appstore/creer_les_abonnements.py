@@ -34,6 +34,15 @@ from asc import AppleRefused, Client  # noqa: E402
 
 BUNDLE_ID = os.environ.get("BUNDLE_ID", "com.maxlestage.fitnesscoach")
 
+# Poser les prix, ou s'en abstenir.
+#
+# Tant que le contrat « Paid Applications » n'est pas actif, Apple refuse
+# toute tarification par un message qui n'en dit pas la cause. Réessayer à
+# chaque passage ne coûte pas cher, mais remplit le journal d'erreurs rouges
+# qui ne sont pas des régressions — et une erreur qu'on apprend à ignorer est
+# une erreur qu'on ignorera le jour où elle compte.
+POSE_LES_PRIX = os.environ.get("POSER_LES_PRIX", "true").lower() != "false"
+
 # Le groupe. Un seul, et c'est voulu : deux abonnements dans le même groupe
 # s'excluent l'un l'autre et se remplacent sans double facturation. Dans deux
 # groupes séparés, quelqu'un peut payer le mensuel et l'annuel en même temps.
@@ -416,15 +425,26 @@ def main() -> int:
             if not subscription_id:
                 continue
             ensure_offer_texts(client, subscription_id, offer["texts"])
-            ensure_price(client, subscription_id, offer["price"])
+            if POSE_LES_PRIX:
+                ensure_price(client, subscription_id, offer["price"])
+            else:
+                print(f"    prix laissé de côté ({offer['price']} €)")
     except AppleRefused as refusal:
         print(refusal.explain(), file=sys.stderr)
         return 1
 
-    print(
-        "\nCe qu'il reste, et que l'API ne sait pas faire : la capture d'écran"
-        "\nd'examen du premier abonnement, demandée au moment de la soumission."
-    )
+    if POSE_LES_PRIX:
+        print(
+            "\nCe qu'il reste, et que l'API ne sait pas faire : la capture"
+            "\nd'écran d'examen du premier abonnement, demandée au moment de la"
+            "\nsoumission."
+        )
+    else:
+        print(
+            "\nLes prix n'ont pas été posés, à la demande. Ils le seront quand"
+            "\nle contrat « Paid Applications » sera actif : relancer ce"
+            "\nworkflow avec l'option cochée suffira."
+        )
     return 0
 
 
