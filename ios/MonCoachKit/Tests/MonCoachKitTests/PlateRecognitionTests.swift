@@ -9,15 +9,73 @@ struct PlateSightingTests {
     func unknownLabelsSurvive() {
         let analysis = PlateVision.analyse([
             PlateReading(identifier: "chicken", confidence: 0.4),
-            PlateReading(identifier: "tablecloth", confidence: 0.9),
-            PlateReading(identifier: "cutlery", confidence: 0.3),
+            PlateReading(identifier: "biryani", confidence: 0.9),
+            PlateReading(identifier: "kimchi", confidence: 0.3),
         ])
-        // L'ancienne version jetait « tablecloth » en silence : l'athlète ne
-        // pouvait pas savoir si le système n'avait rien vu, ou si c'était le
-        // catalogue qui ne suivait pas.
+        // L'ancienne version jetait en silence ce qu'elle ne savait pas
+        // traduire : l'athlète ne pouvait pas savoir si le système n'avait
+        // rien vu, ou si c'était le catalogue qui ne suivait pas. Un mot
+        // d'aliment inconnu reste donc affiché, et proposé à l'apprentissage.
         #expect(analysis.sightings.count == 3)
-        #expect(analysis.unknown.map(\.label).sorted() == ["cutlery", "tablecloth"])
+        #expect(analysis.unknown.map(\.label).sorted() == ["biryani", "kimchi"])
         #expect(analysis.items.map(\.foodID) == ["blanc-de-poulet"])
+    }
+
+    @Test("Le décor ne compte pas comme quelque chose qu'on a vu")
+    func sceneryIsDropped() {
+        // Ce test dit l'inverse du précédent, et ce n'est pas une
+        // contradiction : la règle « montre tout » vaut pour les mots
+        // d'aliments. La table et la fourchette ne sont pas des aliments mal
+        // traduits, ce sont des objets. Les afficher poussait six lignes de
+        // décor devant le premier vrai aliment, et pire : l'application
+        // proposait de les apprendre. Traduire « wood processed » en aliment
+        // aurait sali la table de corrections pour toutes les photos
+        // suivantes.
+        let analysis = PlateVision.analyse([
+            PlateReading(identifier: "structure", confidence: 0.95),
+            PlateReading(identifier: "wood processed", confidence: 0.93),
+            PlateReading(identifier: "container", confidence: 0.9),
+            PlateReading(identifier: "utensil", confidence: 0.88),
+            PlateReading(identifier: "tableware", confidence: 0.86),
+            PlateReading(identifier: "bottle", confidence: 0.84),
+            PlateReading(identifier: "chicken", confidence: 0.4),
+        ])
+        #expect(analysis.sightings.map(\.label) == ["chicken"])
+        #expect(analysis.unknown.isEmpty, "rien de tout cela ne s'apprend")
+        #expect(analysis.items.map(\.foodID) == ["blanc-de-poulet"])
+    }
+
+    @Test("Une ligne porte le nom de l'aliment dans la langue de l'athlète")
+    func sightingsAreNamedInTheAthletesLanguage() {
+        // L'écran affichait le mot brut du classificateur en titre, et le nom
+        // français en petit sur le côté : une liste anglaise dans une
+        // application française, où l'information utile était la plus
+        // discrète.
+        let analysis = PlateVision.analyse([
+            PlateReading(identifier: "chicken_breast", confidence: 0.8),
+        ])
+        guard let sighting = analysis.sightings.first else {
+            Issue.record("le poulet ne se reconnaît plus")
+            return
+        }
+        #expect(sighting.name(in: .french) == "Blanc de poulet")
+        #expect(sighting.name(in: .spanish) != sighting.name(in: .french))
+        #expect(!sighting.namedBySystem)
+        // Le mot du système reste lisible : c'est lui qu'on apprend.
+        #expect(sighting.readable == "chicken breast")
+    }
+
+    @Test("Un mot inconnu garde le mot du système, sans traduction inventée")
+    func unknownWordsKeepTheSystemWord() {
+        let analysis = PlateVision.analyse([
+            PlateReading(identifier: "biryani", confidence: 0.8),
+        ])
+        guard let sighting = analysis.sightings.first else {
+            Issue.record("le mot inconnu a disparu")
+            return
+        }
+        #expect(sighting.namedBySystem)
+        #expect(sighting.name(in: .french) == "biryani")
     }
 
     @Test("Un aliment écarté du plan est dit, pas caché")
@@ -41,12 +99,16 @@ struct PlateSightingTests {
     func sightingsAreSortedByConfidence() throws {
         let analysis = PlateVision.analyse([
             PlateReading(identifier: "rice", confidence: 0.2),
-            PlateReading(identifier: "napkin", confidence: 0.9),
+            // Un mot d'aliment que le catalogue ne connaît pas : il tient la
+            // tête de liste par sa note. « napkin » faisait le même office
+            // avant que la serviette ne soit reconnue pour ce qu'elle est —
+            // du décor, et donc écartée.
+            PlateReading(identifier: "biryani", confidence: 0.9),
             PlateReading(identifier: "steak", confidence: 0.5),
         ])
         let confidences = analysis.sightings.map(\.confidence)
         #expect(confidences == confidences.sorted(by: >))
-        #expect(analysis.sightings.first?.label == "napkin")
+        #expect(analysis.sightings.first?.label == "biryani")
     }
 
     @Test("Le mot du système se lit sans souligné")
