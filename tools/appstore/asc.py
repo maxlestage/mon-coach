@@ -145,7 +145,37 @@ class Client:
         ).stdout
         return f"{signing_input}.{b64url(der_to_raw_signature(der))}"
 
+    # Les codes qu'Apple rend quand la panne est chez lui, et qu'un second
+    # essai suffit souvent. Le 429 y est joint : c'est un « plus tard », pas
+    # un « non ».
+    TRANSIENT = {429, 500, 502, 503, 504}
+    ATTEMPTS = 3
+
     def call(self, path: str, method: str = "GET", body: dict | None = None) -> dict:
+        """Un appel, réessayé quand la panne vient d'en face.
+
+        Apple rend des 500 passagers — « an unexpected error occurred on the
+        server side » — au milieu d'une suite d'appels par ailleurs valides.
+        Un seul a suffi à interrompre la création des abonnements après le
+        groupe et avant les offres, laissant le travail à moitié fait.
+
+        Trois tentatives, espacées d'une puis deux secondes. Au-delà, ce n'est
+        plus un hoquet, et insister masquerait un vrai problème.
+        """
+        for attempt in range(1, self.ATTEMPTS + 1):
+            try:
+                return self._call_once(path, method, body)
+            except AppleRefused as refusal:
+                if refusal.status not in self.TRANSIENT or attempt == self.ATTEMPTS:
+                    raise
+                print(
+                    f"  Apple a répondu {refusal.status} ; nouvel essai"
+                    f" ({attempt}/{self.ATTEMPTS - 1})"
+                )
+                time.sleep(attempt)
+        raise AssertionError("inatteignable")
+
+    def _call_once(self, path: str, method: str, body: dict | None) -> dict:
         request = urllib.request.Request(
             f"{API}/{path}",
             method=method,
