@@ -25,6 +25,11 @@ struct RunTrackerView: View {
     @State private var finishedRun: ActivityLog?
     @State private var showsDiscardConfirmation = false
     @State private var liveActivity = RunActivityController()
+    /// Les capteurs externes, quand il y en a. Rien n'est cherché tant que
+    /// l'athlète ne le demande pas : un scan Bluetooth permanent vide la
+    /// batterie et fait apparaître une autorisation que rien ne justifie.
+    @State private var sensors = SensorHub()
+    @State private var showsSensors = false
     /// Reste-t-il une Live Activity affichée sans sortie en cours ?
     ///
     /// Relu à l'ouverture de l'écran plutôt qu'à la création de la vue : une
@@ -102,6 +107,17 @@ struct RunTrackerView: View {
                         }
                     }
                 }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showsSensors = true
+                    } label: {
+                        Image(systemName: sensorSymbol)
+                    }
+                    .tint(sensorsConnected ? Theme.accent : Theme.secondaryText)
+                }
+            }
+            .sheet(isPresented: $showsSensors) {
+                SensorSheet(hub: sensors)
             }
             .confirmationDialog(
                 LocalizedText(
@@ -800,16 +816,81 @@ struct RunTrackerView: View {
                         )
                     }
                 }
+                sensorStrip
                 PrimaryButton(title: UI.finish[language], systemImage: "flag.checkered") {
                     liveActivity.end()
-                    if let run = tracker.finish() {
+                    if var run = tracker.finish() {
+                        // Ce que les capteurs ont mesuré rejoint la sortie.
+                        // Le cardio n'écrase pas celui de la montre : on ne
+                        // le pose que s'il n'y en avait pas, sinon une
+                        // ceinture et un poignet donneraient deux séries
+                        // mêlées, et la moyenne ne voudrait plus rien dire.
+                        if run.heartRate.isEmpty {
+                            run.heartRate = sensors.heartRateSamples
+                        }
+                        run.power = sensors.powerSamples
+                        run.cadence = sensors.cadenceSamples
+                        sensors.disconnectAll()
                         finishedRun = run
                     } else {
+                        sensors.disconnectAll()
                         tracker.reset()
                         dismiss()
                     }
                 }
             }
+        }
+    }
+
+
+    /// L'icône dit s'il y a quelque chose au bout du fil, sans l'ouvrir.
+    private var sensorsConnected: Bool {
+        sensors.bpm != nil || sensors.watts != nil || sensors.rpm != nil
+    }
+
+    private var sensorSymbol: String {
+        sensorsConnected ? "antenna.radiowaves.left.and.right" : "antenna.radiowaves.left.and.right.slash"
+    }
+
+    /// Ce que les capteurs disent, pendant l'effort.
+    ///
+    /// Une seule ligne, et seulement si quelqu'un parle : en roulant on lit
+    /// l'écran d'un coup d'œil, et une case vide qui attend une ceinture
+    /// jamais branchée vole la place des chiffres qui comptent.
+    @ViewBuilder
+    private var sensorStrip: some View {
+        if sensorsConnected {
+            HStack(spacing: 12) {
+                if let bpm = sensors.bpm {
+                    sensorValue("\(bpm)", unit: LocalizedText(fr: "bpm", en: "bpm", es: "ppm")[language],
+                                symbol: "heart.fill", tint: Theme.danger)
+                }
+                if let watts = sensors.watts {
+                    sensorValue("\(watts)", unit: "W", symbol: "bolt.fill", tint: Theme.accent)
+                }
+                if let rpm = sensors.rpm {
+                    sensorValue("\(Int(rpm.rounded()))",
+                                unit: LocalizedText(fr: "tr/min", en: "rpm", es: "rpm")[language],
+                                symbol: "arrow.triangle.2.circlepath", tint: Theme.warning)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background(Theme.surfaceRaised, in: RoundedRectangle(cornerRadius: 12))
+        }
+    }
+
+    private func sensorValue(_ value: String, unit: String, symbol: String, tint: Color) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: symbol)
+                .font(.system(size: 11))
+                .foregroundStyle(tint)
+            Text(value)
+                .font(.system(size: 17, weight: .bold, design: .rounded))
+                .foregroundStyle(Theme.primaryText)
+            Text(unit)
+                .font(.system(size: 10))
+                .foregroundStyle(Theme.secondaryText)
         }
     }
 

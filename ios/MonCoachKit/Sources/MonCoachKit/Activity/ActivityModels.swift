@@ -71,6 +71,28 @@ public struct Split: Codable, Sendable, Equatable, Identifiable, Hashable {
 /// côté, donc l'athlète verrait son historique entier disparaître. Le
 /// décodeur écrit à la main plus bas leur donne une valeur par défaut :
 /// avant le multi-sport, tout ce qui était enregistré était une course.
+/// Un instant de puissance, en watts.
+public struct PowerSample: Codable, Sendable, Equatable, Hashable {
+    public var timestamp: Date
+    public var watts: Int
+
+    public init(timestamp: Date, watts: Int) {
+        self.timestamp = timestamp
+        self.watts = watts
+    }
+}
+
+/// Un instant de cadence, en tours par minute.
+public struct CadenceSample: Codable, Sendable, Equatable, Hashable {
+    public var timestamp: Date
+    public var rpm: Double
+
+    public init(timestamp: Date, rpm: Double) {
+        self.timestamp = timestamp
+        self.rpm = rpm
+    }
+}
+
 public struct ActivityLog: Codable, Sendable, Equatable, Identifiable {
     public var id: UUID
     public var startedAt: Date
@@ -109,6 +131,21 @@ public struct ActivityLog: Codable, Sendable, Equatable, Identifiable {
     /// Le matériel de la sortie — chaussures, vélo. Nil pour une sortie
     /// enregistrée avant que le matériel existe, ou sans matériel déclaré.
     public var gearID: UUID?
+    /// La puissance mesurée par un capteur, en watts.
+    ///
+    /// Pourquoi elle est à part de la fréquence cardiaque
+    /// --------------------------------------------------
+    /// Le cardio dit ce que l'effort a coûté ; la puissance dit ce qu'il a
+    /// produit. Les deux se ressemblent sur le plat et divergent partout
+    /// ailleurs : dans une bosse, le cœur monte avec la chaleur et la
+    /// fatigue alors que les watts ne mentent pas. Pour le vélo, c'est la
+    /// mesure du sport — un entraînement sérieux se pilote dessus.
+    ///
+    /// Vide pour toute sortie sans capteur, ce qui reste le cas le plus
+    /// courant : elle ne remplace rien, elle s'ajoute.
+    public var power: [PowerSample]
+    /// La cadence mesurée, en tours par minute — pédalier ou foulée.
+    public var cadence: [CadenceSample]
     /// Les photos prises pendant la sortie, par identifiant.
     ///
     /// Les images elles-mêmes vivent en fichiers à part (`PhotoStore`) :
@@ -133,6 +170,8 @@ public struct ActivityLog: Codable, Sendable, Equatable, Identifiable {
         perceivedEffort: Int? = nil,
         note: String? = nil,
         gearID: UUID? = nil,
+        power: [PowerSample] = [],
+        cadence: [CadenceSample] = [],
         photoIDs: [String] = []
     ) {
         self.id = id
@@ -151,7 +190,30 @@ public struct ActivityLog: Codable, Sendable, Equatable, Identifiable {
         self.perceivedEffort = perceivedEffort
         self.note = note
         self.gearID = gearID
+        self.power = power
+        self.cadence = cadence
         self.photoIDs = photoIDs
+    }
+
+    /// La puissance moyenne de la sortie, en watts.
+    ///
+    /// Une moyenne simple, pas une puissance normalisée : celle-ci demande
+    /// une fenêtre glissante de trente secondes et une élévation à la
+    /// quatrième puissance, et l'annoncer sans l'avoir calculée ainsi serait
+    /// un chiffre qui ressemble à la bonne métrique sans en être une.
+    public var averagePower: Int? {
+        guard !power.isEmpty else { return nil }
+        return Int((power.map { Double($0.watts) }.reduce(0, +) / Double(power.count)).rounded())
+    }
+
+    /// La cadence moyenne, en tours par minute.
+    ///
+    /// Les instants à zéro sont comptés : quelqu'un qui passe un tiers de sa
+    /// sortie en roue libre pédale vraiment moins, et l'effacer donnerait
+    /// une cadence de coureur d'échappée à une descente de col.
+    public var averageCadence: Int? {
+        guard !cadence.isEmpty else { return nil }
+        return Int((cadence.map(\.rpm).reduce(0, +) / Double(cadence.count)).rounded())
     }
 
     public init(from decoder: Decoder) throws {
@@ -174,6 +236,10 @@ public struct ActivityLog: Codable, Sendable, Equatable, Identifiable {
         note = try container.decodeIfPresent(String.self, forKey: .note)
         gearID = try container.decodeIfPresent(UUID.self, forKey: .gearID)
         photoIDs = try container.decodeIfPresent([String].self, forKey: .photoIDs) ?? []
+        // Absentes de tout ce qui a été enregistré avant les capteurs
+        // externes. Les exiger rendrait illisible l'historique entier.
+        power = try container.decodeIfPresent([PowerSample].self, forKey: .power) ?? []
+        cadence = try container.decodeIfPresent([CadenceSample].self, forKey: .cadence) ?? []
     }
 
     /// Allure en secondes par kilomètre.

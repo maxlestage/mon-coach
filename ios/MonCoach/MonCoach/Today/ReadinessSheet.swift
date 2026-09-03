@@ -8,12 +8,20 @@ struct ReadinessSheet: View {
     var onSave: (ReadinessCheck) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(CoachStore.self) private var store
 
     @State private var sleepQuality = 3
     @State private var soreness = 3
     @State private var motivation = 3
     @State private var stress = 3
     @State private var sleepHours = 7.5
+    /// Les heures que Santé a mesurées cette nuit, si elle les connaît.
+    ///
+    /// Le curseur part dessus au lieu de 7,5. On ne le verrouille pas : une
+    /// montre qui a passé la nuit sur la table de chevet a mesuré le sommeil
+    /// de la table de chevet, et l'athlète est mieux placé qu'elle pour le
+    /// savoir. La mesure propose, elle ne tranche pas.
+    @State private var measuredSleep: Double?
 
     var body: some View {
         NavigationStack {
@@ -33,6 +41,17 @@ struct ReadinessSheet: View {
                             step: 0.5,
                             display: "\(Format.number(sleepHours, decimals: 1)) h"
                         )
+                        if measuredSleep != nil {
+                            Text(
+                                LocalizedText(
+                                    fr: "Mesuré par Santé. Corrige si la nuit ne ressemble pas à ça.",
+                                    en: "Measured by Health. Change it if the night was not like that.",
+                                    es: "Medido por Salud. Corrígelo si la noche no fue así."
+                                )[language]
+                            )
+                            .font(.system(size: 11))
+                            .foregroundStyle(Theme.secondaryText)
+                        }
                     }
                     scale(LocalizedText(fr: "Courbatures", en: "Soreness", es: "Agujetas")[language], value: $soreness, low: LocalizedText(fr: "Aucune", en: "None", es: "Ninguna")[language], high: LocalizedText(fr: "Très fortes", en: "Severe", es: "Muy fuertes")[language])
                     scale(LocalizedText(fr: "Motivation", en: "Motivation", es: "Motivación")[language], value: $motivation, low: LocalizedText(fr: "Zéro", en: "Zero", es: "Cero")[language], high: LocalizedText(fr: "À fond", en: "All in", es: "A tope")[language])
@@ -55,6 +74,16 @@ struct ReadinessSheet: View {
                 .padding(20)
             }
             .screenBackground()
+            .task {
+                // Le sommeil est la seule des quatre questions qu'une machine
+                // sait mesurer. La demander quand la réponse existe déjà est
+                // une question de trop, et les questions de trop sont ce qui
+                // fait abandonner un bilan quotidien.
+                if let hours = store.measuredSleepHours(on: date) {
+                    measuredSleep = hours
+                    sleepHours = min(11, max(3, hours))
+                }
+            }
             .navigationTitle("Check-in")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

@@ -119,4 +119,57 @@ extension Sport {
     }
 }
 
+
+/// Le chemin inverse : d'un type d'entraînement Apple vers un sport.
+///
+/// Pourquoi il ne peut pas être exact
+/// ----------------------------------
+/// La table qui va de nos sports vers Apple perd de l'information à dessein :
+/// le trail, le tapis et la course deviennent tous `.running`, parce que
+/// c'est ainsi qu'Apple estime la dépense. On ne peut donc pas revenir en
+/// arrière sans choisir — et on choisit le cas le plus courant, celui qui se
+/// corrige d'un geste si l'athlète veut autre chose.
+///
+/// Un type qu'on ne sait pas nommer devient `.other` plutôt que d'être jeté :
+/// une séance faite ailleurs compte dans la semaine même si son nom exact
+/// nous échappe, et la charge d'entraînement serait fausse sans elle.
+extension Sport {
+    public static func from(_ activity: HKWorkoutActivityType) -> Sport {
+        switch activity {
+        case .running: .run
+        case .walking: .walk
+        case .hiking: .hike
+        case .cycling: .ride
+        case .swimming: .swim
+        case .rowing: .rowing
+        case .paddleSports: .kayak
+        case .surfingSports: .surf
+        case .sailing: .sailing
+        case .downhillSkiing: .alpineSki
+        case .crossCountrySkiing: .nordicSki
+        case .snowboarding: .snowboard
+        case .skatingSports: .inlineSkate
+        case .climbing: .climbing
+        case .traditionalStrengthTraining, .functionalStrengthTraining: .weightTraining
+        case .highIntensityIntervalTraining: .hiit
+        case .crossTraining: .crossTraining
+        case .yoga: .yoga
+        case .pilates: .pilates
+        case .flexibility, .preparationAndRecovery: .stretching
+        case .elliptical: .elliptical
+        case .stairClimbing, .stairs: .stairMaster
+        case .boxing, .kickboxing: .boxing
+        case .martialArts: .martialArts
+        case .tennis: .tennis
+        case .badminton: .badminton
+        case .soccer: .football
+        case .basketball: .basketball
+        case .golf: .golf
+        case .equestrianSports: .equestrian
+        case .dance, .cardioDance, .socialDance: .dance
+        default: .other
+        }
+    }
+}
+
 #endif

@@ -27,6 +27,14 @@ public struct PersistedState: Codable, Sendable {
     /// du riz basmati. Une table personnelle, qui passe devant la table
     /// commune et qui voyage avec l'export.
     public var plateCorrections: [String: String]
+    /// Ce que l'athlète a accepté d'entendre, et à quelle heure.
+    ///
+    /// Gardé dans l'état plutôt que dans les réglages de l'appareil : c'est
+    /// un choix qui lui appartient, et il doit partir avec l'export comme le
+    /// reste. Absent des fichiers écrits avant les rappels — ceux-là
+    /// repartent silencieux, ce qui est la seule valeur par défaut honnête
+    /// pour une notification.
+    public var reminders: ReminderSettings
 
     public init(
         profile: UserProfile?,
@@ -35,7 +43,8 @@ public struct PersistedState: Codable, Sendable {
         segments: [Segment] = [],
         routes: [PlannedRoute] = [],
         trialStartedAt: Date? = nil,
-        plateCorrections: [String: String] = [:]
+        plateCorrections: [String: String] = [:],
+        reminders: ReminderSettings = .off
     ) {
         self.profile = profile
         self.plan = plan
@@ -44,6 +53,7 @@ public struct PersistedState: Codable, Sendable {
         self.routes = routes
         self.trialStartedAt = trialStartedAt
         self.plateCorrections = plateCorrections
+        self.reminders = reminders
     }
 
     /// Les segments sont arrivés après coup : un fichier écrit avant eux
@@ -58,6 +68,7 @@ public struct PersistedState: Codable, Sendable {
         routes = try container.decodeIfPresent([PlannedRoute].self, forKey: .routes) ?? []
         trialStartedAt = try container.decodeIfPresent(Date.self, forKey: .trialStartedAt)
         plateCorrections = try container.decodeIfPresent([String: String].self, forKey: .plateCorrections) ?? [:]
+        reminders = try container.decodeIfPresent(ReminderSettings.self, forKey: .reminders) ?? .off
     }
 
     public static let empty = PersistedState(profile: nil, plan: nil, history: .empty)
@@ -96,6 +107,11 @@ public final class CoachStore {
 
     /// Le jour de la première ouverture. Voir `startTrialIfNeeded`.
     public private(set) var trialStartedAt: Date?
+
+    /// Ce que l'athlète a accepté d'entendre. Silencieux tant qu'il n'a rien
+    /// dit : une notification qu'on n'a pas demandée est une notification de
+    /// trop, et la première coupe le son pour toutes les suivantes.
+    public private(set) var reminders: ReminderSettings = .off
     /// Ce que l'App Store a constaté au dernier passage. Jamais persisté :
     /// un droit d'accès qu'on garderait sur le disque serait un droit qu'on
     /// pourrait s'accorder soi-même, et il se relit de toute façon en une
@@ -120,6 +136,25 @@ public final class CoachStore {
         routes = state.routes
         trialStartedAt = state.trialStartedAt
         plateCorrections = state.plateCorrections
+        reminders = state.reminders
+    }
+
+    /// Change les rappels, et les réécrit aussitôt.
+    ///
+    /// Rien n'est posé ici : le magasin ne connaît pas les notifications du
+    /// système, et il ne doit pas les connaître — c'est ce qui permet de le
+    /// tester sur n'importe quelle machine. Il rend la liste, l'application
+    /// la pose.
+    public func setReminders(_ settings: ReminderSettings) {
+        reminders = settings
+        save()
+    }
+
+    /// Les rappels à poser en l'état actuel des choses.
+    public func plannedReminders(from now: Date = Date()) -> [Reminder] {
+        ReminderPlanner.plan(
+            program: program, history: history, settings: reminders, from: now
+        )
     }
 
     /// Fait courir l'essai à partir d'aujourd'hui, une seule fois.
@@ -285,14 +320,52 @@ public final class CoachStore {
         save()
     }
 
-    /// Files a finished activity, and lets it teach the coach something.
+    /// Adopte ce que Santé sait et que le journal ignore.
     ///
-    /// A tempo run, an interval session or a race says where the threshold
-    /// actually sits. When the new evidence is better than what the profile
-    /// holds, the profile is updated and the block is rebuilt around the real
-    /// pace — otherwise every prescribed pace would stay wrong all block.
-    /// Une sortie vélo ou une randonnée est archivée comme les autres, mais
-    /// `demonstratedThresholdPace` ne la regarde pas.
+    /// Rend ce qui a été pris, pour que l'écran puisse le dire. Un import
+    /// muet qui ajoute quatorze lignes au journal est indiscernable d'un
+    /// bogue — et un import qui n'ajoute rien parce que tout y était déjà
+    /// doit le dire aussi, sinon il ressemble à un échec.
+    @discardableResult
+    public func importFromHealth(
+        weights: [HealthWeight],
+        nights: [HealthSleep],
+        workouts: [HealthWorkout],
+        ourSourceNames: Set<String>,
+        calendar: Calendar = .current
+    ) -> (weights: Int, activities: Int) {
+        let bodyLogs = HealthImport.newBodyLogs(
+            from: weights, existing: history.bodyLogs, calendar: calendar
+        )
+        let activities = HealthImport.newActivities(
+            from: workouts, existing: history.activities, ourSourceNames: ourSourceNames
+        )
+        guard !bodyLogs.isEmpty || !activities.isEmpty else { return (0, 0) }
+
+        history.bodyLogs.append(contentsOf: bodyLogs)
+        history.bodyLogs.sort { $0.date < $1.date }
+        history.activities.append(contentsOf: activities)
+        history.activities.sort { $0.startedAt > $1.startedAt }
+        healthNights = nights
+        save()
+        return (bodyLogs.count, activities.count)
+    }
+
+    /// Les nuits lues au dernier import, gardées en mémoire seulement.
+    ///
+    /// Elles servent à pré-remplir le bilan de forme du jour, et rien de
+    /// plus. Les écrire sur le disque ferait une deuxième copie d'une donnée
+    /// de santé qui vit déjà dans Santé, où elle est mieux protégée que
+    /// partout ailleurs — et l'export en porterait une troisième.
+    public private(set) var healthNights: [HealthSleep] = []
+
+    /// Les heures dormies cette nuit, si Santé les connaît.
+    public func measuredSleepHours(
+        on day: Date = Date(), calendar: Calendar = .current
+    ) -> Double? {
+        HealthImport.sleepHours(on: day, from: healthNights, calendar: calendar)
+    }
+
     /// Fusionne les doublons déjà enregistrés, et rend combien ont disparu.
     ///
     /// Appelé au lancement. La règle est celle de l'enregistrement, appliquée
@@ -303,6 +376,14 @@ public final class CoachStore {
     ///
     /// Rien ne se perd : la fusion garde la mesure la plus riche et reprend
     /// sur elle ce que l'autre portait — note, ressenti, photos, matériel.
+    /// Files a finished activity, and lets it teach the coach something.
+    ///
+    /// A tempo run, an interval session or a race says where the threshold
+    /// actually sits. When the new evidence is better than what the profile
+    /// holds, the profile is updated and the block is rebuilt around the real
+    /// pace — otherwise every prescribed pace would stay wrong all block.
+    /// Une sortie vélo ou une randonnée est archivée comme les autres, mais
+    /// `demonstratedThresholdPace` ne la regarde pas.
     @discardableResult
     public func mergeDuplicateActivities() -> Int {
         let sorted = history.activities.sorted { $0.startedAt < $1.startedAt }
@@ -818,7 +899,8 @@ public final class CoachStore {
     private func save() {
         let state = PersistedState(
             profile: profile, plan: plan, history: history, segments: segments, routes: routes,
-            trialStartedAt: trialStartedAt, plateCorrections: plateCorrections
+            trialStartedAt: trialStartedAt, plateCorrections: plateCorrections,
+            reminders: reminders
         )
         do {
             try storage.save(state)
@@ -837,7 +919,8 @@ public final class CoachStore {
         try StateStorage.encoder.encode(
             PersistedState(
                 profile: profile, plan: plan, history: history, segments: segments, routes: routes,
-                trialStartedAt: trialStartedAt, plateCorrections: plateCorrections
+                trialStartedAt: trialStartedAt, plateCorrections: plateCorrections,
+                reminders: reminders
             )
         )
     }

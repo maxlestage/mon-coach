@@ -12,6 +12,16 @@ struct MonCoachApp: App {
     /// fondu quand tout est prêt — jamais avant, jamais longtemps après.
     @State private var launching = true
 
+    /// L'état de la scène, pour reposer les rappels au retour.
+    ///
+    /// Une notification locale se programme à l'avance et ne se recalcule
+    /// pas toute seule : celle de jeudi a été écrite mardi. Chaque retour
+    /// dans l'application est l'occasion de la réécrire avec ce qu'on sait
+    /// maintenant — et comme s'entraîner, se peser ou remplir un bilan passe
+    /// forcément par ici, un rappel devenu faux ne survit jamais à la
+    /// session suivante.
+    @Environment(\.scenePhase) private var scenePhase
+
     /// Le temps minimum d'affichage de l'écran de lancement. En dessous, on
     /// a vu quelque chose sans avoir eu le temps de le lire ; au-dessus,
     /// on attend pour rien.
@@ -86,11 +96,33 @@ struct MonCoachApp: App {
                     // Tout est prêt : l'écran de lancement se retire, une
                     // fois son minimum d'affichage passé.
                     await finishLaunch(startedAt: started)
+                    await refreshReminders()
+                }
+                .onChange(of: scenePhase) { _, phase in
+                    // Au moment de partir, pas en arrivant : ce qui vient
+                    // d'être enregistré est alors dans l'historique, et les
+                    // rappels posés tiennent compte de la séance qu'on
+                    // vient de faire.
+                    guard phase == .background else { return }
+                    Task { await refreshReminders() }
                 }
                 .onChange(of: plus.isSubscribed) { _, subscribed in
                     store.setSubscribed(subscribed)
                 }
         }
+    }
+
+    /// Efface les rappels posés et repose ceux qui valent encore.
+    ///
+    /// Appelé au lancement et à chaque mise en arrière-plan. Ne demande
+    /// jamais l'autorisation : c'est un geste qui appartient à l'écran des
+    /// réglages, où l'athlète a dit oui en connaissance de cause.
+    private func refreshReminders() async {
+        guard store.reminders.enabled else {
+            await Reminders.cancelAll()
+            return
+        }
+        await Reminders.reschedule(store.plannedReminders(), language: store.language)
     }
 
     /// Retire l'écran de lancement, une fois le minimum d'affichage passé.
