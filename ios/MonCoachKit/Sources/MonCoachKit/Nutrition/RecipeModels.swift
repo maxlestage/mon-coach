@@ -37,6 +37,22 @@ public struct Recipe: Codable, Sendable, Equatable, Identifiable, Hashable {
     /// donne son volume à l'assiette, et le volume ne se négocie pas.
     public var extraIDs: [String]
 
+    /// Ce qui donne son goût au plat sans peser dans l'assiette : ail,
+    /// citron, gingembre, moutarde, herbes, épices.
+    ///
+    /// Pourquoi ils sont déclarés, et pas seulement racontés dans les étapes
+    /// -------------------------------------------------------------------
+    /// Un plat qui s'appelle « Crevettes à l'ail » et dont la liste ne
+    /// mentionne aucun ail est un plat qui ment. Ce n'est pas une coquetterie
+    /// de rédaction : la liste de courses se fabrique à partir des aliments
+    /// du repas, et quelqu'un qui fait ses courses avec elle rentre sans ail
+    /// — puis découvre en cuisinant qu'il en fallait.
+    ///
+    /// Les aromates n'ont donc ni grammes ni macros — trois gousses d'ail ne
+    /// changent pas une journée à deux mille calories — mais ils sont nommés,
+    /// affichés sous les ingrédients, et ils rejoignent la liste de courses.
+    public var seasonings: [LocalizedText]
+
     /// Temps de préparation en minutes, cuisson comprise. Un chiffre honnête
     /// vaut mieux qu'un chiffre flatteur : c'est lui qui décide si le plat se
     /// fait un mardi soir.
@@ -54,6 +70,7 @@ public struct Recipe: Codable, Sendable, Equatable, Identifiable, Hashable {
         carbID: String,
         fatID: String,
         extraIDs: [String],
+        seasonings: [LocalizedText] = [],
         minutes: Int,
         steps: [LocalizedText]
     ) {
@@ -64,6 +81,7 @@ public struct Recipe: Codable, Sendable, Equatable, Identifiable, Hashable {
         self.carbID = carbID
         self.fatID = fatID
         self.extraIDs = extraIDs
+        self.seasonings = seasonings
         self.minutes = minutes
         self.steps = steps
     }
