@@ -27,6 +27,14 @@ public struct PersistedState: Codable, Sendable {
     /// du riz basmati. Une table personnelle, qui passe devant la table
     /// commune et qui voyage avec l'export.
     public var plateCorrections: [String: String]
+    /// Ce que l'athlète a accepté d'entendre, et à quelle heure.
+    ///
+    /// Gardé dans l'état plutôt que dans les réglages de l'appareil : c'est
+    /// un choix qui lui appartient, et il doit partir avec l'export comme le
+    /// reste. Absent des fichiers écrits avant les rappels — ceux-là
+    /// repartent silencieux, ce qui est la seule valeur par défaut honnête
+    /// pour une notification.
+    public var reminders: ReminderSettings
 
     public init(
         profile: UserProfile?,
@@ -35,7 +43,8 @@ public struct PersistedState: Codable, Sendable {
         segments: [Segment] = [],
         routes: [PlannedRoute] = [],
         trialStartedAt: Date? = nil,
-        plateCorrections: [String: String] = [:]
+        plateCorrections: [String: String] = [:],
+        reminders: ReminderSettings = .off
     ) {
         self.profile = profile
         self.plan = plan
@@ -44,6 +53,7 @@ public struct PersistedState: Codable, Sendable {
         self.routes = routes
         self.trialStartedAt = trialStartedAt
         self.plateCorrections = plateCorrections
+        self.reminders = reminders
     }
 
     /// Les segments sont arrivés après coup : un fichier écrit avant eux
@@ -58,6 +68,7 @@ public struct PersistedState: Codable, Sendable {
         routes = try container.decodeIfPresent([PlannedRoute].self, forKey: .routes) ?? []
         trialStartedAt = try container.decodeIfPresent(Date.self, forKey: .trialStartedAt)
         plateCorrections = try container.decodeIfPresent([String: String].self, forKey: .plateCorrections) ?? [:]
+        reminders = try container.decodeIfPresent(ReminderSettings.self, forKey: .reminders) ?? .off
     }
 
     public static let empty = PersistedState(profile: nil, plan: nil, history: .empty)
@@ -96,6 +107,11 @@ public final class CoachStore {
 
     /// Le jour de la première ouverture. Voir `startTrialIfNeeded`.
     public private(set) var trialStartedAt: Date?
+
+    /// Ce que l'athlète a accepté d'entendre. Silencieux tant qu'il n'a rien
+    /// dit : une notification qu'on n'a pas demandée est une notification de
+    /// trop, et la première coupe le son pour toutes les suivantes.
+    public private(set) var reminders: ReminderSettings = .off
     /// Ce que l'App Store a constaté au dernier passage. Jamais persisté :
     /// un droit d'accès qu'on garderait sur le disque serait un droit qu'on
     /// pourrait s'accorder soi-même, et il se relit de toute façon en une
@@ -120,6 +136,25 @@ public final class CoachStore {
         routes = state.routes
         trialStartedAt = state.trialStartedAt
         plateCorrections = state.plateCorrections
+        reminders = state.reminders
+    }
+
+    /// Change les rappels, et les réécrit aussitôt.
+    ///
+    /// Rien n'est posé ici : le magasin ne connaît pas les notifications du
+    /// système, et il ne doit pas les connaître — c'est ce qui permet de le
+    /// tester sur n'importe quelle machine. Il rend la liste, l'application
+    /// la pose.
+    public func setReminders(_ settings: ReminderSettings) {
+        reminders = settings
+        save()
+    }
+
+    /// Les rappels à poser en l'état actuel des choses.
+    public func plannedReminders(from now: Date = Date()) -> [Reminder] {
+        ReminderPlanner.plan(
+            program: program, history: history, settings: reminders, from: now
+        )
     }
 
     /// Fait courir l'essai à partir d'aujourd'hui, une seule fois.
@@ -818,7 +853,8 @@ public final class CoachStore {
     private func save() {
         let state = PersistedState(
             profile: profile, plan: plan, history: history, segments: segments, routes: routes,
-            trialStartedAt: trialStartedAt, plateCorrections: plateCorrections
+            trialStartedAt: trialStartedAt, plateCorrections: plateCorrections,
+            reminders: reminders
         )
         do {
             try storage.save(state)
@@ -837,7 +873,8 @@ public final class CoachStore {
         try StateStorage.encoder.encode(
             PersistedState(
                 profile: profile, plan: plan, history: history, segments: segments, routes: routes,
-                trialStartedAt: trialStartedAt, plateCorrections: plateCorrections
+                trialStartedAt: trialStartedAt, plateCorrections: plateCorrections,
+                reminders: reminders
             )
         )
     }

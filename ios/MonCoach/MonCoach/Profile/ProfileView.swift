@@ -9,6 +9,9 @@ struct ProfileView: View {
     @Environment(CoachStore.self) private var store
 
     @State private var showingEditor = false
+    /// Le système a-t-il refusé les notifications ? Relu à chaque affichage :
+    /// l'autorisation se retire dans les réglages d'iOS sans prévenir.
+    @State private var notificationsRefused = false
     @State private var showingResetConfirmation = false
     @State private var showingPaywall = false
     @State private var showingBenefits = false
@@ -83,13 +86,14 @@ struct ProfileView: View {
                     trainingCard(profile).appears(2)
                     constraintsCard(profile).appears(3)
                     preferencesCard(profile).appears(4)
-                    runningCard(profile).appears(5)
-                    benefitsCard.appears(6)
-                    subscriptionCard.appears(7)
-                    refusedFoodsCard.appears(8)
-                    gearCard.appears(9)
-                    dataCard.appears(10)
-                    creditFooter.appears(11)
+                    remindersCard.appears(5)
+                    runningCard(profile).appears(6)
+                    benefitsCard.appears(7)
+                    subscriptionCard.appears(8)
+                    refusedFoodsCard.appears(9)
+                    gearCard.appears(10)
+                    dataCard.appears(11)
+                    creditFooter.appears(12)
                 } else {
                     Card(title: LocalizedText(fr: "Profil vide", en: "Empty profile", es: "Perfil vacío")[language]) { EmptyView() }.appears(0)
                 }
@@ -474,6 +478,183 @@ struct ProfileView: View {
                 .tint(Theme.accent)
             }
         }
+    }
+
+
+    // MARK: - Rappels
+
+    /// Ce que l'application a le droit de dire, et quand.
+    ///
+    /// L'interrupteur ne ment jamais : si le système a retiré l'autorisation
+    /// dans ses propres réglages — ce qui arrive sans que l'application en
+    /// soit prévenue — il repasse éteint et le dit. Un interrupteur allumé
+    /// sur des rappels qui ne partiront pas est pire que pas de rappels du
+    /// tout, parce qu'on compte dessus.
+    private var remindersCard: some View {
+        Card(
+            title: LocalizedText(fr: "Rappels", en: "Reminders", es: "Recordatorios")[language],
+            subtitle: LocalizedText(
+                fr: "Un seul par jour, jamais pour quelque chose de déjà fait. Tout se décide sur le téléphone.",
+                en: "One a day at most, never for something already done. Everything is decided on the phone.",
+                es: "Uno al día como mucho, nunca por algo ya hecho. Todo se decide en el teléfono."
+            )[language]
+        ) {
+            VStack(alignment: .leading, spacing: 14) {
+                Toggle(isOn: remindersEnabledBinding) {
+                    Text(LocalizedText(fr: "M'envoyer des rappels", en: "Send me reminders", es: "Enviarme recordatorios")[language])
+                        .font(Theme.captionFont)
+                        .foregroundStyle(Theme.primaryText)
+                }
+                .tint(Theme.accent)
+
+                if notificationsRefused {
+                    CoachText(
+                        LocalizedText(
+                            fr: "Les notifications sont refusées dans les réglages d'iOS. Tant qu'elles le restent, rien ne partira — l'interrupteur ci-dessus ne peut rien y faire.",
+                            en: "Notifications are turned off in iOS settings. Nothing will be sent while they are — the switch above cannot change that.",
+                            es: "Las notificaciones están desactivadas en los ajustes de iOS. Mientras lo estén, no se enviará nada; el interruptor de arriba no puede cambiarlo."
+                        ),
+                        font: .system(size: 11)
+                    )
+                }
+
+                if store.reminders.enabled {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(LocalizedText(fr: "À quelle heure", en: "At what time", es: "A qué hora")[language])
+                            .font(Theme.captionFont)
+                            .foregroundStyle(Theme.secondaryText)
+                        DatePicker(
+                            "", selection: reminderTimeBinding, displayedComponents: .hourAndMinute
+                        )
+                        .labelsHidden()
+                        .tint(Theme.accent)
+                    }
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        ForEach(ReminderKind.allCases, id: \.self) { kind in
+                            Toggle(isOn: kindBinding(kind)) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(label(for: kind)[language])
+                                        .font(.system(size: 13, weight: .medium))
+                                        .foregroundStyle(Theme.primaryText)
+                                    Text(explanation(for: kind)[language])
+                                        .font(.system(size: 11))
+                                        .foregroundStyle(Theme.secondaryText)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                            }
+                            .tint(Theme.accent)
+                        }
+                    }
+                }
+            }
+        }
+        .task {
+            notificationsRefused = store.reminders.enabled && !(await Reminders.isAllowed())
+        }
+    }
+
+    private func label(for kind: ReminderKind) -> LocalizedText {
+        switch kind {
+        case .sessionsLeft:
+            LocalizedText(fr: "La semaine qui se termine", en: "The week running out", es: "La semana que se acaba")
+        case .comeBack:
+            LocalizedText(fr: "Après plusieurs jours sans rien", en: "After several quiet days", es: "Tras varios días en blanco")
+        case .weighIn:
+            LocalizedText(fr: "La pesée", en: "The weigh-in", es: "El pesaje")
+        case .readiness:
+            LocalizedText(fr: "Le bilan de forme", en: "The readiness check", es: "El balance de forma")
+        }
+    }
+
+    private func explanation(for kind: ReminderKind) -> LocalizedText {
+        switch kind {
+        case .sessionsLeft:
+            LocalizedText(
+                fr: "Seulement quand il reste autant de séances que de jours.",
+                en: "Only when as many sessions remain as days.",
+                es: "Solo cuando quedan tantas sesiones como días."
+            )
+        case .comeBack:
+            LocalizedText(
+                fr: "Au bout de quatre jours sans séance ni sortie.",
+                en: "After four days with no session and no activity.",
+                es: "Tras cuatro días sin sesión ni salida."
+            )
+        case .weighIn:
+            LocalizedText(
+                fr: "C'est le poids qui décide si les calories bougent.",
+                en: "Weight is what decides whether calories move.",
+                es: "El peso decide si las calorías cambian."
+            )
+        case .readiness:
+            LocalizedText(
+                fr: "Trente secondes, et la séance s'ajuste à ta journée.",
+                en: "Thirty seconds, and the session adjusts to your day.",
+                es: "Treinta segundos, y la sesión se ajusta a tu día."
+            )
+        }
+    }
+
+    private var remindersEnabledBinding: Binding<Bool> {
+        Binding(
+            get: { store.reminders.enabled },
+            set: { wanted in
+                Task { @MainActor in
+                    if wanted {
+                        // On demande avant de promettre. Un interrupteur qui
+                        // s'allume sur un refus serait un mensonge à l'écran.
+                        let granted = await Reminders.requestPermission()
+                        notificationsRefused = !granted
+                        guard granted else { return }
+                    }
+                    var settings = store.reminders
+                    settings.enabled = wanted
+                    store.setReminders(settings)
+                    await applyReminders()
+                }
+            }
+        )
+    }
+
+    private var reminderTimeBinding: Binding<Date> {
+        Binding(
+            get: {
+                var parts = DateComponents()
+                parts.hour = store.reminders.hour
+                parts.minute = store.reminders.minute
+                return Calendar.current.date(from: parts) ?? Date()
+            },
+            set: { date in
+                let parts = Calendar.current.dateComponents([.hour, .minute], from: date)
+                var settings = store.reminders
+                settings.hour = parts.hour ?? settings.hour
+                settings.minute = parts.minute ?? settings.minute
+                store.setReminders(settings)
+                Task { await applyReminders() }
+            }
+        )
+    }
+
+    private func kindBinding(_ kind: ReminderKind) -> Binding<Bool> {
+        Binding(
+            get: { store.reminders.kinds.contains(kind) },
+            set: { wanted in
+                var settings = store.reminders
+                if wanted { settings.kinds.insert(kind) } else { settings.kinds.remove(kind) }
+                store.setReminders(settings)
+                Task { await applyReminders() }
+            }
+        )
+    }
+
+    /// Efface les anciens rappels et repose ceux qui valent encore.
+    private func applyReminders() async {
+        guard store.reminders.enabled else {
+            await Reminders.cancelAll()
+            return
+        }
+        await Reminders.reschedule(store.plannedReminders(), language: language)
     }
 
     /// La course : présente si l'athlète court, proposée sinon.
