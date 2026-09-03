@@ -325,63 +325,62 @@ def ensure_price(client: Client, subscription_id: str, wanted: float) -> None:
     post_price(client, subscription_id, chosen, price_of(chosen))
 
 
-# Les formes de requête à essayer pour poser un prix, de la plus simple à la
-# plus explicite.
-#
-# Pourquoi une échelle et non un pari
-# -----------------------------------
-# Apple refuse la tarification par un message qui ne dit rien de la cause :
-# « an error occurred while processing the pricing information ». Le point de
-# prix, lui, est le bon — la version précédente cherchait le plus proche et
-# se trompait de deux ordres de grandeur ; celle-ci trouve l'exact et se fait
-# refuser quand même. Ce qui reste en cause est donc la forme du corps.
-#
-# Deviner une quatrième fois coûterait un aller-retour par hypothèse. Les
-# essayer toutes en un passage coûte un aller-retour en tout, et rend une
-# réponse plutôt qu'une supposition : le journal dit laquelle est passée, et
-# les suivantes ne sont même pas tentées.
-PRICE_SHAPES = [
-    ("sans attribut", {}, False),
-    ("preserveCurrentPrice", {"preserveCurrentPrice": False}, False),
-    ("sans attribut + territoire", {}, True),
-    ("preserveCurrentPrice + territoire", {"preserveCurrentPrice": False}, True),
-    ("startDate nul", {"startDate": None}, False),
-]
-
-
 def post_price(
     client: Client, subscription_id: str, point: dict, price: float
 ) -> None:
-    refusals = []
-    for label, attributes, with_territory in PRICE_SHAPES:
-        relationships = {
-            "subscription": {
-                "data": {"type": "subscriptions", "id": subscription_id}
-            },
-            "subscriptionPricePoint": {
-                "data": {"type": "subscriptionPricePoints", "id": point["id"]}
-            },
-        }
-        if with_territory:
-            relationships["territory"] = {
-                "data": {"type": "territories", "id": TERRITORY}
-            }
+    """Pose le prix, et explique le refus quand il vient.
 
-        data: dict = {"type": "subscriptionPrices", "relationships": relationships}
-        if attributes:
-            data["attributes"] = attributes
+    Ce qu'on a appris en essayant
+    -----------------------------
+    Cinq formes de requête ont été soumises dans un même passage — sans
+    attribut, avec `preserveCurrentPrice`, avec ou sans relation de
+    territoire, avec une date de début nulle. **Les cinq ont été refusées
+    avec exactement le même message** :
 
-        try:
-            client.call("subscriptionPrices", method="POST", body={"data": data})
-        except AppleRefused as refusal:
-            refusals.append(f"{label} → {refusal.detail}")
-            continue
-        print(f"    prix posé : {price} € ({TERRITORY}) — forme « {label} »")
+        An error occurred while processing the pricing information.
+
+    Cinq refus identiques sur cinq corps différents ne désignent pas le
+    corps. Le point de prix est le bon — il vient de la relation propre à
+    cet abonnement, filtré sur le territoire et vérifié au retour. Les
+    localisations, elles, passent sur le même objet par les mêmes appels.
+
+    Ce qui reste est le compte : Apple ne laisse fixer aucun prix tant que
+    le contrat « Paid Applications » n'est pas actif, et le refus qu'il
+    rend alors ne nomme pas la cause. Le contrat, lui, n'est pas visible
+    par l'API — d'où cette explication écrite ici plutôt qu'un sixième
+    essai.
+    """
+    try:
+        client.call(
+            "subscriptionPrices",
+            method="POST",
+            body={
+                "data": {
+                    "type": "subscriptionPrices",
+                    "relationships": {
+                        "subscription": {
+                            "data": {"type": "subscriptions", "id": subscription_id}
+                        },
+                        "subscriptionPricePoint": {
+                            "data": {
+                                "type": "subscriptionPricePoints",
+                                "id": point["id"],
+                            }
+                        },
+                    },
+                }
+            },
+        )
+    except AppleRefused as refusal:
+        print(f"::error::Prix {price} € refusé : {refusal.detail}")
+        print(
+            "::error::  Cause la plus probable : le contrat « Paid"
+            " Applications » n'est pas actif. Apple refuse alors toute"
+            " tarification, sans le dire. App Store Connect → Accords, taxes"
+            " et banque."
+        )
         return
-
-    print(f"::error::Aucune forme acceptée pour le prix {price} € :")
-    for refusal in refusals:
-        print(f"::error::  {refusal}")
+    print(f"    prix posé : {price} € ({TERRITORY})")
 
 
 def main() -> int:

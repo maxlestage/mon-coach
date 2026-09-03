@@ -165,14 +165,23 @@ def localisations(client: Client, version_id: str, report: Report) -> None:
 
 
 def agreements(client: Client, report: Report) -> None:
-    """Les informations bancaires et fiscales : le blocage le plus discret."""
+    """Les informations bancaires et fiscales : le blocage le plus discret.
+
+    Rangé parmi ce qui bloque la vente, et non parmi les conforts : sans ce
+    contrat, aucun prix ne peut être posé sur un abonnement — pas seulement
+    aucun euro encaissé. C'est un blocage en amont, découvert en butant
+    dessus.
+    """
     # Apple n'expose pas les contrats par l'API. Le dire est plus honnête que
     # de laisser croire que le script a tout vérifié.
-    report.comfort.append(
-        "Contrat payant, coordonnées bancaires et informations fiscales :\n"
-        "     invisibles par l'API. À vérifier une fois dans App Store Connect\n"
-        "     → Accords, taxes et banque. Sans eux, rien ne se vend, même\n"
-        "     approuvé."
+    report.blocking.append(
+        "Contrat « Paid Applications », coordonnées bancaires et informations\n"
+        "     fiscales. Invisibles par l'API, donc non vérifiés ici — mais\n"
+        "     probablement en cause : cinq formes de requête différentes ont\n"
+        "     été refusées pour poser le prix des abonnements, toutes avec le\n"
+        "     même message vague. Apple ne laisse fixer aucun prix tant que le\n"
+        "     contrat n'est pas actif, et ne le dit pas.\n"
+        "     App Store Connect → Accords, taxes et banque."
     )
 
 
