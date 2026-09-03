@@ -320,14 +320,52 @@ public final class CoachStore {
         save()
     }
 
-    /// Files a finished activity, and lets it teach the coach something.
+    /// Adopte ce que Santé sait et que le journal ignore.
     ///
-    /// A tempo run, an interval session or a race says where the threshold
-    /// actually sits. When the new evidence is better than what the profile
-    /// holds, the profile is updated and the block is rebuilt around the real
-    /// pace — otherwise every prescribed pace would stay wrong all block.
-    /// Une sortie vélo ou une randonnée est archivée comme les autres, mais
-    /// `demonstratedThresholdPace` ne la regarde pas.
+    /// Rend ce qui a été pris, pour que l'écran puisse le dire. Un import
+    /// muet qui ajoute quatorze lignes au journal est indiscernable d'un
+    /// bogue — et un import qui n'ajoute rien parce que tout y était déjà
+    /// doit le dire aussi, sinon il ressemble à un échec.
+    @discardableResult
+    public func importFromHealth(
+        weights: [HealthWeight],
+        nights: [HealthSleep],
+        workouts: [HealthWorkout],
+        ourSourceNames: Set<String>,
+        calendar: Calendar = .current
+    ) -> (weights: Int, activities: Int) {
+        let bodyLogs = HealthImport.newBodyLogs(
+            from: weights, existing: history.bodyLogs, calendar: calendar
+        )
+        let activities = HealthImport.newActivities(
+            from: workouts, existing: history.activities, ourSourceNames: ourSourceNames
+        )
+        guard !bodyLogs.isEmpty || !activities.isEmpty else { return (0, 0) }
+
+        history.bodyLogs.append(contentsOf: bodyLogs)
+        history.bodyLogs.sort { $0.date < $1.date }
+        history.activities.append(contentsOf: activities)
+        history.activities.sort { $0.startedAt > $1.startedAt }
+        healthNights = nights
+        save()
+        return (bodyLogs.count, activities.count)
+    }
+
+    /// Les nuits lues au dernier import, gardées en mémoire seulement.
+    ///
+    /// Elles servent à pré-remplir le bilan de forme du jour, et rien de
+    /// plus. Les écrire sur le disque ferait une deuxième copie d'une donnée
+    /// de santé qui vit déjà dans Santé, où elle est mieux protégée que
+    /// partout ailleurs — et l'export en porterait une troisième.
+    public private(set) var healthNights: [HealthSleep] = []
+
+    /// Les heures dormies cette nuit, si Santé les connaît.
+    public func measuredSleepHours(
+        on day: Date = Date(), calendar: Calendar = .current
+    ) -> Double? {
+        HealthImport.sleepHours(on: day, from: healthNights, calendar: calendar)
+    }
+
     /// Fusionne les doublons déjà enregistrés, et rend combien ont disparu.
     ///
     /// Appelé au lancement. La règle est celle de l'enregistrement, appliquée
@@ -338,6 +376,14 @@ public final class CoachStore {
     ///
     /// Rien ne se perd : la fusion garde la mesure la plus riche et reprend
     /// sur elle ce que l'autre portait — note, ressenti, photos, matériel.
+    /// Files a finished activity, and lets it teach the coach something.
+    ///
+    /// A tempo run, an interval session or a race says where the threshold
+    /// actually sits. When the new evidence is better than what the profile
+    /// holds, the profile is updated and the block is rebuilt around the real
+    /// pace — otherwise every prescribed pace would stay wrong all block.
+    /// Une sortie vélo ou une randonnée est archivée comme les autres, mais
+    /// `demonstratedThresholdPace` ne la regarde pas.
     @discardableResult
     public func mergeDuplicateActivities() -> Int {
         let sorted = history.activities.sorted { $0.startedAt < $1.startedAt }

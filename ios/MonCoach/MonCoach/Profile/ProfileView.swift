@@ -12,6 +12,9 @@ struct ProfileView: View {
     /// Le système a-t-il refusé les notifications ? Relu à chaque affichage :
     /// l'autorisation se retire dans les réglages d'iOS sans prévenir.
     @State private var notificationsRefused = false
+    /// Le résultat du dernier import : ce qui a été pris, ou rien.
+    @State private var healthOutcome: LocalizedText?
+    @State private var importingHealth = false
     @State private var showingResetConfirmation = false
     @State private var showingPaywall = false
     @State private var showingBenefits = false
@@ -87,13 +90,14 @@ struct ProfileView: View {
                     constraintsCard(profile).appears(3)
                     preferencesCard(profile).appears(4)
                     remindersCard.appears(5)
-                    runningCard(profile).appears(6)
-                    benefitsCard.appears(7)
-                    subscriptionCard.appears(8)
-                    refusedFoodsCard.appears(9)
-                    gearCard.appears(10)
-                    dataCard.appears(11)
-                    creditFooter.appears(12)
+                    healthCard.appears(6)
+                    runningCard(profile).appears(7)
+                    benefitsCard.appears(8)
+                    subscriptionCard.appears(9)
+                    refusedFoodsCard.appears(10)
+                    gearCard.appears(11)
+                    dataCard.appears(12)
+                    creditFooter.appears(13)
                 } else {
                     Card(title: LocalizedText(fr: "Profil vide", en: "Empty profile", es: "Perfil vacío")[language]) { EmptyView() }.appears(0)
                 }
@@ -655,6 +659,99 @@ struct ProfileView: View {
             return
         }
         await Reminders.reschedule(store.plannedReminders(), language: language)
+    }
+
+
+    // MARK: - Santé
+
+    /// Ce que le téléphone va chercher dans Santé.
+    ///
+    /// La lecture seulement : l'écriture appartient à la montre, qui
+    /// enregistre la séance en cours. Demander un droit dont on ne se sert
+    /// pas est la meilleure façon de se faire refuser celui dont on se sert.
+    private var healthCard: some View {
+        Card(
+            title: LocalizedText(fr: "Santé", en: "Health", es: "Salud")[language],
+            subtitle: LocalizedText(
+                fr: "Ton poids, tes nuits et les séances faites ailleurs. Rien n'est écrasé : Santé remplit les trous.",
+                en: "Your weight, your nights, and sessions recorded elsewhere. Nothing is overwritten: Health fills the gaps.",
+                es: "Tu peso, tus noches y las sesiones hechas en otro sitio. No se sobrescribe nada: Salud rellena los huecos."
+            )[language]
+        ) {
+            VStack(alignment: .leading, spacing: 12) {
+                CoachText(
+                    LocalizedText(
+                        fr: "Une pesée que tu as notée toi-même n'est jamais remplacée, et ce que la montre a déjà écrit n'est pas relu — sinon chaque sortie compterait deux fois.",
+                        en: "A weigh-in you entered yourself is never replaced, and what the watch already wrote is not read back — otherwise every activity would count twice.",
+                        es: "Un pesaje que has anotado tú nunca se reemplaza, y lo que el reloj ya escribió no se relee: si no, cada salida contaría dos veces."
+                    ),
+                    font: .system(size: 11)
+                )
+
+                if let healthOutcome {
+                    Text(healthOutcome[language])
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(Theme.accent)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                GhostButton(
+                    title: importingHealth
+                        ? LocalizedText(fr: "Lecture…", en: "Reading…", es: "Leyendo…")[language]
+                        : LocalizedText(fr: "Importer depuis Santé", en: "Import from Health", es: "Importar desde Salud")[language],
+                    systemImage: "heart.text.square"
+                ) {
+                    Task { await importHealth() }
+                }
+                .disabled(importingHealth)
+            }
+        }
+    }
+
+    /// Lit les trente derniers jours et adopte ce qui manque.
+    ///
+    /// Trente jours : assez pour rattraper une installation récente, assez
+    /// peu pour ne pas déverser des années de vieilles séances dans un
+    /// journal qui raconte un bloc en cours.
+    private func importHealth() async {
+        importingHealth = true
+        defer { importingHealth = false }
+
+        let reader = HealthReader()
+        guard reader.isAvailable, await reader.requestAccess() else {
+            healthOutcome = LocalizedText(
+                fr: "Santé n'est pas accessible sur cet appareil.",
+                en: "Health is not available on this device.",
+                es: "Salud no está disponible en este dispositivo."
+            )
+            return
+        }
+
+        let since = Calendar.current.date(byAdding: .day, value: -30, to: Date()) ?? Date()
+        let taken = store.importFromHealth(
+            weights: await reader.weights(since: since),
+            nights: await reader.nights(since: since),
+            workouts: await reader.workouts(since: since),
+            ourSourceNames: HealthReader.ourSources
+        )
+
+        // Zéro n'est pas un échec : c'est souvent que tout y était déjà. Le
+        // dire évite de laisser croire que le bouton n'a rien fait — et
+        // Apple ne révèle jamais si la lecture a été refusée, donc on ne
+        // peut pas promettre plus que ce qu'on a vu.
+        if taken.weights == 0 && taken.activities == 0 {
+            healthOutcome = LocalizedText(
+                fr: "Rien de nouveau. Soit tout y était déjà, soit Santé n'a rien à partager — Apple ne dit pas lequel des deux.",
+                en: "Nothing new. Either it was all here already, or Health has nothing to share — Apple does not say which.",
+                es: "Nada nuevo. O ya estaba todo, o Salud no tiene nada que compartir; Apple no dice cuál de los dos."
+            )
+        } else {
+            healthOutcome = LocalizedText(
+                fr: "\(taken.weights) pesée\(taken.weights > 1 ? "s" : "") et \(taken.activities) séance\(taken.activities > 1 ? "s" : "") ajoutées.",
+                en: "\(taken.weights) weigh-in\(taken.weights > 1 ? "s" : "") and \(taken.activities) session\(taken.activities > 1 ? "s" : "") added.",
+                es: "\(taken.weights) pesaje\(taken.weights > 1 ? "s" : "") y \(taken.activities) sesi\(taken.activities > 1 ? "ones" : "ón") añadidos."
+            )
+        }
     }
 
     /// La course : présente si l'athlète court, proposée sinon.
