@@ -31,14 +31,21 @@ struct TodayView: View {
                         if let step = beginnerStep {
                             FirstSessionsCard(step: step).appears(0)
                         }
-                        readinessCard(briefing).appears(1)
-                        stateCard(briefing).appears(2)
-                        if let run = briefing.plannedRun {
-                            plannedRunCard(run, done: briefing.recordedRun).appears(3)
+                        // Avant tout le reste : ce qui suit se lit
+                        // différemment quand on revient de trois semaines
+                        // d'arrêt, et l'apprendre après avoir vu les charges
+                        // du jour serait l'apprendre trop tard.
+                        if let comeback = store.returnPlan() {
+                            returnCard(comeback).appears(1)
                         }
-                        nutritionCard(briefing.nutrition).appears(4)
-                        trialBanner.appears(5)
-                        insightsCard.appears(6)
+                        readinessCard(briefing).appears(2)
+                        stateCard(briefing).appears(3)
+                        if let run = briefing.plannedRun {
+                            plannedRunCard(run, done: briefing.recordedRun).appears(4)
+                        }
+                        nutritionCard(briefing.nutrition).appears(5)
+                        trialBanner.appears(6)
+                        insightsCard.appears(7)
                     } else {
                         Card(title: LocalizedText(fr: "Aucun programme", en: "No programme", es: "Sin programa")[language]) {
                             Text(LocalizedText(fr: "Le coach n'a pas encore de plan pour toi.", en: "The coach has no plan for you yet.", es: "El entrenador aún no tiene un plan para ti.")[language])
@@ -154,6 +161,58 @@ struct TodayView: View {
     }
 
     // MARK: - Cards
+
+
+    // MARK: - La reprise
+
+    /// Ce qu'on dit à quelqu'un qui revient après un arrêt.
+    ///
+    /// Elle n'apparaît que lorsqu'il y a réellement quelque chose à dire —
+    /// jamais pour dix jours ordinaires. Une carte « tu reviens de loin »
+    /// montrée à quelqu'un qui s'entraîne tous les mardis serait la meilleure
+    /// façon de lui apprendre à ne plus lire les cartes.
+    private func returnCard(_ plan: ReturnToTraining) -> some View {
+        Card(title: plan.headline[language]) {
+            VStack(alignment: .leading, spacing: 12) {
+                CoachText(plan.message, font: Theme.bodyFont)
+
+                HStack(spacing: 12) {
+                    StatTile(
+                        value: "−\(Int((plan.loadReduction * 100).rounded())) %",
+                        label: LocalizedText(fr: "charge", en: "load", es: "carga")[language],
+                        tint: Theme.warning,
+                        amount: plan.loadReduction * 100
+                    )
+                    StatTile(
+                        value: "−\(Int((plan.volumeReduction * 100).rounded())) %",
+                        label: LocalizedText(fr: "volume", en: "volume", es: "volumen")[language],
+                        tint: Theme.danger,
+                        amount: plan.volumeReduction * 100
+                    )
+                    StatTile(
+                        value: "\(plan.rampWeeks)",
+                        label: LocalizedText(
+                            fr: plan.rampWeeks > 1 ? "semaines pour revenir" : "semaine pour revenir",
+                            en: plan.rampWeeks > 1 ? "weeks to full" : "week to full",
+                            es: plan.rampWeeks > 1 ? "semanas para volver" : "semana para volver"
+                        )[language],
+                        amount: Double(plan.rampWeeks)
+                    )
+                }
+
+                if plan.rebuildsBlock {
+                    CoachText(
+                        LocalizedText(
+                            fr: "L'arrêt est assez long pour qu'on reparte d'un bloc neuf plutôt que de reprendre le fil du précédent. Modifie ton profil quand tu veux : le bloc se reconstruit autour de ce que tu vaux aujourd'hui, pas de ce que tu valais avant.",
+                            en: "The break is long enough that we start a fresh block rather than pick up the old thread. Edit your profile whenever you like: the block rebuilds around what you can do today, not what you could before.",
+                            es: "La pausa es lo bastante larga como para empezar un bloque nuevo en lugar de retomar el anterior. Edita tu perfil cuando quieras: el bloque se reconstruye en torno a lo que puedes hoy, no a lo que podías antes."
+                        ),
+                        font: .system(size: 11)
+                    )
+                }
+            }
+        }
+    }
 
     private func readinessCard(_ briefing: TodayBriefing) -> some View {
         Card(title: briefing.readiness.headline[language], subtitle: LocalizedText(fr: "Forme du jour", en: "Today's readiness", es: "Forma del día")[language]) {

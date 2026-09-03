@@ -150,6 +150,16 @@ public final class CoachStore {
         save()
     }
 
+    /// Comment reprendre, si l'athlète revient d'un arrêt.
+    ///
+    /// Nil quand il n'y a rien à signaler — c'est le cas le plus fréquent, et
+    /// une carte « tu reviens de loin » affichée à quelqu'un qui s'entraîne
+    /// tous les mardis serait la meilleure façon de lui apprendre à ignorer
+    /// les cartes.
+    public func returnPlan(on date: Date = Date()) -> ReturnToTraining? {
+        ReturnPlanner.plan(history: history, on: date)
+    }
+
     /// Les rappels à poser en l'état actuel des choses.
     public func plannedReminders(from now: Date = Date()) -> [Reminder] {
         ReminderPlanner.plan(
