@@ -565,3 +565,30 @@ jobs:
             ~/Library/Logs/gym
           if-no-files-found: ignore
           retention-days: 7
+
+      - name: Les erreurs de compilation, et rien d'autre
+        if: failure()
+        run: |
+          # Pourquoi cette étape existe, et pourquoi elle est la dernière
+          #
+          # Quand l'archive échoue, les lignes qui comptent — le fichier, la
+          # ligne, le message du compilateur — sont noyées au milieu de huit
+          # cents lignes de journal, derrière des commandes de liaison qui
+          # tiennent chacune sur trois mille caractères. Les retrouver
+          # demande de remonter le journal à l'aveugle.
+          #
+          # Ici, en dernier, elles sont les premières qu'on voit en ouvrant
+          # l'exécution, et un simple coup d'œil à la fin du journal suffit.
+          RAW="$GITHUB_WORKSPACE/build/xcodebuild-archive.log"
+          echo "::group::Ce que le compilateur a refusé"
+          if [ -f "$RAW" ]; then
+            # Le fichier, la ligne et le message : le format d'erreur de
+            # Swift, tel quel. `sort -u` parce qu'un même défaut est signalé
+            # une fois par architecture — iPhone, montre, widgets — et que
+            # trois copies n'apprennent rien de plus que la première.
+            grep -E "error:" "$RAW" | sed 's|.*/mon-coach/||' | sort -u | head -40 \
+              || echo "Aucune erreur de compilation : l'échec vient d'ailleurs."
+          else
+            echo "Pas de journal d'archive : l'échec est survenu avant la compilation."
+          fi
+          echo "::endgroup::"

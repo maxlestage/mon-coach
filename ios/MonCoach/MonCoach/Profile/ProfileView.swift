@@ -554,7 +554,17 @@ struct ProfileView: View {
             }
         }
         .task {
-            notificationsRefused = store.reminders.enabled && !(await Reminders.isAllowed())
+            // En deux temps, et non en une expression : l'opérateur `&&`
+            // évalue son côté droit dans une autoclosure, et une autoclosure
+            // n'accepte pas d'`await`. Le raccourci ne compile pas — et il
+            // n'était pas seulement une élégance : n'interroger le système
+            // que si l'athlète a demandé des rappels évite une question
+            // inutile, et cet ordre-là est conservé.
+            guard store.reminders.enabled else {
+                notificationsRefused = false
+                return
+            }
+            notificationsRefused = !(await Reminders.isAllowed())
         }
     }
 
@@ -653,7 +663,7 @@ struct ProfileView: View {
     }
 
     /// Efface les anciens rappels et repose ceux qui valent encore.
-    private func applyReminders() async {
+    @MainActor private func applyReminders() async {
         guard store.reminders.enabled else {
             await Reminders.cancelAll()
             return
@@ -713,7 +723,7 @@ struct ProfileView: View {
     /// Trente jours : assez pour rattraper une installation récente, assez
     /// peu pour ne pas déverser des années de vieilles séances dans un
     /// journal qui raconte un bloc en cours.
-    private func importHealth() async {
+    @MainActor private func importHealth() async {
         importingHealth = true
         defer { importingHealth = false }
 
