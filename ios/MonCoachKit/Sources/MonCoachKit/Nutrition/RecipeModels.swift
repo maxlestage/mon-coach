@@ -51,6 +51,20 @@ public struct Recipe: Codable, Sendable, Equatable, Identifiable, Hashable {
     /// Les aromates n'ont donc ni grammes ni macros — trois gousses d'ail ne
     /// changent pas une journée à deux mille calories — mais ils sont nommés,
     /// affichés sous les ingrédients, et ils rejoignent la liste de courses.
+    ///
+    /// Le titre n'est pas le seul endroit qui promet
+    /// ---------------------------------------------
+    /// « Sauce soja, un peu de miel, gingembre râpé » est une étape claire, et
+    /// sans valeur pour qui a fait ses courses avec une liste qui n'en porte
+    /// aucun des trois. Ce qu'une étape demande d'ajouter est déclaré ici,
+    /// même quand le nom du plat n'en dit rien.
+    ///
+    /// Un oignon fondu en début de recette y a sa place : c'est une base
+    /// aromatique de cinquante grammes, pas la portion de deux cents grammes
+    /// que le catalogue compte quand l'oignon est vraiment un légume du
+    /// repas. Le sel et le poivre, eux, n'y sont pas — personne ne fait un
+    /// détour pour eux, et les répéter deux cent cinquante fois noierait la
+    /// liste de courses sous du bruit.
     public var seasonings: [LocalizedText]
 
     /// Temps de préparation en minutes, cuisson comprise. Un chiffre honnête

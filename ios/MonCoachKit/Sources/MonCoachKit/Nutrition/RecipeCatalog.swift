@@ -130,6 +130,10 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "boeuf-5", carbID: "riz-blanc",
             fatID: "huile-olive", extraIDs: ["sauce-tomate", "poivron"],
+            seasonings: [
+                LocalizedText(fr: "Cumin", en: "Cumin", es: "Comino"),
+                LocalizedText(fr: "Paprika", en: "Paprika", es: "Pimentón"),
+            ],
             minutes: 30,
             steps: [
                 LocalizedText(
@@ -159,6 +163,9 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "dinde", carbID: "boulgour",
             fatID: "huile-colza", extraIDs: ["courgette", "oignon"],
+            seasonings: [
+                LocalizedText(fr: "Curry", en: "Curry", es: "Curry"),
+            ],
             minutes: 30,
             steps: [
                 LocalizedText(
@@ -449,6 +456,11 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "lentilles", carbID: "riz-basmati",
             fatID: "huile-colza", extraIDs: ["tomate", "epinards"],
+            seasonings: [
+                LocalizedText(fr: "Cumin", en: "Cumin", es: "Comino"),
+                LocalizedText(fr: "Gingembre", en: "Ginger", es: "Jengibre"),
+                LocalizedText(fr: "Curcuma", en: "Turmeric", es: "Cúrcuma"),
+            ],
             minutes: 30,
             steps: [
                 LocalizedText(
@@ -478,6 +490,9 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "pois-chiches", carbID: "semoule",
             fatID: "huile-olive", extraIDs: ["courgette", "poivron"],
+            seasonings: [
+                LocalizedText(fr: "Curry", en: "Curry", es: "Curry"),
+            ],
             minutes: 25,
             steps: [
                 LocalizedText(
@@ -507,6 +522,9 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "tofu", carbID: "riz-complet",
             fatID: "graines-sesame", extraIDs: ["brocoli", "carotte"],
+            seasonings: [
+                LocalizedText(fr: "Sauce soja", en: "Soy sauce", es: "Salsa de soja"),
+            ],
             minutes: 25,
             steps: [
                 LocalizedText(
@@ -536,6 +554,10 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "tempeh", carbID: "patate-douce",
             fatID: "huile-olive", extraIDs: ["chou-kale", "oignon"],
+            seasonings: [
+                LocalizedText(fr: "Vinaigre", en: "Vinegar", es: "Vinagre"),
+                LocalizedText(fr: "Sauce soja", en: "Soy sauce", es: "Salsa de soja"),
+            ],
             minutes: 35,
             steps: [
                 LocalizedText(
@@ -565,6 +587,12 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "haricots-rouges", carbID: "riz-blanc",
             fatID: "huile-olive", extraIDs: ["sauce-tomate", "poivron"],
+            seasonings: [
+                LocalizedText(fr: "Cumin", en: "Cumin", es: "Comino"),
+                LocalizedText(fr: "Paprika", en: "Paprika", es: "Pimentón"),
+                LocalizedText(fr: "Cannelle", en: "Cinnamon", es: "Canela"),
+                LocalizedText(fr: "Oignon", en: "Onion", es: "Cebolla"),
+            ],
             minutes: 30,
             steps: [
                 LocalizedText(
@@ -594,6 +622,9 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "seitan", carbID: "boulgour",
             fatID: "huile-olive", extraIDs: ["poivron", "oignon"],
+            seasonings: [
+                LocalizedText(fr: "Paprika", en: "Paprika", es: "Pimentón"),
+            ],
             minutes: 25,
             steps: [
                 LocalizedText(
@@ -623,6 +654,10 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "haricots-blancs", carbID: "polenta",
             fatID: "huile-olive", extraIDs: ["sauce-tomate", "epinards"],
+            seasonings: [
+                LocalizedText(fr: "Ail", en: "Garlic", es: "Ajo"),
+                LocalizedText(fr: "Romarin", en: "Rosemary", es: "Romero"),
+            ],
             minutes: 25,
             steps: [
                 LocalizedText(
@@ -681,6 +716,11 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "dinde", carbID: "riz-basmati",
             fatID: "huile-olive", extraIDs: ["poivron", "oignon"],
+            seasonings: [
+                LocalizedText(fr: "Ail", en: "Garlic", es: "Ajo"),
+                LocalizedText(fr: "Paprika", en: "Paprika", es: "Pimentón"),
+                LocalizedText(fr: "Origan", en: "Oregano", es: "Orégano"),
+            ],
             minutes: 25,
             steps: [
                 LocalizedText(
@@ -712,6 +752,7 @@ public enum RecipeCatalog {
             fatID: "huile-olive", extraIDs: ["courgette", "tomate"],
             seasonings: [
                 LocalizedText(fr: "Citron", en: "Lemon", es: "Limón"),
+                LocalizedText(fr: "Ail", en: "Garlic", es: "Ajo"),
             ],
             minutes: 30,
             steps: [
@@ -742,6 +783,10 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "boeuf-15", carbID: "pomme-de-terre",
             fatID: "huile-olive", extraIDs: ["carotte", "oignon"],
+            seasonings: [
+                LocalizedText(fr: "Thym", en: "Thyme", es: "Tomillo"),
+                LocalizedText(fr: "Laurier", en: "Bay leaf", es: "Laurel"),
+            ],
             minutes: 55,
             steps: [
                 LocalizedText(
@@ -800,6 +845,10 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "lentilles", carbID: "riz-complet",
             fatID: "huile-olive", extraIDs: ["carotte", "celeri-branche"],
+            seasonings: [
+                LocalizedText(fr: "Laurier", en: "Bay leaf", es: "Laurel"),
+                LocalizedText(fr: "Oignon", en: "Onion", es: "Cebolla"),
+            ],
             minutes: 35,
             steps: [
                 LocalizedText(
@@ -858,6 +907,11 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "pois-chiches", carbID: "riz-blanc",
             fatID: "huile-olive", extraIDs: ["epinards", "tomate"],
+            seasonings: [
+                LocalizedText(fr: "Ail", en: "Garlic", es: "Ajo"),
+                LocalizedText(fr: "Vinaigre", en: "Vinegar", es: "Vinagre"),
+                LocalizedText(fr: "Cumin", en: "Cumin", es: "Comino"),
+            ],
             minutes: 25,
             steps: [
                 LocalizedText(
@@ -916,6 +970,9 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "oeuf", carbID: "pomme-de-terre",
             fatID: "huile-olive", extraIDs: ["sauce-tomate", "epinards"],
+            seasonings: [
+                LocalizedText(fr: "Paprika", en: "Paprika", es: "Pimentón"),
+            ],
             minutes: 25,
             steps: [
                 LocalizedText(
@@ -945,6 +1002,9 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "crevettes", carbID: "riz-basmati",
             fatID: "huile-colza", extraIDs: ["poivron", "epinards"],
+            seasonings: [
+                LocalizedText(fr: "Curry", en: "Curry", es: "Curry"),
+            ],
             minutes: 20,
             steps: [
                 LocalizedText(
@@ -1003,6 +1063,10 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "tofu-fume", carbID: "patate-douce",
             fatID: "huile-colza", extraIDs: ["epinards", "tomate"],
+            seasonings: [
+                LocalizedText(fr: "Gingembre", en: "Ginger", es: "Jengibre"),
+                LocalizedText(fr: "Curry", en: "Curry", es: "Curry"),
+            ],
             minutes: 30,
             steps: [
                 LocalizedText(
@@ -1061,6 +1125,9 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "maquereau", carbID: "quinoa",
             fatID: "huile-noix", extraIDs: ["betterave", "roquette"],
+            seasonings: [
+                LocalizedText(fr: "Vinaigre", en: "Vinegar", es: "Vinagre"),
+            ],
             minutes: 20,
             steps: [
                 LocalizedText(
@@ -1090,6 +1157,11 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "haricots-noirs", carbID: "polenta",
             fatID: "huile-olive", extraIDs: ["poivron", "oignon"],
+            seasonings: [
+                LocalizedText(fr: "Cumin", en: "Cumin", es: "Comino"),
+                LocalizedText(fr: "Paprika", en: "Paprika", es: "Pimentón"),
+                LocalizedText(fr: "Cacao amer", en: "Unsweetened cocoa", es: "Cacao puro"),
+            ],
             minutes: 25,
             steps: [
                 LocalizedText(
@@ -1177,6 +1249,9 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "truite", carbID: "pomme-de-terre",
             fatID: "amandes", extraIDs: ["haricots-verts", "champignons"],
+            seasonings: [
+                LocalizedText(fr: "Citron", en: "Lemon", es: "Limón"),
+            ],
             minutes: 30,
             steps: [
                 LocalizedText(
@@ -1299,6 +1374,10 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "boeuf-5", carbID: "pates-blanches",
             fatID: "huile-olive", extraIDs: ["sauce-tomate", "courgette"],
+            seasonings: [
+                LocalizedText(fr: "Ail", en: "Garlic", es: "Ajo"),
+                LocalizedText(fr: "Persil", en: "Parsley", es: "Perejil"),
+            ],
             minutes: 35,
             steps: [
                 LocalizedText(
@@ -1357,6 +1436,11 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "porc-filet", carbID: "riz-basmati",
             fatID: "huile-colza", extraIDs: ["chou", "carotte"],
+            seasonings: [
+                LocalizedText(fr: "Sauce soja", en: "Soy sauce", es: "Salsa de soja"),
+                LocalizedText(fr: "Gingembre", en: "Ginger", es: "Jengibre"),
+                LocalizedText(fr: "Miel", en: "Honey", es: "Miel"),
+            ],
             minutes: 30,
             steps: [
                 LocalizedText(
@@ -1386,6 +1470,9 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "agneau-gigot", carbID: "boulgour",
             fatID: "huile-olive", extraIDs: ["aubergine", "tomate"],
+            seasonings: [
+                LocalizedText(fr: "Cumin", en: "Cumin", es: "Comino"),
+            ],
             minutes: 45,
             steps: [
                 LocalizedText(
@@ -1415,6 +1502,9 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "lapin", carbID: "polenta",
             fatID: "olives", extraIDs: ["tomate", "oignon"],
+            seasonings: [
+                LocalizedText(fr: "Thym", en: "Thyme", es: "Tomillo"),
+            ],
             minutes: 50,
             steps: [
                 LocalizedText(
@@ -1444,6 +1534,9 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "rosbif", carbID: "pomme-de-terre",
             fatID: "huile-olive", extraIDs: ["salade", "tomate"],
+            seasonings: [
+                LocalizedText(fr: "Moutarde", en: "Mustard", es: "Mostaza"),
+            ],
             minutes: 20,
             steps: [
                 LocalizedText(
@@ -1473,6 +1566,9 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "foie-de-volaille", carbID: "pomme-de-terre",
             fatID: "beurre", extraIDs: ["oignon", "epinards"],
+            seasonings: [
+                LocalizedText(fr: "Vinaigre", en: "Vinegar", es: "Vinagre"),
+            ],
             minutes: 25,
             steps: [
                 LocalizedText(
@@ -1563,6 +1659,9 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "tilapia", carbID: "pomme-de-terre",
             fatID: "huile-olive", extraIDs: ["haricots-verts", "carotte"],
+            seasonings: [
+                LocalizedText(fr: "Citron", en: "Lemon", es: "Limón"),
+            ],
             minutes: 35,
             steps: [
                 LocalizedText(
@@ -1592,6 +1691,9 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "sole", carbID: "pomme-de-terre",
             fatID: "beurre", extraIDs: ["haricots-verts", "champignons"],
+            seasonings: [
+                LocalizedText(fr: "Citron", en: "Lemon", es: "Limón"),
+            ],
             minutes: 25,
             steps: [
                 LocalizedText(
@@ -1621,6 +1723,9 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "calamars", carbID: "riz-blanc",
             fatID: "huile-olive", extraIDs: ["sauce-tomate", "poivron"],
+            seasonings: [
+                LocalizedText(fr: "Ail", en: "Garlic", es: "Ajo"),
+            ],
             minutes: 40,
             steps: [
                 LocalizedText(
@@ -1679,6 +1784,11 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "saumon", carbID: "riz-blanc",
             fatID: "graines-sesame", extraIDs: ["brocoli", "carotte"],
+            seasonings: [
+                LocalizedText(fr: "Sauce soja", en: "Soy sauce", es: "Salsa de soja"),
+                LocalizedText(fr: "Gingembre", en: "Ginger", es: "Jengibre"),
+                LocalizedText(fr: "Miel", en: "Honey", es: "Miel"),
+            ],
             minutes: 25,
             steps: [
                 LocalizedText(
@@ -1798,6 +1908,11 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "lentilles", carbID: "patate-douce",
             fatID: "huile-colza", extraIDs: ["epinards", "tomate"],
+            seasonings: [
+                LocalizedText(fr: "Cumin", en: "Cumin", es: "Comino"),
+                LocalizedText(fr: "Gingembre", en: "Ginger", es: "Jengibre"),
+                LocalizedText(fr: "Curcuma", en: "Turmeric", es: "Cúrcuma"),
+            ],
             minutes: 30,
             steps: [
                 LocalizedText(
@@ -1856,6 +1971,9 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "falafel", carbID: "semoule",
             fatID: "tahini", extraIDs: ["tomate", "concombre"],
+            seasonings: [
+                LocalizedText(fr: "Citron", en: "Lemon", es: "Limón"),
+            ],
             minutes: 25,
             steps: [
                 LocalizedText(
@@ -1885,6 +2003,9 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "edamame", carbID: "quinoa",
             fatID: "avocat", extraIDs: ["carotte", "chou-rouge"],
+            seasonings: [
+                LocalizedText(fr: "Citron", en: "Lemon", es: "Limón"),
+            ],
             minutes: 20,
             steps: [
                 LocalizedText(
@@ -1914,6 +2035,9 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "proteine-soja", carbID: "pates-completes",
             fatID: "huile-olive", extraIDs: ["sauce-tomate", "carotte"],
+            seasonings: [
+                LocalizedText(fr: "Oignon", en: "Onion", es: "Cebolla"),
+            ],
             minutes: 30,
             steps: [
                 LocalizedText(
@@ -1975,6 +2099,10 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "tofu", carbID: "riz-blanc",
             fatID: "huile-colza", extraIDs: ["poivron", "oignon"],
+            seasonings: [
+                LocalizedText(fr: "Vinaigre", en: "Vinegar", es: "Vinagre"),
+                LocalizedText(fr: "Sauce soja", en: "Soy sauce", es: "Salsa de soja"),
+            ],
             minutes: 25,
             steps: [
                 LocalizedText(
@@ -2004,6 +2132,9 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "haricots-blancs", carbID: "polenta",
             fatID: "huile-olive", extraIDs: ["fenouil", "tomate"],
+            seasonings: [
+                LocalizedText(fr: "Citron", en: "Lemon", es: "Limón"),
+            ],
             minutes: 30,
             steps: [
                 LocalizedText(
@@ -2033,6 +2164,10 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "seitan", carbID: "orge-perle",
             fatID: "huile-olive", extraIDs: ["champignons", "oignon"],
+            seasonings: [
+                LocalizedText(fr: "Sauce soja", en: "Soy sauce", es: "Salsa de soja"),
+                LocalizedText(fr: "Moutarde", en: "Mustard", es: "Mostaza"),
+            ],
             minutes: 35,
             steps: [
                 LocalizedText(
@@ -2062,6 +2197,10 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "tempeh", carbID: "riz-complet",
             fatID: "beurre-cacahuete", extraIDs: ["chou", "carotte"],
+            seasonings: [
+                LocalizedText(fr: "Citron", en: "Lemon", es: "Limón"),
+                LocalizedText(fr: "Sauce soja", en: "Soy sauce", es: "Salsa de soja"),
+            ],
             minutes: 30,
             steps: [
                 LocalizedText(
@@ -2091,6 +2230,9 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "haricots-noirs", carbID: "tortilla-mais",
             fatID: "avocat", extraIDs: ["tomate", "oignon"],
+            seasonings: [
+                LocalizedText(fr: "Cumin", en: "Cumin", es: "Comino"),
+            ],
             minutes: 25,
             steps: [
                 LocalizedText(
@@ -2207,6 +2349,9 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "cottage", carbID: "pates-completes",
             fatID: "huile-olive", extraIDs: ["epinards", "tomate"],
+            seasonings: [
+                LocalizedText(fr: "Ail", en: "Garlic", es: "Ajo"),
+            ],
             minutes: 20,
             steps: [
                 LocalizedText(
@@ -2262,6 +2407,7 @@ public enum RecipeCatalog {
             fatID: "huile-colza", extraIDs: ["poivron", "oignon"],
             seasonings: [
                 LocalizedText(fr: "Yaourt nature pour la marinade", en: "Plain yoghurt for the marinade", es: "Yogur natural para el adobo"),
+                LocalizedText(fr: "Citron", en: "Lemon", es: "Limón"),
             ],
             minutes: 35,
             steps: [
@@ -2482,6 +2628,9 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "porc-echine", carbID: "pomme-de-terre",
             fatID: "huile-colza", extraIDs: ["chou-rouge", "oignon"],
+            seasonings: [
+                LocalizedText(fr: "Vinaigre", en: "Vinegar", es: "Vinagre"),
+            ],
             minutes: 45,
             steps: [
                 LocalizedText(
@@ -2506,6 +2655,9 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "porc-filet", carbID: "boulgour",
             fatID: "amandes", extraIDs: ["oignon", "carotte", "abricots-secs"],
+            seasonings: [
+                LocalizedText(fr: "Cannelle", en: "Cinnamon", es: "Canela"),
+            ],
             minutes: 35,
             steps: [
                 LocalizedText(
@@ -2530,6 +2682,10 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "agneau-gigot", carbID: "semoule",
             fatID: "huile-olive", extraIDs: ["haricots-verts", "tomate"],
+            seasonings: [
+                LocalizedText(fr: "Ail", en: "Garlic", es: "Ajo"),
+                LocalizedText(fr: "Cumin", en: "Cumin", es: "Comino"),
+            ],
             minutes: 40,
             steps: [
                 LocalizedText(
@@ -2629,6 +2785,9 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "rosbif", carbID: "quinoa",
             fatID: "huile-noix", extraIDs: ["betterave", "roquette"],
+            seasonings: [
+                LocalizedText(fr: "Vinaigre", en: "Vinegar", es: "Vinagre"),
+            ],
             minutes: 20,
             steps: [
                 LocalizedText(
@@ -2749,6 +2908,11 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "blanc-de-poulet", carbID: "riz-blanc",
             fatID: "huile-colza", extraIDs: ["concombre", "tomate"],
+            seasonings: [
+                LocalizedText(fr: "Cumin", en: "Cumin", es: "Comino"),
+                LocalizedText(fr: "Paprika", en: "Paprika", es: "Pimentón"),
+                LocalizedText(fr: "Gingembre", en: "Ginger", es: "Jengibre"),
+            ],
             minutes: 35,
             steps: [
                 LocalizedText(
@@ -2797,6 +2961,9 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "cuisse-de-poulet", carbID: "semoule",
             fatID: "huile-olive", extraIDs: ["poivron", "tomate", "pois-chiches"],
+            seasonings: [
+                LocalizedText(fr: "Paprika", en: "Paprika", es: "Pimentón"),
+            ],
             minutes: 40,
             steps: [
                 LocalizedText(
@@ -2917,6 +3084,11 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "agneau-gigot", carbID: "boulgour",
             fatID: "huile-olive", extraIDs: ["tomate", "oignon", "pois-chiches"],
+            seasonings: [
+                LocalizedText(fr: "Cumin", en: "Cumin", es: "Comino"),
+                LocalizedText(fr: "Coriandre", en: "Coriander", es: "Cilantro"),
+                LocalizedText(fr: "Cannelle", en: "Cinnamon", es: "Canela"),
+            ],
             minutes: 45,
             steps: [
                 LocalizedText(
@@ -3018,6 +3190,7 @@ public enum RecipeCatalog {
             fatID: "huile-colza", extraIDs: ["salade", "radis"],
             seasonings: [
                 LocalizedText(fr: "Moutarde", en: "Mustard", es: "Mostaza"),
+                LocalizedText(fr: "Vinaigre", en: "Vinegar", es: "Vinagre"),
             ],
             minutes: 20,
             steps: [
@@ -3098,6 +3271,9 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "surimi", carbID: "riz-blanc",
             fatID: "avocat", extraIDs: ["concombre", "carotte"],
+            seasonings: [
+                LocalizedText(fr: "Vinaigre", en: "Vinegar", es: "Vinagre"),
+            ],
             minutes: 15,
             steps: [
                 LocalizedText(
@@ -3170,6 +3346,9 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "truite", carbID: "riz-basmati",
             fatID: "amandes", extraIDs: ["haricots-verts", "champignons"],
+            seasonings: [
+                LocalizedText(fr: "Citron", en: "Lemon", es: "Limón"),
+            ],
             minutes: 30,
             steps: [
                 LocalizedText(
@@ -3194,6 +3373,9 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "bar", carbID: "quinoa",
             fatID: "huile-olive", extraIDs: ["fenouil", "tomate"],
+            seasonings: [
+                LocalizedText(fr: "Citron", en: "Lemon", es: "Limón"),
+            ],
             minutes: 30,
             steps: [
                 LocalizedText(
@@ -3218,6 +3400,10 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "calamars", carbID: "boulgour",
             fatID: "huile-olive", extraIDs: ["roquette", "tomate"],
+            seasonings: [
+                LocalizedText(fr: "Ail", en: "Garlic", es: "Ajo"),
+                LocalizedText(fr: "Citron", en: "Lemon", es: "Limón"),
+            ],
             minutes: 20,
             steps: [
                 LocalizedText(
@@ -3293,6 +3479,9 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "hareng", carbID: "pomme-de-terre",
             fatID: "creme-legere", extraIDs: ["betterave", "oignon"],
+            seasonings: [
+                LocalizedText(fr: "Aneth", en: "Dill", es: "Eneldo"),
+            ],
             minutes: 20,
             steps: [
                 LocalizedText(
@@ -3389,6 +3578,9 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "tempeh", carbID: "quinoa",
             fatID: "huile-olive", extraIDs: ["chou", "carotte"],
+            seasonings: [
+                LocalizedText(fr: "Sauce soja", en: "Soy sauce", es: "Salsa de soja"),
+            ],
             minutes: 30,
             steps: [
                 LocalizedText(
@@ -3437,6 +3629,9 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "lentilles", carbID: "boulgour",
             fatID: "huile-noix", extraIDs: ["betterave", "roquette"],
+            seasonings: [
+                LocalizedText(fr: "Vinaigre", en: "Vinegar", es: "Vinagre"),
+            ],
             minutes: 30,
             steps: [
                 LocalizedText(
@@ -3461,6 +3656,10 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "lentilles", carbID: "riz-complet",
             fatID: "huile-olive", extraIDs: ["butternut", "oignon"],
+            seasonings: [
+                LocalizedText(fr: "Citron", en: "Lemon", es: "Limón"),
+                LocalizedText(fr: "Cumin", en: "Cumin", es: "Comino"),
+            ],
             minutes: 35,
             steps: [
                 LocalizedText(
@@ -3509,6 +3708,10 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "pois-chiches", carbID: "semoule",
             fatID: "huile-olive", extraIDs: ["butternut", "oignon"],
+            seasonings: [
+                LocalizedText(fr: "Miel", en: "Honey", es: "Miel"),
+                LocalizedText(fr: "Harissa", en: "Harissa", es: "Harissa"),
+            ],
             minutes: 35,
             steps: [
                 LocalizedText(
@@ -3533,6 +3736,10 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "haricots-rouges", carbID: "patate-douce",
             fatID: "huile-olive", extraIDs: ["poivron", "oignon"],
+            seasonings: [
+                LocalizedText(fr: "Cumin", en: "Cumin", es: "Comino"),
+                LocalizedText(fr: "Paprika", en: "Paprika", es: "Pimentón"),
+            ],
             minutes: 35,
             steps: [
                 LocalizedText(
@@ -3581,6 +3788,11 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "haricots-noirs", carbID: "riz-blanc",
             fatID: "coco-rape", extraIDs: ["poivron", "tomate"],
+            seasonings: [
+                LocalizedText(fr: "Ail", en: "Garlic", es: "Ajo"),
+                LocalizedText(fr: "Vinaigre", en: "Vinegar", es: "Vinagre"),
+                LocalizedText(fr: "Cumin", en: "Cumin", es: "Comino"),
+            ],
             minutes: 30,
             steps: [
                 LocalizedText(
@@ -3605,6 +3817,9 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "falafel", carbID: "boulgour",
             fatID: "tahini", extraIDs: ["concombre", "tomate"],
+            seasonings: [
+                LocalizedText(fr: "Citron", en: "Lemon", es: "Limón"),
+            ],
             minutes: 25,
             steps: [
                 LocalizedText(
@@ -3629,6 +3844,9 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "edamame", carbID: "riz-blanc",
             fatID: "avocat", extraIDs: ["concombre", "carotte"],
+            seasonings: [
+                LocalizedText(fr: "Vinaigre", en: "Vinegar", es: "Vinagre"),
+            ],
             minutes: 20,
             steps: [
                 LocalizedText(
@@ -3655,6 +3873,7 @@ public enum RecipeCatalog {
             fatID: "huile-olive", extraIDs: ["oignon", "tomate"],
             seasonings: [
                 LocalizedText(fr: "Menthe fraîche", en: "Fresh mint", es: "Menta fresca"),
+                LocalizedText(fr: "Citron", en: "Lemon", es: "Limón"),
             ],
             minutes: 25,
             steps: [
@@ -3800,6 +4019,10 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "skyr", carbID: "pomme-de-terre",
             fatID: "huile-olive", extraIDs: ["radis", "concombre"],
+            seasonings: [
+                LocalizedText(fr: "Citron", en: "Lemon", es: "Limón"),
+                LocalizedText(fr: "Ciboulette", en: "Chives", es: "Cebollino"),
+            ],
             minutes: 25,
             steps: [
                 LocalizedText(
@@ -3848,6 +4071,9 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "tempeh", carbID: "polenta",
             fatID: "huile-olive", extraIDs: ["sauce-tomate", "poivron"],
+            seasonings: [
+                LocalizedText(fr: "Origan", en: "Oregano", es: "Orégano"),
+            ],
             minutes: 30,
             steps: [
                 LocalizedText(
@@ -3872,6 +4098,11 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "seitan", carbID: "riz-complet",
             fatID: "graines-sesame", extraIDs: ["brocoli", "carotte"],
+            seasonings: [
+                LocalizedText(fr: "Ail", en: "Garlic", es: "Ajo"),
+                LocalizedText(fr: "Sauce soja", en: "Soy sauce", es: "Salsa de soja"),
+                LocalizedText(fr: "Gingembre", en: "Ginger", es: "Jengibre"),
+            ],
             minutes: 25,
             steps: [
                 LocalizedText(
@@ -3920,6 +4151,9 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "pois-chiches", carbID: "quinoa",
             fatID: "tahini", extraIDs: ["chou-fleur", "oignon"],
+            seasonings: [
+                LocalizedText(fr: "Citron", en: "Lemon", es: "Limón"),
+            ],
             minutes: 35,
             steps: [
                 LocalizedText(
@@ -4118,6 +4352,10 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "boeuf-5", carbID: "riz-blanc",
             fatID: "huile-olive", extraIDs: ["haricots-verts", "oignon"],
+            seasonings: [
+                LocalizedText(fr: "Ail", en: "Garlic", es: "Ajo"),
+                LocalizedText(fr: "Sauce soja", en: "Soy sauce", es: "Salsa de soja"),
+            ],
             minutes: 30,
             steps: [
                 LocalizedText(
@@ -4262,6 +4500,9 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "lapin", carbID: "pates-completes",
             fatID: "creme-legere", extraIDs: ["champignons", "oignon"],
+            seasonings: [
+                LocalizedText(fr: "Moutarde", en: "Mustard", es: "Mostaza"),
+            ],
             minutes: 50,
             steps: [
                 LocalizedText(
@@ -4457,6 +4698,9 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "sole", carbID: "riz-blanc",
             fatID: "beurre", extraIDs: ["champignons", "epinards"],
+            seasonings: [
+                LocalizedText(fr: "Citron", en: "Lemon", es: "Limón"),
+            ],
             minutes: 25,
             steps: [
                 LocalizedText(
@@ -4505,6 +4749,9 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "crevettes", carbID: "quinoa",
             fatID: "avocat", extraIDs: ["concombre", "tomate"],
+            seasonings: [
+                LocalizedText(fr: "Citron", en: "Lemon", es: "Limón"),
+            ],
             minutes: 20,
             steps: [
                 LocalizedText(
@@ -4553,6 +4800,10 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "calamars", carbID: "riz-blanc",
             fatID: "huile-olive", extraIDs: ["oignon", "poivron"],
+            seasonings: [
+                LocalizedText(fr: "Ail", en: "Garlic", es: "Ajo"),
+                LocalizedText(fr: "Persil", en: "Parsley", es: "Perejil"),
+            ],
             minutes: 20,
             steps: [
                 LocalizedText(
@@ -4964,6 +5215,9 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "maquereau", carbID: "riz-complet",
             fatID: "huile-colza", extraIDs: ["oignon", "tomate"],
+            seasonings: [
+                LocalizedText(fr: "Curry", en: "Curry", es: "Curry"),
+            ],
             minutes: 25,
             steps: [
                 LocalizedText(
@@ -5040,6 +5294,10 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "tempeh", carbID: "riz-complet",
             fatID: "huile-colza", extraIDs: ["brocoli", "carotte"],
+            seasonings: [
+                LocalizedText(fr: "Sauce soja", en: "Soy sauce", es: "Salsa de soja"),
+                LocalizedText(fr: "Gingembre", en: "Ginger", es: "Jengibre"),
+            ],
             minutes: 30,
             steps: [
                 LocalizedText(
@@ -5088,6 +5346,9 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "lentilles", carbID: "riz-complet",
             fatID: "huile-olive", extraIDs: ["poireau", "carotte"],
+            seasonings: [
+                LocalizedText(fr: "Vinaigre", en: "Vinegar", es: "Vinagre"),
+            ],
             minutes: 35,
             steps: [
                 LocalizedText(
@@ -5112,6 +5373,9 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "pois-chiches", carbID: "semoule",
             fatID: "tahini", extraIDs: ["aubergine", "tomate"],
+            seasonings: [
+                LocalizedText(fr: "Citron", en: "Lemon", es: "Limón"),
+            ],
             minutes: 35,
             steps: [
                 LocalizedText(
@@ -5136,6 +5400,10 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "haricots-rouges", carbID: "mais-doux",
             fatID: "avocat", extraIDs: ["poivron", "tomate"],
+            seasonings: [
+                LocalizedText(fr: "Citron", en: "Lemon", es: "Limón"),
+                LocalizedText(fr: "Coriandre", en: "Coriander", es: "Cilantro"),
+            ],
             minutes: 25,
             steps: [
                 LocalizedText(
@@ -5184,6 +5452,9 @@ public enum RecipeCatalog {
             slots: [.lunch, .dinner],
             proteinID: "edamame", carbID: "sarrasin",
             fatID: "graines-sesame", extraIDs: ["carotte", "germes-soja"],
+            seasonings: [
+                LocalizedText(fr: "Vinaigre", en: "Vinegar", es: "Vinagre"),
+            ],
             minutes: 20,
             steps: [
                 LocalizedText(
@@ -5372,6 +5643,9 @@ public enum RecipeCatalog {
             slots: [.breakfast],
             proteinID: "tofu", carbID: "pain-complet",
             fatID: "avocat", extraIDs: ["orange"],
+            seasonings: [
+                LocalizedText(fr: "Curcuma", en: "Turmeric", es: "Cúrcuma"),
+            ],
             minutes: 12,
             steps: [
                 LocalizedText(
@@ -5502,6 +5776,9 @@ public enum RecipeCatalog {
             slots: [.breakfast],
             proteinID: "skyr", carbID: "flocons-avoine",
             fatID: "noisettes", extraIDs: ["pomme"],
+            seasonings: [
+                LocalizedText(fr: "Cannelle", en: "Cinnamon", es: "Canela"),
+            ],
             minutes: 5,
             steps: [
                 LocalizedText(
@@ -5685,6 +5962,10 @@ public enum RecipeCatalog {
             slots: [.breakfast],
             proteinID: "tofu", carbID: "pain-cereales",
             fatID: "avocat", extraIDs: ["kiwi"],
+            seasonings: [
+                LocalizedText(fr: "Citron", en: "Lemon", es: "Limón"),
+                LocalizedText(fr: "Sauce soja", en: "Soy sauce", es: "Salsa de soja"),
+            ],
             minutes: 12,
             steps: [
                 LocalizedText(
@@ -6034,6 +6315,9 @@ public enum RecipeCatalog {
             slots: [.breakfast],
             proteinID: "blanc-oeuf", carbID: "galettes-riz",
             fatID: "avocat", extraIDs: ["myrtilles"],
+            seasonings: [
+                LocalizedText(fr: "Curcuma", en: "Turmeric", es: "Cúrcuma"),
+            ],
             minutes: 10,
             steps: [
                 LocalizedText(
@@ -6058,6 +6342,9 @@ public enum RecipeCatalog {
             slots: [.breakfast],
             proteinID: "tofu", carbID: "tortilla-mais",
             fatID: "avocat", extraIDs: ["orange"],
+            seasonings: [
+                LocalizedText(fr: "Curcuma", en: "Turmeric", es: "Cúrcuma"),
+            ],
             minutes: 12,
             steps: [
                 LocalizedText(
@@ -6082,6 +6369,10 @@ public enum RecipeCatalog {
             slots: [.breakfast],
             proteinID: "tofu", carbID: "pain-seigle",
             fatID: "huile-olive", extraIDs: ["clementine", "tomate"],
+            seasonings: [
+                LocalizedText(fr: "Ail", en: "Garlic", es: "Ajo"),
+                LocalizedText(fr: "Sauce soja", en: "Soy sauce", es: "Salsa de soja"),
+            ],
             minutes: 12,
             steps: [
                 LocalizedText(
@@ -6397,6 +6688,9 @@ public enum RecipeCatalog {
             slots: [.breakfast],
             proteinID: "oeuf", carbID: "pain-cereales",
             fatID: "avocat", extraIDs: ["pamplemousse"],
+            seasonings: [
+                LocalizedText(fr: "Vinaigre", en: "Vinegar", es: "Vinagre"),
+            ],
             minutes: 12,
             steps: [
                 LocalizedText(
@@ -6421,6 +6715,9 @@ public enum RecipeCatalog {
             slots: [.breakfast],
             proteinID: "skyr", carbID: "flocons-avoine",
             fatID: "graines-tournesol", extraIDs: ["cassis"],
+            seasonings: [
+                LocalizedText(fr: "Miel", en: "Honey", es: "Miel"),
+            ],
             minutes: 5,
             steps: [
                 LocalizedText(
@@ -6469,6 +6766,9 @@ public enum RecipeCatalog {
             slots: [.breakfast],
             proteinID: "yaourt-soja", carbID: "cracottes-seigle",
             fatID: "graines-lin", extraIDs: ["fraises"],
+            seasonings: [
+                LocalizedText(fr: "Citron", en: "Lemon", es: "Limón"),
+            ],
             minutes: 5,
             steps: [
                 LocalizedText(

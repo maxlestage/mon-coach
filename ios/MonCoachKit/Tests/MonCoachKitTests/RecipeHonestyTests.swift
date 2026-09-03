@@ -180,4 +180,75 @@ struct RecipeHonestyTests {
             #expect(recipe.minutes > 0, Comment(rawValue: "\(recipe.id) sans durée"))
         }
     }
+
+    /// Les aromates qu'une étape peut nommer, et qui s'achètent.
+    ///
+    /// Le sel et le poivre n'y sont pas, volontairement : personne ne fait un
+    /// détour pour eux, et les faire apparaître à chaque plat noierait la
+    /// liste de courses sous du bruit. Tout le reste se trouve au rayon, se
+    /// paie, et manque cruellement quand on rentre sans.
+    static let buyableSeasonings: [String: [String]] = [
+        "Ail": ["ail"],
+        "Oignon": ["oignon", "oignons"],
+        "Citron": ["citron", "citrons"],
+        "Vinaigre": ["vinaigre"],
+        "Cumin": ["cumin"],
+        "Sauce soja": ["soja"],
+        "Paprika": ["paprika"],
+        "Gingembre": ["gingembre"],
+        "Curry": ["curry"],
+        "Miel": ["miel"],
+        "Moutarde": ["moutarde"],
+        "Coriandre": ["coriandre"],
+        "Menthe": ["menthe"],
+        "Basilic": ["basilic"],
+        "Persil": ["persil"],
+        "Estragon": ["estragon"],
+        "Thym": ["thym"],
+        "Romarin": ["romarin"],
+        "Cannelle": ["cannelle"],
+        "Curcuma": ["curcuma"],
+        "Safran": ["safran"],
+        "Miso": ["miso"],
+        "Graines de sésame": ["sesame"],
+        "Harissa": ["harissa"],
+        "Cacao amer": ["cacao"],
+        "Vanille": ["vanille"],
+        "Laurier": ["laurier"],
+        "Muscade": ["muscade"],
+        "Origan": ["origan"],
+        "Aneth": ["aneth"],
+        "Ciboulette": ["ciboulette"],
+        "Sriracha": ["sriracha"],
+        "Tahini": ["tahini"],
+        "Anchois": ["anchois"],
+        "Câpres": ["capres", "capre"],
+        "Cornichons": ["cornichon", "cornichons"],
+    ]
+
+    @Test("Ce qu'une étape demande d'ajouter se trouve dans la liste de courses")
+    func stepsAskForNothingUnlisted() {
+        // Le titre n'est pas le seul endroit où un plat promet quelque chose.
+        // « Sauce soja, un peu de miel, gingembre râpé » est une instruction
+        // parfaitement claire, et parfaitement inutile à qui fait ses courses
+        // avec une liste qui n'en porte aucun des trois. Le défaut est le même
+        // que celui du titre, une couche plus bas, et il se répare pareil :
+        // ce que l'étape nomme, la liste le porte.
+        var missing: [String] = []
+        for recipe in RecipeCatalog.all {
+            var known = (recipe.foods ?? []).flatMap { Self.words($0.name.fr) }
+            known += recipe.seasonings.flatMap { Self.words($0.fr) }
+            let spoken = Set(recipe.steps.flatMap { Self.words($0.fr) })
+            for (seasoning, forms) in Self.buyableSeasonings {
+                guard forms.contains(where: spoken.contains) else { continue }
+                let covered = forms.contains { form in
+                    known.contains { Self.sameThing(form, $0) }
+                }
+                if !covered {
+                    missing.append("\(recipe.id) : une étape demande « \(seasoning) », absent de la liste")
+                }
+            }
+        }
+        #expect(missing.isEmpty, Comment(rawValue: missing.sorted().joined(separator: "\n")))
+    }
 }
