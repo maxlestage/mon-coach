@@ -144,9 +144,9 @@ final class HealthReader {
                     // aucune pour une séance de salle. Zéro est alors la
                     // réponse juste, pas une mesure manquante.
                     let distance = workout.statistics(for: HKQuantityType(.distanceWalkingRunning))?
-                        .sumQuantity()?.doubleValue(for: .meter)
+                        .sumQuantity()?.doubleValue(for: .meter())
                         ?? workout.statistics(for: HKQuantityType(.distanceCycling))?
-                        .sumQuantity()?.doubleValue(for: .meter)
+                        .sumQuantity()?.doubleValue(for: .meter())
                         ?? 0
                     let energy = workout.statistics(for: HKQuantityType(.activeEnergyBurned))?
                         .sumQuantity()?.doubleValue(for: .kilocalorie())
