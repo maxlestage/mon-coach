@@ -61,6 +61,22 @@ AGE_RATING = {
     "violenceRealisticProlongedGraphicOrSadistic": "NONE",
     "unrestrictedWebAccess": False,
     "kidsAgeBand": None,
+
+    # Les huit qu'Apple a réclamés nommément au premier essai. Il les liste
+    # tous d'un coup quand ils manquent, ce qui est la meilleure documentation
+    # qu'on ait : plus récents que les autres, ils n'apparaissent dans aucun
+    # exemple d'époque.
+    #
+    # `healthOrWellnessTopics` est le seul qui soit vrai ici, et il l'est
+    # franchement : c'est tout le sujet de l'application.
+    "advertising": False,
+    "messagingAndChat": False,
+    "gunsOrOtherWeapons": "NONE",
+    "healthOrWellnessTopics": True,
+    "parentalControls": False,
+    "lootBox": False,
+    "userGeneratedContent": False,
+    "ageAssurance": False,
 }
 
 
@@ -84,7 +100,19 @@ def editable_app_info(client: Client, app_id: str) -> str | None:
 
 
 def declare_age(client: Client, info_id: str) -> None:
-    """Pose la classification d'âge sur la fiche modifiable."""
+    """Pose la classification d'âge sur la fiche modifiable.
+
+    La déclaration est d'abord lue, puis complétée — jamais remplacée. Apple
+    exige que *toutes* ses questions aient une réponse dans un même envoi, y
+    compris celles qu'il a ajoutées depuis, et il ne les nomme qu'en
+    refusant. Partir de ce qu'il rend plutôt que d'une liste écrite à la main
+    fait que les questions inconnues gardent la réponse qu'elles avaient,
+    au lieu de faire échouer l'envoi entier.
+
+    Les valeurs actuelles sont imprimées : c'est la seule documentation
+    fiable de la forme attendue, un booléen et une énumération ne se
+    distinguant pas dans un message d'erreur.
+    """
     try:
         declaration = client.call(f"appInfos/{info_id}/ageRatingDeclaration")
     except AppleRefused as refusal:
@@ -96,6 +124,18 @@ def declare_age(client: Client, info_id: str) -> None:
         print("::warning::Aucune classification d'âge à modifier.")
         return
 
+    current = entry.get("attributes") or {}
+    print("  ce qu'Apple a déjà :")
+    for field in sorted(current):
+        print(f"    {field} = {current[field]!r}")
+
+    # Ce qu'Apple rend, puis ce qu'on veut par-dessus. Les champs qu'il rend
+    # à null sont laissés de côté : ils feraient échouer l'envoi en tant que
+    # « valeur manquante », et ceux qui comptent sont de toute façon dans
+    # AGE_RATING.
+    merged = {key: value for key, value in current.items() if value is not None}
+    merged.update({key: value for key, value in AGE_RATING.items() if value is not None})
+
     try:
         client.call(
             f"ageRatingDeclarations/{entry['id']}",
@@ -104,11 +144,11 @@ def declare_age(client: Client, info_id: str) -> None:
                 "data": {
                     "type": "ageRatingDeclarations",
                     "id": entry["id"],
-                    "attributes": AGE_RATING,
+                    "attributes": merged,
                 }
             },
         )
-        print("  classification d'âge déclarée")
+        print(f"  classification d'âge déclarée ({len(merged)} réponses)")
     except AppleRefused as refusal:
         print(f"::error::Classification d'âge refusée : {refusal.detail}")
 
@@ -127,10 +167,19 @@ def declare_privacy(client: Client, app_id: str) -> None:
         ).get("data", [])
     except AppleRefused as refusal:
         if refusal.status == 404:
+            # Constaté le 3 septembre 2026, comme pour les groupes
+            # d'applications : la ressource n'existe pas dans l'API. Ce n'est
+            # donc pas une panne à réessayer, mais une case à cocher.
             print(
-                "::warning::L'API n'expose pas les étiquettes de"
-                " confidentialité. À remplir dans App Store Connect →"
-                " Confidentialité de l'app : cocher « Aucune donnée collectée »."
+                "  étiquettes de confidentialité : hors de portée de l'API"
+                " (404 sur la ressource).\n"
+                "  À cocher une fois : App Store Connect → Confidentialité de"
+                " l'app\n"
+                "  → « Aucune donnée collectée ». C'est vrai, et c'est la"
+                " réponse la plus\n"
+                "  courte du formulaire : l'application n'a pas de serveur à"
+                " qui envoyer\n"
+                "  quoi que ce soit."
             )
             return
         print(f"::warning::Confidentialité illisible : {refusal.detail}")
