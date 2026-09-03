@@ -32,6 +32,23 @@ struct SportCatalogTests {
         }
     }
 
+    /// Siri construit sa liste de sports à partir de ces noms. Deux sports
+    /// qui se nomment pareil y apparaissent en double, et rien ne dit lequel
+    /// on a choisi — ni à l'athlète, ni à l'application.
+    @Test("Deux sports ne portent jamais le même nom")
+    func sportNamesAreUnique() {
+        for language in Language.allCases {
+            var seen: [String: Sport] = [:]
+            for sport in Sport.allCases {
+                let name = sport.label[language].lowercased()
+                if let other = seen[name] {
+                    Issue.record("\(sport.rawValue) et \(other.rawValue) se nomment tous deux « \(name) » en \(language.rawValue)")
+                }
+                seen[name] = sport
+            }
+        }
+    }
+
     @Test("Les cinq sports d'origine gardent leur identifiant et leurs seuils")
     func historyStillReadsTheSameWay() {
         // Un historique déjà enregistré porte ces rangs-là. Les changer

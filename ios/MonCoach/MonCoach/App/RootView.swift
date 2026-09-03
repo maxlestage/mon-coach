@@ -25,6 +25,14 @@ struct RootView: View {
     @State private var splash: AppSection?
     @State private var splashTask: Task<Void, Never>?
 
+    /// Ce que Siri, le bouton Action ou un raccourci ont demandé.
+    ///
+    /// Lu ici et nulle part ailleurs : l'écran d'enregistrement n'est
+    /// aujourd'hui accessible qu'en fiche depuis deux onglets, et une
+    /// intention ne peut pas savoir lequel est affiché. La racine, elle,
+    /// est toujours là.
+    @State private var router = IntentRouter.shared
+
     private var showsActivities: Bool {
         // L'onglet n'apparaît que s'il a quelque chose à dire : un plan de
         // course, ou des activités déjà enregistrées. Un onglet vide en
@@ -107,17 +115,57 @@ struct RootView: View {
         .fullScreenCover(item: $store.activeSession) { _ in
             SessionPlayerView()
         }
+        // La sortie demandée par la voix s'ouvre par-dessus tout le reste,
+        // sans changer d'onglet : on a demandé à courir, pas à visiter
+        // l'application.
+        .fullScreenCover(item: requestedSport) { sport in
+            RunTrackerView(plannedRun: store.briefing()?.plannedRun, requestedSport: sport)
+        }
         .onAppear {
             watchLink.activate(store: store)
+            // Les intentions écrivent alors dans le magasin affiché, et non
+            // dans une copie qui serait écrasée au geste suivant.
+            router.live = store
+            WidgetBridge.push(store: store)
         }
         // L'instantané part vers la montre à chaque changement qui la
         // concerne : nouvelle séance enregistrée, nouveau bloc, retour au
         // premier plan après une nuit.
-        .onChange(of: store.history) { _, _ in watchLink.push() }
-        .onChange(of: store.plan) { _, _ in watchLink.push() }
-        .onChange(of: scenePhase) { _, phase in
-            if phase == .active { watchLink.push() }
+        // L'écran d'accueil suit les mêmes changements que la montre : ce
+        // qui vaut d'être poussé au poignet vaut d'être écrit sous l'icône.
+        .onChange(of: store.history) { _, _ in
+            watchLink.push()
+            WidgetBridge.push(store: store)
         }
+        .onChange(of: store.plan) { _, _ in
+            watchLink.push()
+            WidgetBridge.push(store: store)
+        }
+        // La langue aussi : l'instantané porte des phrases déjà traduites,
+        // et un widget resté en français après un passage à l'anglais est
+        // le genre de détail qu'on ne pardonne pas à une application payante.
+        .onChange(of: store.language) { _, _ in WidgetBridge.push(store: store) }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active {
+                watchLink.push()
+                // Le jour a pu changer pendant la nuit sans que rien d'autre
+                // ne bouge : l'instantané d'hier décrirait alors une journée
+                // qui n'est plus.
+                WidgetBridge.push(store: store)
+            }
+        }
+    }
+
+    /// La sortie demandée, tant qu'il y a une application pour l'accueillir.
+    ///
+    /// Retenue pendant l'inscription plutôt qu'effacée : quelqu'un qui a
+    /// demandé une sortie avant d'avoir rempli son profil la verra s'ouvrir
+    /// en sortant de l'inscription, ce qui est ce qu'il avait demandé.
+    private var requestedSport: Binding<Sport?> {
+        Binding(
+            get: { store.isOnboarded ? router.requestedSport : nil },
+            set: { router.requestedSport = $0 }
+        )
     }
 
     /// Pose la fiche de l'onglet choisi, et programme son retrait.

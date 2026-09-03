@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  L'extension de widgets ne demande qu'une chose : lire le fichier que
+  l'application dépose dans le groupe partagé. Elle n'a ni HealthKit, ni
+  localisation, ni réseau — un widget qui demanderait cela poserait des
+  questions auxquelles personne ne peut répondre depuis l'écran d'accueil.
+
+  Le fichier vit à la racine du projet, comme les deux autres, pour que Xcode
+  ne le prenne pas pour une ressource à copier dans le dossier synchronisé.
+-->
+<plist version="1.0">
+<dict>
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.com.maxlestage.fitnesscoach</string>
+	</array>
+</dict>
+</plist>

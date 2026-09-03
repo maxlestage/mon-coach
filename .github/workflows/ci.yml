@@ -190,6 +190,15 @@ jobs:
           # Ici plutôt que dans le job Swift : celui-ci tourne dans l'image
           # swift:6.2, dont la présence de python3 n'est pas garantie.
           python3 tools/checks/sports_healthkit.py
+      - name: Siri connaît les mêmes sports que le catalogue
+        run: |
+          # App Intents refuse de lire un enum venu d'une bibliothèque, et
+          # n'accepte que des noms écrits littéralement dans le module de
+          # l'application : le catalogue des sports y est donc recopié. Deux
+          # listes que rien ne relie finissent par diverger, et cela ne se
+          # verrait que le jour où quelqu'un demanderait à Siri un sport
+          # ajouté depuis, pour s'entendre répondre non.
+          python3 tools/checks/sports_intents.py
       - name: Régénération de la marque
         run: python3 tools/brand/generate.py
       - name: Le dessin du site est bien celui du générateur

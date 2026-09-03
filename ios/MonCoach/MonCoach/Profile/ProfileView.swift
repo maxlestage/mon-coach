@@ -91,13 +91,14 @@ struct ProfileView: View {
                     preferencesCard(profile).appears(4)
                     remindersCard.appears(5)
                     healthCard.appears(6)
-                    runningCard(profile).appears(7)
-                    benefitsCard.appears(8)
-                    subscriptionCard.appears(9)
-                    refusedFoodsCard.appears(10)
-                    gearCard.appears(11)
-                    dataCard.appears(12)
-                    creditFooter.appears(13)
+                    cycleCard.appears(7)
+                    runningCard(profile).appears(8)
+                    benefitsCard.appears(9)
+                    subscriptionCard.appears(10)
+                    refusedFoodsCard.appears(11)
+                    gearCard.appears(12)
+                    dataCard.appears(13)
+                    creditFooter.appears(14)
                 } else {
                     Card(title: LocalizedText(fr: "Profil vide", en: "Empty profile", es: "Perfil vacío")[language]) { EmptyView() }.appears(0)
                 }
@@ -671,6 +672,89 @@ struct ProfileView: View {
         await Reminders.reschedule(store.plannedReminders(), language: language)
     }
 
+
+
+    // MARK: - Cycle
+
+    /// Le suivi du cycle : éteint tant qu'on n'a rien renseigné.
+    ///
+    /// La date ne se devine pas et ne se demande pas au passage : c'est une
+    /// donnée intime, et une application de sport n'a aucun droit acquis
+    /// dessus. Elle se saisit ici, ou se lit dans Santé — et rien ne
+    /// s'affiche ailleurs tant qu'elle est absente.
+    private var cycleCard: some View {
+        Card(
+            title: LocalizedText(fr: "Cycle", en: "Cycle", es: "Ciclo")[language],
+            subtitle: LocalizedText(
+                fr: "Facultatif. Sert à situer tes journées, jamais à modifier tes charges.",
+                en: "Optional. Used to place your days, never to change your loads.",
+                es: "Opcional. Sirve para situar tus días, nunca para cambiar tus cargas."
+            )[language]
+        ) {
+            VStack(alignment: .leading, spacing: 12) {
+                CoachText(
+                    LocalizedText(
+                        fr: "Les effets des phases du cycle sur la performance sont petits et se contredisent d'une étude à l'autre. Plutôt que d'appliquer un tableau, l'application regarde tes propres bilans de forme : au bout de deux cycles, elle peut dire si une phase change quelque chose chez toi. Tant qu'elle ne l'a pas mesuré, elle ne dit rien.",
+                        en: "The effects of cycle phases on performance are small and contradict each other from study to study. Rather than apply a table, the app looks at your own check-ins: after two cycles it can say whether a phase changes anything for you. Until it has measured that, it says nothing.",
+                        es: "Los efectos de las fases del ciclo sobre el rendimiento son pequeños y se contradicen entre estudios. En vez de aplicar una tabla, la aplicación mira tus propios balances: tras dos ciclos puede decir si una fase cambia algo en ti. Mientras no lo haya medido, no dice nada."
+                    ),
+                    font: .system(size: 11)
+                )
+
+                Toggle(isOn: cycleTrackingBinding) {
+                    Text(LocalizedText(fr: "Suivre mon cycle", en: "Track my cycle", es: "Seguir mi ciclo")[language])
+                        .font(Theme.captionFont)
+                        .foregroundStyle(Theme.primaryText)
+                }
+                .tint(Theme.accent)
+
+                if store.profile?.lastPeriodStart != nil {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(LocalizedText(fr: "Premier jour des dernières règles", en: "First day of your last period", es: "Primer día de tu última regla")[language])
+                            .font(Theme.captionFont)
+                            .foregroundStyle(Theme.secondaryText)
+                        DatePicker("", selection: periodStartBinding, displayedComponents: .date)
+                            .labelsHidden()
+                            .tint(Theme.accent)
+                    }
+                    GhostButton(
+                        title: LocalizedText(fr: "Lire depuis Santé", en: "Read from Health", es: "Leer desde Salud")[language],
+                        systemImage: "heart.text.square"
+                    ) {
+                        Task { await readCycleFromHealth() }
+                    }
+                }
+            }
+        }
+    }
+
+    private var cycleTrackingBinding: Binding<Bool> {
+        Binding(
+            get: { store.profile?.lastPeriodStart != nil },
+            set: { wanted in
+                // Éteindre efface la date : ne pas suivre son cycle doit
+                // vouloir dire que l'application ne le garde pas.
+                store.setLastPeriodStart(wanted ? Date() : nil)
+            }
+        )
+    }
+
+    private var periodStartBinding: Binding<Date> {
+        Binding(
+            get: { store.profile?.lastPeriodStart ?? Date() },
+            set: { store.setLastPeriodStart($0) }
+        )
+    }
+
+    /// Va chercher le début du cycle dans Santé, quand l'athlète le demande.
+    @MainActor private func readCycleFromHealth() async {
+        let reader = HealthReader()
+        reader.wantsCycle = true
+        guard reader.isAvailable, await reader.requestAccess() else { return }
+        if let start = await reader.lastPeriodStart() {
+            store.setLastPeriodStart(start)
+        }
+    }
 
     // MARK: - Santé
 

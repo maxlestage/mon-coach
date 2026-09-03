@@ -31,14 +31,27 @@ struct TodayView: View {
                         if let step = beginnerStep {
                             FirstSessionsCard(step: step).appears(0)
                         }
-                        readinessCard(briefing).appears(1)
-                        stateCard(briefing).appears(2)
-                        if let run = briefing.plannedRun {
-                            plannedRunCard(run, done: briefing.recordedRun).appears(3)
+                        // Avant tout le reste : ce qui suit se lit
+                        // différemment quand on revient de trois semaines
+                        // d'arrêt, et l'apprendre après avoir vu les charges
+                        // du jour serait l'apprendre trop tard.
+                        if let comeback = store.returnPlan() {
+                            returnCard(comeback).appears(1)
                         }
-                        nutritionCard(briefing.nutrition).appears(4)
-                        trialBanner.appears(5)
-                        insightsCard.appears(6)
+                        // Après la reprise, avant le bilan de forme : elle
+                        // situe la journée, et c'est le bilan qui décide de
+                        // la séance. Jamais l'inverse.
+                        if let cycle = store.cyclePattern() {
+                            cycleCard(cycle).appears(2)
+                        }
+                        readinessCard(briefing).appears(3)
+                        stateCard(briefing).appears(4)
+                        if let run = briefing.plannedRun {
+                            plannedRunCard(run, done: briefing.recordedRun).appears(5)
+                        }
+                        nutritionCard(briefing.nutrition).appears(6)
+                        trialBanner.appears(7)
+                        insightsCard.appears(8)
                     } else {
                         Card(title: LocalizedText(fr: "Aucun programme", en: "No programme", es: "Sin programa")[language]) {
                             Text(LocalizedText(fr: "Le coach n'a pas encore de plan pour toi.", en: "The coach has no plan for you yet.", es: "El entrenador aún no tiene un plan para ti.")[language])
@@ -154,6 +167,103 @@ struct TodayView: View {
     }
 
     // MARK: - Cards
+
+
+
+    // MARK: - Le cycle
+
+    /// Où en est le cycle, et ce que ses propres bilans en disent.
+    ///
+    /// Cette carte ne change aucune charge. C'est délibéré : les effets des
+    /// phases du cycle sur la performance sont petits, contradictoires d'une
+    /// étude à l'autre, et écrasés par la variation entre personnes.
+    /// Appliquer une règle de population à quelqu'un, c'est se tromper la
+    /// plupart du temps avec l'assurance d'un chiffre. L'ajustement du jour
+    /// reste celui du bilan de forme, qui mesure la personne.
+    private func cycleCard(_ cycle: CyclePattern) -> some View {
+        Card(
+            title: cycle.phase.label[language],
+            subtitle: cycle.isMeaningful
+                ? LocalizedText(fr: "Mesuré sur tes bilans", en: "Measured on your check-ins", es: "Medido en tus balances")[language]
+                : nil
+        ) {
+            VStack(alignment: .leading, spacing: 10) {
+                CoachText(cycle.message, font: Theme.bodyFont)
+                if cycle.isMeaningful,
+                   let phase = cycle.averageReadiness, let overall = cycle.overallReadiness {
+                    HStack(spacing: 12) {
+                        StatTile(
+                            value: "\(phase)",
+                            label: LocalizedText(fr: "forme ici", en: "readiness here", es: "forma aquí")[language],
+                            tint: phase < overall ? Theme.warning : Theme.accent,
+                            amount: Double(phase)
+                        )
+                        StatTile(
+                            value: "\(overall)",
+                            label: LocalizedText(fr: "ta moyenne", en: "your average", es: "tu media")[language],
+                            amount: Double(overall)
+                        )
+                        StatTile(
+                            value: "\(cycle.samples)",
+                            label: LocalizedText(fr: "bilans", en: "check-ins", es: "balances")[language],
+                            amount: Double(cycle.samples)
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - La reprise
+
+    /// Ce qu'on dit à quelqu'un qui revient après un arrêt.
+    ///
+    /// Elle n'apparaît que lorsqu'il y a réellement quelque chose à dire —
+    /// jamais pour dix jours ordinaires. Une carte « tu reviens de loin »
+    /// montrée à quelqu'un qui s'entraîne tous les mardis serait la meilleure
+    /// façon de lui apprendre à ne plus lire les cartes.
+    private func returnCard(_ plan: ReturnToTraining) -> some View {
+        Card(title: plan.headline[language]) {
+            VStack(alignment: .leading, spacing: 12) {
+                CoachText(plan.message, font: Theme.bodyFont)
+
+                HStack(spacing: 12) {
+                    StatTile(
+                        value: "−\(Int((plan.loadReduction * 100).rounded())) %",
+                        label: LocalizedText(fr: "charge", en: "load", es: "carga")[language],
+                        tint: Theme.warning,
+                        amount: plan.loadReduction * 100
+                    )
+                    StatTile(
+                        value: "−\(Int((plan.volumeReduction * 100).rounded())) %",
+                        label: LocalizedText(fr: "volume", en: "volume", es: "volumen")[language],
+                        tint: Theme.danger,
+                        amount: plan.volumeReduction * 100
+                    )
+                    StatTile(
+                        value: "\(plan.rampWeeks)",
+                        label: LocalizedText(
+                            fr: plan.rampWeeks > 1 ? "semaines pour revenir" : "semaine pour revenir",
+                            en: plan.rampWeeks > 1 ? "weeks to full" : "week to full",
+                            es: plan.rampWeeks > 1 ? "semanas para volver" : "semana para volver"
+                        )[language],
+                        amount: Double(plan.rampWeeks)
+                    )
+                }
+
+                if plan.rebuildsBlock {
+                    CoachText(
+                        LocalizedText(
+                            fr: "L'arrêt est assez long pour qu'on reparte d'un bloc neuf plutôt que de reprendre le fil du précédent. Modifie ton profil quand tu veux : le bloc se reconstruit autour de ce que tu vaux aujourd'hui, pas de ce que tu valais avant.",
+                            en: "The break is long enough that we start a fresh block rather than pick up the old thread. Edit your profile whenever you like: the block rebuilds around what you can do today, not what you could before.",
+                            es: "La pausa es lo bastante larga como para empezar un bloque nuevo en lugar de retomar el anterior. Edita tu perfil cuando quieras: el bloque se reconstruye en torno a lo que puedes hoy, no a lo que podías antes."
+                        ),
+                        font: .system(size: 11)
+                    )
+                }
+            }
+        }
+    }
 
     private func readinessCard(_ briefing: TodayBriefing) -> some View {
         Card(title: briefing.readiness.headline[language], subtitle: LocalizedText(fr: "Forme du jour", en: "Today's readiness", es: "Forma del día")[language]) {

@@ -150,6 +150,91 @@ public final class CoachStore {
         save()
     }
 
+    /// Attache une photo à la pesée d'un jour, et rend son identifiant.
+    ///
+    /// Elle rejoint la pesée du jour si elle existe ; sinon on en crée une,
+    /// au poids connu. Photographier sans se peser doit rester possible :
+    /// quelqu'un qui suit son corps à l'œil n'a pas à monter sur une balance
+    /// pour que l'application accepte son image.
+    @discardableResult
+    public func addBodyPhoto(
+        _ data: Data, on date: Date = Date(), calendar: Calendar = .current
+    ) -> String? {
+        guard let identifier = try? photos.save(data) else { return nil }
+        if let index = history.bodyLogs.firstIndex(where: {
+            calendar.isDate($0.date, inSameDayAs: date)
+        }) {
+            history.bodyLogs[index].photoIDs.append(identifier)
+        } else {
+            history.bodyLogs.append(
+                BodyLog(
+                    date: date,
+                    weightKg: profile?.weightKg ?? 0,
+                    photoIDs: [identifier]
+                )
+            )
+            history.bodyLogs.sort { $0.date < $1.date }
+        }
+        save()
+        return identifier
+    }
+
+    /// Retire une photo de progression, du disque comme du journal.
+    public func removeBodyPhoto(_ identifier: String) {
+        for index in history.bodyLogs.indices {
+            history.bodyLogs[index].photoIDs.removeAll { $0 == identifier }
+        }
+        photos.delete(identifier)
+        save()
+    }
+
+    /// Les deux photos qui montrent quelque chose, s'il y en a.
+    public func bodyComparison(on date: Date = Date()) -> BodyComparison? {
+        BodyProgress.comparison(in: history.bodyLogs, on: date)
+    }
+
+    /// Toutes les photos de progression, de la plus récente à la plus
+    /// ancienne, avec la pesée qui les porte.
+    public var bodyPhotos: [(log: BodyLog, photoID: String)] {
+        history.bodyLogs
+            .sorted { $0.date > $1.date }
+            .flatMap { log in log.photoIDs.map { (log, $0) } }
+    }
+
+    /// Où en est le cycle, et ce que les bilans de l'athlète en disent.
+    ///
+    /// Nil tant qu'elle n'a pas renseigné le premier jour de ses dernières
+    /// règles : c'est une donnée intime, elle ne se devine pas, et rien ne
+    /// s'affiche sans elle.
+    public func cyclePattern(on date: Date = Date()) -> CyclePattern? {
+        guard let profile, let start = profile.lastPeriodStart else { return nil }
+        return CycleEngine.pattern(
+            on: date,
+            lastPeriodStart: start,
+            length: profile.cycleLength,
+            checks: history.readiness,
+            profile: profile
+        )
+    }
+
+    /// Note le premier jour des dernières règles.
+    public func setLastPeriodStart(_ date: Date?) {
+        guard var profile else { return }
+        profile.lastPeriodStart = date
+        self.profile = profile
+        save()
+    }
+
+    /// Comment reprendre, si l'athlète revient d'un arrêt.
+    ///
+    /// Nil quand il n'y a rien à signaler — c'est le cas le plus fréquent, et
+    /// une carte « tu reviens de loin » affichée à quelqu'un qui s'entraîne
+    /// tous les mardis serait la meilleure façon de lui apprendre à ignorer
+    /// les cartes.
+    public func returnPlan(on date: Date = Date()) -> ReturnToTraining? {
+        ReturnPlanner.plan(history: history, on: date)
+    }
+
     /// Les rappels à poser en l'état actuel des choses.
     public func plannedReminders(from now: Date = Date()) -> [Reminder] {
         ReminderPlanner.plan(
@@ -663,6 +748,10 @@ public final class CoachStore {
         // effacerait leurs photos au lancement suivant, silencieusement.
         var kept = Set(history.activities.flatMap(\.photoIDs))
         kept.formUnion(history.plates.compactMap(\.photoID))
+        // Les photos de progression aussi. Les oublier ici les effacerait au
+        // lancement suivant, en silence — et ce sont les seules qu'on ne peut
+        // pas refaire : une photo d'il y a six mois ne se reprend pas.
+        kept.formUnion(history.bodyLogs.flatMap(\.photoIDs))
         return photos.prune(keeping: kept)
     }
 

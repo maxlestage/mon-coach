@@ -55,11 +55,16 @@ struct ProgressDashboardView: View {
                     summaryCard.appears(0)
                     volumeCard.appears(1)
                     bodyWeightCard.appears(2)
-                    strengthCard.appears(3)
+                    // Juste sous la courbe de poids : c'est le même sujet,
+                    // vu autrement. La courbe dit six cents grammes par
+                    // semaine, ce qui ne se voit pas ; deux photos à trois
+                    // mois d'écart se voient tout de suite.
+                    photosCard.appears(3)
+                    strengthCard.appears(4)
                     if store.isUnlocked(.weeklyReview) {
-                        weeklyReviewCard.appears(4)
+                        weeklyReviewCard.appears(5)
                     } else {
-                        PlusLockedCard(feature: .weeklyReview).appears(4)
+                        PlusLockedCard(feature: .weeklyReview).appears(5)
                     }
                 }
                 .padding(20)
@@ -69,6 +74,61 @@ struct ProgressDashboardView: View {
             .sectionGuide(.progress)
         }
         .tint(Theme.accent)
+    }
+
+
+    // MARK: Photos
+
+    /// L'entrée vers les photos de progression.
+    ///
+    /// Une carte plutôt qu'un onglet : ces photos se regardent tous les deux
+    /// mois, pas tous les jours, et leur place est à côté de la courbe de
+    /// poids dont elles disent la même chose autrement.
+    private var photosCard: some View {
+        NavigationLink {
+            BodyProgressView()
+        } label: {
+            Card(
+                title: LocalizedText(fr: "Photos de progression", en: "Progress photos", es: "Fotos de progreso")[language],
+                subtitle: photosSubtitle[language]
+            ) {
+                HStack(spacing: 10) {
+                    if let pair = store.bodyComparison() {
+                        StoredPhotoView(id: pair.earlierPhotoID, side: 64)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                        StoredPhotoView(id: pair.laterPhotoID, side: 64)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                    } else {
+                        Image(systemName: "camera")
+                            .font(.system(size: 18))
+                            .foregroundStyle(Theme.accent)
+                            .frame(width: 40, height: 40)
+                            .background(Theme.accent.opacity(0.12), in: Circle())
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Theme.secondaryText)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var photosSubtitle: LocalizedText {
+        let count = store.bodyPhotos.count
+        if count == 0 {
+            return LocalizedText(
+                fr: "La balance bouge trop lentement pour se voir. Une photo tous les deux mois, au même endroit — elles ne quittent pas ton téléphone.",
+                en: "The scale moves too slowly to see. One photo every couple of months, in the same spot — they never leave your phone.",
+                es: "La báscula se mueve demasiado despacio para verse. Una foto cada dos meses, en el mismo sitio: no salen de tu teléfono."
+            )
+        }
+        return LocalizedText(
+            fr: "\(count) photo\(count > 1 ? "s" : "")",
+            en: "\(count) photo\(count > 1 ? "s" : "")",
+            es: "\(count) foto\(count > 1 ? "s" : "")"
+        )
     }
 
     // MARK: Summary

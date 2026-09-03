@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  La complication lit le fichier que l'application de la montre dépose dans
+  le groupe partagé. Le groupe porte le même nom que celui du téléphone, mais
+  ce n'est pas le même dossier : un conteneur de groupe est local à
+  l'appareil. Rien ne traverse d'un poignet à un téléphone par ce chemin —
+  c'est WatchConnectivity qui s'en charge, et lui seul.
+-->
+<plist version="1.0">
+<dict>
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.com.maxlestage.fitnesscoach</string>
+	</array>
+</dict>
+</plist>
