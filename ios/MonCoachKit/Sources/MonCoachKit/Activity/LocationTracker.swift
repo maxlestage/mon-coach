@@ -303,40 +303,69 @@ public final class LocationTracker: NSObject {
         manager.startUpdatingLocation()
     }
 
-    private func ingest(_ locations: [CLLocation]) {
+    private func ingest(_ readings: [LocationReading]) {
         guard state == .running else { return }
-        for location in locations {
-            currentAccuracy = location.horizontalAccuracy
-            currentSpeed = location.speed
-            points.append(
-                GPSPoint(
-                    timestamp: location.timestamp,
-                    latitude: location.coordinate.latitude,
-                    longitude: location.coordinate.longitude,
-                    altitude: location.altitude,
-                    horizontalAccuracy: location.horizontalAccuracy,
-                    verticalAccuracy: location.verticalAccuracy
-                )
-            )
+        for reading in readings {
+            currentAccuracy = reading.point.horizontalAccuracy
+            currentSpeed = reading.speed
+            points.append(reading.point)
         }
         trace = TraceAnalysis.clean(points, filter: filter)
     }
 }
 
+/// Un relevé de CoreLocation réduit à ses nombres.
+///
+/// `CLLocation` est un objet livré par le système sur son fil à lui ; le
+/// transmettre à l'acteur principal serait le faire lire ailleurs que là où
+/// il a été produit. On en extrait ce qui compte — le point, la vitesse —
+/// dans le rappel même, et seules des valeurs traversent.
+private struct LocationReading: Sendable {
+    let point: GPSPoint
+    let speed: Double
+
+    init(_ location: CLLocation) {
+        point = GPSPoint(
+            timestamp: location.timestamp,
+            latitude: location.coordinate.latitude,
+            longitude: location.coordinate.longitude,
+            altitude: location.altitude,
+            horizontalAccuracy: location.horizontalAccuracy,
+            verticalAccuracy: location.verticalAccuracy
+        )
+        speed = location.speed
+    }
+}
+
 extension LocationTracker: CLLocationManagerDelegate {
 
+    // Les rappels de CoreLocation arrivent sur le fil qui a démarré le
+    // suivi — le principal, ici. `MainActor.assumeIsolated` le tenait pour
+    // acquis, et c'est un pari qu'on ne devrait pas faire dans un rappel
+    // système : s'il est perdu une seule fois, il ne se traduit pas par une
+    // valeur fausse mais par un arrêt immédiat de l'application, au milieu
+    // d'une sortie. Sauter sur l'acteur au lieu de le supposer coûte un
+    // aller-retour de boucle d'exécution et ne peut pas planter. Les points
+    // restent dans l'ordre : les tâches lancées depuis un même fil s'y
+    // enchaînent telles qu'elles ont été créées.
+    //
+    // Ce qui traverse est copié avant de partir : des `CLLocation` sont
+    // des objets, et les lire depuis un autre fil que celui qui les a
+    // livrés serait la même faute sous une autre forme.
+
     public nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        MainActor.assumeIsolated { ingest(locations) }
+        let readings = locations.map(LocationReading.init)
+        Task { @MainActor in self.ingest(readings) }
     }
 
     public nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         let status = manager.authorizationStatus
-        MainActor.assumeIsolated {
+        Task { @MainActor in
             switch status {
             case .authorizedAlways, .authorizedWhenInUse:
-                if state == .requestingPermission { beginUpdates() }
+                if self.state == .requestingPermission { self.beginUpdates() }
             case .denied, .restricted:
-                state = .denied
+                self.state = .denied
             default:
                 break
             }
