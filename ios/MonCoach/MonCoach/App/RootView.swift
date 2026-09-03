@@ -25,6 +25,14 @@ struct RootView: View {
     @State private var splash: AppSection?
     @State private var splashTask: Task<Void, Never>?
 
+    /// Ce que Siri, le bouton Action ou un raccourci ont demandé.
+    ///
+    /// Lu ici et nulle part ailleurs : l'écran d'enregistrement n'est
+    /// aujourd'hui accessible qu'en fiche depuis deux onglets, et une
+    /// intention ne peut pas savoir lequel est affiché. La racine, elle,
+    /// est toujours là.
+    @State private var router = IntentRouter.shared
+
     private var showsActivities: Bool {
         // L'onglet n'apparaît que s'il a quelque chose à dire : un plan de
         // course, ou des activités déjà enregistrées. Un onglet vide en
@@ -107,8 +115,17 @@ struct RootView: View {
         .fullScreenCover(item: $store.activeSession) { _ in
             SessionPlayerView()
         }
+        // La sortie demandée par la voix s'ouvre par-dessus tout le reste,
+        // sans changer d'onglet : on a demandé à courir, pas à visiter
+        // l'application.
+        .fullScreenCover(item: requestedSport) { sport in
+            RunTrackerView(plannedRun: store.briefing()?.plannedRun, requestedSport: sport)
+        }
         .onAppear {
             watchLink.activate(store: store)
+            // Les intentions écrivent alors dans le magasin affiché, et non
+            // dans une copie qui serait écrasée au geste suivant.
+            router.live = store
         }
         // L'instantané part vers la montre à chaque changement qui la
         // concerne : nouvelle séance enregistrée, nouveau bloc, retour au
@@ -118,6 +135,18 @@ struct RootView: View {
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { watchLink.push() }
         }
+    }
+
+    /// La sortie demandée, tant qu'il y a une application pour l'accueillir.
+    ///
+    /// Retenue pendant l'inscription plutôt qu'effacée : quelqu'un qui a
+    /// demandé une sortie avant d'avoir rempli son profil la verra s'ouvrir
+    /// en sortant de l'inscription, ce qui est ce qu'il avait demandé.
+    private var requestedSport: Binding<Sport?> {
+        Binding(
+            get: { store.isOnboarded ? router.requestedSport : nil },
+            set: { router.requestedSport = $0 }
+        )
     }
 
     /// Pose la fiche de l'onglet choisi, et programme son retrait.

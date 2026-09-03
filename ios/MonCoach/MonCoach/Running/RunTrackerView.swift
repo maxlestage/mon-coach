@@ -10,6 +10,12 @@ import UniformTypeIdentifiers
 struct RunTrackerView: View {
     var plannedRun: PlannedRun?
 
+    /// Le sport demandé de l'extérieur — par Siri, le bouton Action ou un
+    /// raccourci. Il passe devant la sortie prescrite et devant le dernier
+    /// sport choisi : quelqu'un qui dit « démarre une sortie vélo » a été
+    /// plus précis que ne le sera jamais une préférence enregistrée.
+    var requestedSport: Sport?
+
     @Environment(CoachStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     @Environment(\.language) private var language
@@ -149,7 +155,9 @@ struct RunTrackerView: View {
             .onAppear {
                 // Une sortie prescrite propose la course, elle ne l'impose
                 // plus : le choix reste ouvert juste en dessous.
-                if plannedRun != nil {
+                if let requestedSport {
+                    selectedSport = requestedSport
+                } else if plannedRun != nil {
                     selectedSport = .run
                 } else if let saved = Sport(rawValue: lastSportRaw) {
                     selectedSport = saved
