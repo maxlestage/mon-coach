@@ -136,6 +136,14 @@ def declare_age(client: Client, info_id: str) -> None:
     merged = {key: value for key, value in current.items() if value is not None}
     merged.update({key: value for key, value in AGE_RATING.items() if value is not None})
 
+    # Le revers de renvoyer ce qu'on a reçu : Apple rend des champs qu'il
+    # refuse en écriture. `ageRatingOverride` est l'ancienne version de
+    # `ageRatingOverrideV2` ; les deux coexistent en lecture, et les deux
+    # ensemble sont refusés — « the attribute 'ageRatingOverride' cannot be
+    # set when 'ageRatingOverrideV2' is set ». Le plus récent gagne.
+    if "ageRatingOverrideV2" in merged:
+        merged.pop("ageRatingOverride", None)
+
     try:
         client.call(
             f"ageRatingDeclarations/{entry['id']}",
