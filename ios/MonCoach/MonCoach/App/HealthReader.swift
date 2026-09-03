@@ -66,15 +66,32 @@ final class HealthReader {
     }
 
     // MARK: - Les lectures
+    //
+    // Chaque requête traduit ses résultats **dans le gestionnaire**, avant de
+    // rendre la main. Ce n'est pas un détail de style : un `HKSample` est une
+    // classe d'Objective-C que Swift 6 ne laisse pas traverser une frontière
+    // de concurrence. Nos propres types, eux, sont de simples valeurs et
+    // passent partout. Traduire tôt règle la question une fois pour toutes,
+    // au lieu de la contourner à chaque appel.
 
     func weights(since start: Date) async -> [HealthWeight] {
         guard let type = HKQuantityType.quantityType(forIdentifier: .bodyMass) else { return [] }
-        let samples = await quantitySamples(type, since: start)
-        return samples.map {
-            HealthWeight(
-                date: $0.startDate,
-                kilograms: $0.quantity.doubleValue(for: .gramUnit(with: .kilo))
-            )
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(
+                sampleType: type,
+                predicate: HKQuery.predicateForSamples(withStart: start, end: Date()),
+                limit: HKObjectQueryNoLimit,
+                sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)]
+            ) { _, results, _ in
+                let samples = (results as? [HKQuantitySample]) ?? []
+                continuation.resume(returning: samples.map {
+                    HealthWeight(
+                        date: $0.startDate,
+                        kilograms: $0.quantity.doubleValue(for: .gramUnit(with: .kilo))
+                    )
+                })
+            }
+            store.execute(query)
         }
     }
 
@@ -86,80 +103,62 @@ final class HealthReader {
     /// réveil, parce que c'est la séance de ce jour-là qui en dépend.
     func nights(since start: Date, calendar: Calendar = .current) async -> [HealthSleep] {
         guard let type = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) else { return [] }
-        let samples: [HKCategorySample] = await withCheckedContinuation { continuation in
-            let query = HKSampleQuery(
-                sampleType: type,
-                predicate: HKQuery.predicateForSamples(withStart: start, end: Date()),
-                limit: HKObjectQueryNoLimit,
-                sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)]
-            ) { _, results, _ in
-                continuation.resume(returning: (results as? [HKCategorySample]) ?? [])
-            }
-            store.execute(query)
-        }
-
         let asleep: Set<Int> = [
             HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue,
             HKCategoryValueSleepAnalysis.asleepCore.rawValue,
             HKCategoryValueSleepAnalysis.asleepDeep.rawValue,
             HKCategoryValueSleepAnalysis.asleepREM.rawValue,
         ]
-
-        var perDay: [Date: TimeInterval] = [:]
-        for sample in samples where asleep.contains(sample.value) {
-            let day = calendar.startOfDay(for: sample.endDate)
-            perDay[day, default: 0] += sample.endDate.timeIntervalSince(sample.startDate)
-        }
-        return perDay
-            .map { HealthSleep(wakeDate: $0.key, hours: $0.value / 3600) }
-            .sorted { $0.wakeDate < $1.wakeDate }
-    }
-
-    func workouts(since start: Date) async -> [HealthWorkout] {
-        let samples: [HKWorkout] = await withCheckedContinuation { continuation in
-            let query = HKSampleQuery(
-                sampleType: HKObjectType.workoutType(),
-                predicate: HKQuery.predicateForSamples(withStart: start, end: Date()),
-                limit: HKObjectQueryNoLimit,
-                sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)]
-            ) { _, results, _ in
-                continuation.resume(returning: (results as? [HKWorkout]) ?? [])
-            }
-            store.execute(query)
-        }
-
-        return samples.map { workout in
-            let distance = workout.statistics(for: HKQuantityType(.distanceWalkingRunning))?
-                .sumQuantity()?.doubleValue(for: .meter)
-                ?? workout.statistics(for: HKQuantityType(.distanceCycling))?
-                .sumQuantity()?.doubleValue(for: .meter)
-                ?? 0
-            let energy = workout.statistics(for: HKQuantityType(.activeEnergyBurned))?
-                .sumQuantity()?.doubleValue(for: .kilocalorie())
-            return HealthWorkout(
-                startedAt: workout.startDate,
-                duration: workout.duration,
-                meters: distance,
-                kilocalories: energy,
-                sport: Sport.from(workout.workoutActivityType),
-                source: workout.sourceRevision.source.name
-            )
-        }
-    }
-
-    // MARK: - Petite plomberie
-
-    private func quantitySamples(
-        _ type: HKQuantityType, since start: Date
-    ) async -> [HKQuantitySample] {
-        await withCheckedContinuation { continuation in
+        return await withCheckedContinuation { continuation in
             let query = HKSampleQuery(
                 sampleType: type,
                 predicate: HKQuery.predicateForSamples(withStart: start, end: Date()),
                 limit: HKObjectQueryNoLimit,
                 sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)]
             ) { _, results, _ in
-                continuation.resume(returning: (results as? [HKQuantitySample]) ?? [])
+                let samples = (results as? [HKCategorySample]) ?? []
+                var perDay: [Date: TimeInterval] = [:]
+                for sample in samples where asleep.contains(sample.value) {
+                    let day = calendar.startOfDay(for: sample.endDate)
+                    perDay[day, default: 0] += sample.endDate.timeIntervalSince(sample.startDate)
+                }
+                continuation.resume(returning: perDay
+                    .map { HealthSleep(wakeDate: $0.key, hours: $0.value / 3600) }
+                    .sorted { $0.wakeDate < $1.wakeDate })
+            }
+            store.execute(query)
+        }
+    }
+
+    func workouts(since start: Date) async -> [HealthWorkout] {
+        await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(
+                sampleType: HKObjectType.workoutType(),
+                predicate: HKQuery.predicateForSamples(withStart: start, end: Date()),
+                limit: HKObjectQueryNoLimit,
+                sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)]
+            ) { _, results, _ in
+                let samples = (results as? [HKWorkout]) ?? []
+                continuation.resume(returning: samples.map { workout in
+                    // La distance vit sous deux clés selon le sport, et sous
+                    // aucune pour une séance de salle. Zéro est alors la
+                    // réponse juste, pas une mesure manquante.
+                    let distance = workout.statistics(for: HKQuantityType(.distanceWalkingRunning))?
+                        .sumQuantity()?.doubleValue(for: .meter)
+                        ?? workout.statistics(for: HKQuantityType(.distanceCycling))?
+                        .sumQuantity()?.doubleValue(for: .meter)
+                        ?? 0
+                    let energy = workout.statistics(for: HKQuantityType(.activeEnergyBurned))?
+                        .sumQuantity()?.doubleValue(for: .kilocalorie())
+                    return HealthWorkout(
+                        startedAt: workout.startDate,
+                        duration: workout.duration,
+                        meters: distance,
+                        kilocalories: energy,
+                        sport: Sport.from(workout.workoutActivityType),
+                        source: workout.sourceRevision.source.name
+                    )
+                })
             }
             store.execute(query)
         }

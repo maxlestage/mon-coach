@@ -28,18 +28,26 @@ import MonCoachKit
 final class SensorHub: NSObject {
 
     /// Les services que nous savons lire, dans l'ordre où ils comptent.
+    ///
+    /// Calculés plutôt que rangés dans des constantes : `CBUUID` est une
+    /// classe d'Objective-C que Swift 6 ne considère pas comme sûre à
+    /// partager entre tâches, et une constante statique d'un tel type est
+    /// refusée à la compilation. Une propriété calculée rend un objet neuf à
+    /// chaque lecture — rien n'est partagé, donc rien n'est à protéger. Le
+    /// coût est celui d'un identifiant de seize bits construit depuis une
+    /// chaîne, quelques fois par sortie.
     enum Service {
-        static let heartRate = CBUUID(string: "180D")
-        static let cyclingPower = CBUUID(string: "1818")
-        static let cadence = CBUUID(string: "1816")
+        static var heartRate: CBUUID { CBUUID(string: "180D") }
+        static var cyclingPower: CBUUID { CBUUID(string: "1818") }
+        static var cadence: CBUUID { CBUUID(string: "1816") }
 
-        static let all = [heartRate, cyclingPower, cadence]
+        static var all: [CBUUID] { [heartRate, cyclingPower, cadence] }
     }
 
     private enum Characteristic {
-        static let heartRate = CBUUID(string: "2A37")
-        static let cyclingPower = CBUUID(string: "2A63")
-        static let cadence = CBUUID(string: "2A5B")
+        static var heartRate: CBUUID { CBUUID(string: "2A37") }
+        static var cyclingPower: CBUUID { CBUUID(string: "2A63") }
+        static var cadence: CBUUID { CBUUID(string: "2A5B") }
     }
 
     /// Un capteur trouvé, tel qu'on peut le montrer.
@@ -133,16 +141,19 @@ final class SensorHub: NSObject {
 
 extension SensorHub: CBCentralManagerDelegate {
     nonisolated func centralManagerDidUpdateState(_ central: CBCentralManager) {
+        // L'état est lu ici, pas dans la tâche : un `CBCentralManager` ne
+        // traverse pas une frontière de concurrence, alors qu'un état — une
+        // simple valeur — la traverse sans difficulté.
+        let isOn = central.state == .poweredOn
         Task { @MainActor in
             // Le Bluetooth éteint pendant une sortie n'est pas une erreur à
             // signaler : c'est un capteur qui se tait, et la sortie continue
             // avec le GPS. On efface les mesures en cours pour ne pas
             // afficher un chiffre figé qui passerait pour vivant.
-            if central.state != .poweredOn {
-                self.bpm = nil
-                self.watts = nil
-                self.rpm = nil
-            }
+            guard !isOn else { return }
+            self.bpm = nil
+            self.watts = nil
+            self.rpm = nil
         }
     }
 
