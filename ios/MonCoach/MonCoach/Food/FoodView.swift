@@ -442,6 +442,26 @@ struct MealCard: View {
                         .buttonStyle(.plain)
                     }
                 }
+                // Les aromates, sous les grammes et sans grammes : ils
+                // n'ont pas de portion mais ils sont dans le plat, et
+                // surtout dans la liste de courses. Un plat qui s'appelle
+                // « Crevettes à l'ail » et dont la liste n'en montre pas
+                // fait rentrer des courses sans ail.
+                if let seasonings = meal.recipe?.seasonings, !seasonings.isEmpty {
+                    HStack(alignment: .top, spacing: 10) {
+                        Image(systemName: "leaf")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Theme.secondaryText)
+                            .frame(width: 56, alignment: .leading)
+                        Text(seasonings.map { $0[language] }.joined(separator: " · "))
+                            .font(.system(size: 13))
+                            .foregroundStyle(Theme.secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.top, 2)
+                }
+
                 if let recipe = meal.recipe {
                     Button {
                         showingSteps.toggle()
@@ -839,6 +859,51 @@ struct ShoppingListView: View {
                                                 Text(line.quantity(language))
                                                     .font(Theme.captionFont)
                                                     .foregroundStyle(Theme.secondaryText)
+                                            }
+                                            .contentShape(Rectangle())
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                }
+                            }
+                        }
+
+                        // Les aromates, sans chiffres eux non plus : on
+                        // achète une tête d'ail, pas huit grammes. Ils sont
+                        // là parce qu'un plat qui s'appelle « Crevettes à
+                        // l'ail » se fait mal sans ail, et que la liste est
+                        // ce avec quoi on part au magasin.
+                        let seasonings = MealPlanner.seasonings(for: week)
+                        if !seasonings.isEmpty {
+                            Card(
+                                title: LocalizedText(
+                                    fr: "Aromates et condiments",
+                                    en: "Aromatics and condiments",
+                                    es: "Aromáticos y condimentos"
+                                )[language],
+                                subtitle: LocalizedText(
+                                    fr: "Ce qui donne le goût, et qui ne se pèse pas.",
+                                    en: "What gives the taste, and is not weighed.",
+                                    es: "Lo que da el sabor, y no se pesa."
+                                )[language]
+                            ) {
+                                VStack(spacing: 6) {
+                                    ForEach(seasonings, id: \.fr) { seasoning in
+                                        Button {
+                                            toggle("aromate:" + seasoning.fr)
+                                        } label: {
+                                            HStack(spacing: 10) {
+                                                Image(systemName: checked.contains("aromate:" + seasoning.fr)
+                                                    ? "checkmark.circle.fill"
+                                                    : "circle")
+                                                    .foregroundStyle(checked.contains("aromate:" + seasoning.fr)
+                                                        ? Theme.accent
+                                                        : Theme.secondaryText)
+                                                Text(seasoning[language])
+                                                    .font(Theme.bodyFont)
+                                                    .foregroundStyle(Theme.primaryText)
+                                                    .strikethrough(checked.contains("aromate:" + seasoning.fr))
+                                                Spacer()
                                             }
                                             .contentShape(Rectangle())
                                         }

@@ -1201,6 +1201,28 @@ enum DishPreference {
     /// produit tel qu'on l'achète.
     static let minimumLooseGrams: Double = 50
 
+    /// Les aromates de la semaine, sans doublon.
+    ///
+    /// Ils n'ont pas de grammes et ne peuvent donc pas être des lignes de
+    /// courses ordinaires — mais ils s'achètent. Une tête d'ail, un citron,
+    /// un pot de moutarde : sans eux, la moitié des plats de la semaine se
+    /// fait sans ce qui leur donne leur nom.
+    ///
+    /// Dédoublonnés sur le nom français : trois plats à l'ail font une tête
+    /// d'ail, pas trois lignes.
+    public static func seasonings(for days: [DayPlan]) -> [LocalizedText] {
+        var seen: Set<String> = []
+        var out: [LocalizedText] = []
+        for day in days {
+            for meal in day.meals {
+                for seasoning in meal.recipe?.seasonings ?? [] where seen.insert(seasoning.fr).inserted {
+                    out.append(seasoning)
+                }
+            }
+        }
+        return out.sorted { $0.fr.localizedCompare($1.fr) == .orderedAscending }
+    }
+
     public static func shoppingList(
         for days: [DayPlan],
         horizon: ShoppingHorizon = .week
