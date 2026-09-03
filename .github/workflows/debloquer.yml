@@ -3,17 +3,22 @@ name: Débloquer la mise en vente
 # Fait chez Apple ce qui restait « à faire à la main », et qui donc ne se
 # faisait pas.
 #
-# Trois gestes, tous idempotents — relancer ne crée rien deux fois :
+# Deux gestes, tous deux idempotents — relancer ne crée rien deux fois,
+# et finit un premier essai interrompu :
 #
 #   1. Les deux abonnements Stride+ : le groupe, les offres, leurs textes
 #      dans les trois langues, et leurs prix. C'est le blocage numéro un de
 #      la mise en vente, et il tient dans un écran d'App Store Connect qui
 #      n'est pas praticable depuis un téléphone.
-#   2. Le groupe d'applications, sans lequel les widgets ne voient rien de ce
-#      que l'application écrit. Si l'API ne sait pas le créer, le journal le
-#      dit clairement plutôt que d'échouer en silence.
-#   3. L'anglais et l'espagnol sur la fiche. L'application est traduite en
-#      trois langues, sa fiche n'existait qu'en français.
+#   2. Les trois langues de la fiche. L'application est traduite en français,
+#      anglais et espagnol ; sa fiche n'avait pas une description dans une
+#      seule des trois.
+#
+# Le groupe d'applications, lui, n'y est pas — et c'est une réponse, pas un
+# oubli. Interrogée le 3 septembre 2026, l'API rend 404 sur la ressource
+# elle-même : « the path provided does not match a defined resource type ».
+# C'est une action humaine sur le portail développeur, et le script
+# reveiller_les_widgets.py fait la suite une fois qu'elle est faite.
 #
 # Contrairement aux autres workflows du dossier, celui-ci ÉCRIT chez Apple.
 # D'où le déclenchement à la main, et lui seul : rien ici ne doit partir sur
@@ -26,12 +31,8 @@ on:
         description: "Créer les deux abonnements Stride+"
         type: boolean
         default: true
-      groupe:
-        description: "Créer le groupe d'applications (widgets)"
-        type: boolean
-        default: true
       langues:
-        description: "Ajouter l'anglais et l'espagnol à la fiche"
+        description: "Remplir la fiche dans les trois langues"
         type: boolean
         default: true
 
@@ -78,29 +79,7 @@ jobs:
           python3 tools/appstore/creer_les_abonnements.py | tee "$RUNNER_TEMP/abonnements.txt"
           echo "::endgroup::"
 
-      - name: Le groupe d'applications
-        if: inputs.groupe
-        # Le seul pas dont on ignore l'issue : l'API expose peut-être les
-        # groupes, peut-être pas. Un échec ici ne doit pas emporter les deux
-        # autres gestes, qui n'ont rien à voir — d'où continue-on-error, et
-        # le code de sortie 2 traduit en avertissement lisible.
-        continue-on-error: true
-        env:
-          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID || secrets.APPSTORE_KEY_ID }}
-          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID || secrets.APPSTORE_ISSUER_ID }}
-        run: |
-          echo "::group::Groupe d'applications"
-          set +e
-          python3 tools/appstore/creer_le_groupe.py 2>&1 | tee "$RUNNER_TEMP/groupe.txt"
-          code=${PIPESTATUS[0]}
-          set -e
-          echo "::endgroup::"
-          if [ "$code" = "2" ]; then
-            echo "::warning::L'API ne sait pas créer les groupes — à faire sur le portail."
-          fi
-          exit "$code"
-
-      - name: L'anglais et l'espagnol
+      - name: La fiche dans les trois langues
         if: inputs.langues
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID || secrets.APPSTORE_KEY_ID }}
@@ -128,7 +107,7 @@ jobs:
           {
             echo "## Ce qui a été fait chez Apple"
             echo
-            for f in abonnements groupe langues etat; do
+            for f in abonnements langues etat; do
               if [ -f "$RUNNER_TEMP/$f.txt" ]; then
                 echo "### $f"
                 echo '```'

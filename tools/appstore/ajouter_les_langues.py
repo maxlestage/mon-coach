@@ -32,6 +32,7 @@ from asc import AppleRefused, Client  # noqa: E402
 BUNDLE_ID = os.environ.get("BUNDLE_ID", "com.maxlestage.fitnesscoach")
 
 SUBTITLES = {
+    "fr-FR": "Coach, repas, course",
     "en-US": "Coach, meals, running",
     "es-ES": "Entrenador, comidas, carrera",
 }
@@ -39,6 +40,29 @@ SUBTITLES = {
 # La description. Elle dit ce que l'application fait et ce qu'elle ne fait
 # pas — l'absence de serveur est un argument, pas une note de bas de page.
 DESCRIPTIONS = {
+    "fr-FR": """Un coach qui s'adapte, pas un carnet.
+
+Stride construit ton bloc à partir de ce que tu peux vraiment faire — ta salle, tes jours, tes douleurs — puis le réécrit chaque semaine d'après ce que tu as enregistré. Les charges montent quand tu les encaisses, et redescendent quand ce n'est pas le cas.
+
+CE QU'IL FAIT
+
+• Des blocs de force qui s'adaptent semaine après semaine, avec une charge proposée pour chaque série
+• Un programme alimentaire bâti sur les mêmes chiffres que l'entraînement, avec recettes et liste de courses
+• La course et 48 sports, suivis au GPS, avec segments personnels et records
+• Apple Watch : mène toute la séance au poignet, fréquence cardiaque comprise
+• Capteurs Bluetooth : ceintures cardio, capteurs de puissance, cadence
+• Lit Santé pour ton poids, tes nuits et les séances enregistrées ailleurs
+• Sait que tu reviens après un arrêt, et allège au lieu de faire comme si de rien n'était
+
+RIEN NE SORT DE TON TÉLÉPHONE
+
+Aucun compte, aucun serveur, aucune mesure d'audience. Ton entraînement, ton poids, tes photos et tes repas restent sur ton appareil. Il n'y a nulle part où nous pourrions regarder, et c'est la seule promesse de confidentialité qui vaille.
+
+STRIDE+
+
+Quatorze jours offerts, puis 14,99 € par mois ou 119,99 € par an. Résiliable à tout moment depuis ton compte Apple.
+
+Conçu et développé par Maxime Nathan Lestage.""",
     "en-US": """A coach that adapts, not a logbook.
 
 Stride builds your training block from what you can actually do — your gym, your days, your injuries — then rewrites it every week from what you logged. Loads go up when you handle them and down when you don't.
@@ -88,11 +112,13 @@ Diseñado y desarrollado por Maxime Nathan Lestage.""",
 }
 
 KEYWORDS = {
+    "fr-FR": "musculation,salle,force,course,coach,nutrition,repas,gps,montre,hors ligne",
     "en-US": "gym,workout,strength,running,coach,nutrition,meal plan,gps,watch,offline",
     "es-ES": "gimnasio,fuerza,entrenamiento,carrera,entrenador,nutrición,dieta,gps,reloj",
 }
 
 PROMOTIONAL = {
+    "fr-FR": "Ton plan se réécrit chaque semaine, d'après ce que tu as vraiment soulevé.",
     "en-US": "Your plan rewrites itself every week, from what you actually lifted.",
     "es-ES": "Tu plan se reescribe cada semana, a partir de lo que realmente levantaste.",
 }
@@ -134,77 +160,123 @@ def editable_version(client: Client, app_id: str) -> str | None:
 
 
 def add_names(client: Client, info_id: str, app_name: str) -> None:
+    """Le nom et le sous-titre, par langue.
+
+    « Déjà là » ne veut pas dire « rempli ». Apple crée des localisations
+    vides dès qu'une langue existe, et le premier essai les a prises pour du
+    travail fait : la fiche est restée sans un mot. On regarde donc le
+    contenu, pas la présence.
+    """
     present = {
-        item["attributes"].get("locale")
+        item["attributes"].get("locale"): item
         for item in client.call(
             f"appInfos/{info_id}/appInfoLocalizations?limit=50"
         ).get("data", [])
     }
     for locale, subtitle in SUBTITLES.items():
-        if locale in present:
-            print(f"  nom déjà là : {locale}")
-            continue
-        try:
-            client.call(
+        entry = present.get(locale)
+        if entry is None:
+            write(
+                client,
                 "appInfoLocalizations",
-                method="POST",
-                body={
-                    "data": {
-                        "type": "appInfoLocalizations",
-                        "attributes": {
-                            "locale": locale,
-                            "name": app_name,
-                            "subtitle": subtitle,
-                        },
-                        "relationships": {
-                            "appInfo": {"data": {"type": "appInfos", "id": info_id}}
-                        },
-                    }
-                },
+                {"locale": locale, "name": app_name, "subtitle": subtitle},
+                {"appInfo": {"data": {"type": "appInfos", "id": info_id}}},
+                f"nom et sous-titre : {locale}",
             )
-            print(f"  nom et sous-titre ajoutés : {locale}")
-        except AppleRefused as refusal:
-            print(f"::warning::Nom {locale} refusé : {refusal.detail}")
+            continue
+
+        missing = {}
+        if not (entry["attributes"].get("subtitle") or "").strip():
+            missing["subtitle"] = subtitle
+        if not (entry["attributes"].get("name") or "").strip():
+            missing["name"] = app_name
+        if not missing:
+            print(f"  nom déjà écrit : {locale}")
+            continue
+        patch(client, "appInfoLocalizations", entry["id"], missing,
+              f"sous-titre complété : {locale}")
 
 
 def add_descriptions(client: Client, version_id: str) -> None:
+    """La description, les mots-clés et le texte promotionnel, par langue.
+
+    Même règle : on remplit ce qui est vide, on ne réécrit jamais ce qui est
+    écrit. La version française a peut-être été relue à la main, et l'écraser
+    serait le genre de service qu'on ne rend qu'une fois.
+    """
     present = {
-        item["attributes"].get("locale")
+        item["attributes"].get("locale"): item
         for item in client.call(
             f"appStoreVersions/{version_id}/appStoreVersionLocalizations?limit=50"
         ).get("data", [])
     }
     for locale, description in DESCRIPTIONS.items():
-        if locale in present:
-            print(f"  description déjà là : {locale}")
-            continue
-        try:
-            client.call(
+        wanted = {
+            "description": description,
+            "keywords": KEYWORDS[locale],
+            "promotionalText": PROMOTIONAL[locale],
+        }
+        entry = present.get(locale)
+        if entry is None:
+            write(
+                client,
                 "appStoreVersionLocalizations",
-                method="POST",
-                body={
-                    "data": {
-                        "type": "appStoreVersionLocalizations",
-                        "attributes": {
-                            "locale": locale,
-                            "description": description,
-                            "keywords": KEYWORDS[locale],
-                            "promotionalText": PROMOTIONAL[locale],
-                        },
-                        "relationships": {
-                            "appStoreVersion": {
-                                "data": {
-                                    "type": "appStoreVersions",
-                                    "id": version_id,
-                                }
-                            }
-                        },
+                {"locale": locale, **wanted},
+                {
+                    "appStoreVersion": {
+                        "data": {"type": "appStoreVersions", "id": version_id}
                     }
                 },
+                f"description : {locale}",
             )
-            print(f"  description ajoutée : {locale}")
-        except AppleRefused as refusal:
-            print(f"::warning::Description {locale} refusée : {refusal.detail}")
+            continue
+
+        missing = {
+            field: value
+            for field, value in wanted.items()
+            if not (entry["attributes"].get(field) or "").strip()
+        }
+        if not missing:
+            print(f"  description déjà écrite : {locale}")
+            continue
+        patch(client, "appStoreVersionLocalizations", entry["id"], missing,
+              f"{', '.join(missing)} complétés : {locale}")
+
+
+def write(
+    client: Client,
+    kind: str,
+    attributes: dict,
+    relationships: dict,
+    label: str,
+) -> None:
+    try:
+        client.call(
+            kind,
+            method="POST",
+            body={
+                "data": {
+                    "type": kind,
+                    "attributes": attributes,
+                    "relationships": relationships,
+                }
+            },
+        )
+        print(f"  {label} — créé")
+    except AppleRefused as refusal:
+        print(f"::warning::{label} refusé : {refusal.detail}")
+
+
+def patch(client: Client, kind: str, entry_id: str, attributes: dict, label: str) -> None:
+    try:
+        client.call(
+            f"{kind}/{entry_id}",
+            method="PATCH",
+            body={"data": {"type": kind, "id": entry_id, "attributes": attributes}},
+        )
+        print(f"  {label}")
+    except AppleRefused as refusal:
+        print(f"::warning::{label} refusé : {refusal.detail}")
 
 
 def main() -> int:
