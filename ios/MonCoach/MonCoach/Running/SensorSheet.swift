@@ -133,8 +133,12 @@ struct SensorSheet: View {
     }
 
     private func symbol(for device: SensorHub.Device) -> String {
-        if device.services.contains(SensorHub.Service.cyclingPower) { return "bolt.fill" }
-        if device.services.contains(SensorHub.Service.cadence) { return "arrow.triangle.2.circlepath" }
+        // Les services annoncés sont du texte — un CBUUID ne traverse pas
+        // une frontière de concurrence, et ils viennent d'un délégué
+        // Bluetooth. La casse n'est pas garantie par `uuidString`.
+        let announced = device.services.map { $0.uppercased() }
+        if announced.contains(SensorHub.Service.cyclingPower) { return "bolt.fill" }
+        if announced.contains(SensorHub.Service.cadence) { return "arrow.triangle.2.circlepath" }
         return "heart.fill"
     }
 }
