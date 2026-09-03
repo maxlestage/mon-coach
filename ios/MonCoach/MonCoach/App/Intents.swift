@@ -47,29 +47,6 @@ private var intentLanguage: Language {
     Language.best(matching: Locale.preferredLanguages)
 }
 
-// MARK: - Le sport, tel que Siri le propose
-
-extension Sport: @retroactive AppEnum {
-    public static var typeDisplayRepresentation: TypeDisplayRepresentation {
-        TypeDisplayRepresentation(
-            name: LocalizedStringResource("Sport")
-        )
-    }
-
-    /// Construite depuis le catalogue plutôt qu'écrite à la main : un sport
-    /// ajouté apparaît chez Siri sans qu'on ait à y penser, et surtout sans
-    /// qu'on puisse l'oublier.
-    public static var caseDisplayRepresentations: [Sport: DisplayRepresentation] {
-        var table: [Sport: DisplayRepresentation] = [:]
-        for sport in Sport.allCases {
-            table[sport] = DisplayRepresentation(
-                title: LocalizedStringResource(stringLiteral: sport.label[intentLanguage])
-            )
-        }
-        return table
-    }
-}
-
 // MARK: - Démarrer une sortie
 
 /// « Dis à Stride de démarrer une sortie vélo. »
@@ -84,11 +61,11 @@ struct StartActivityIntent: AppIntent {
     static var openAppWhenRun: Bool { true }
 
     @Parameter(title: "Sport")
-    var sport: Sport
+    var sport: ActivitySport
 
     @MainActor
     func perform() async throws -> some IntentResult {
-        IntentRouter.shared.requestedSport = sport
+        IntentRouter.shared.requestedSport = sport.sport
         return .result()
     }
 }
