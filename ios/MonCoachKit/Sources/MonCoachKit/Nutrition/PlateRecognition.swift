@@ -96,6 +96,44 @@ public struct PlateSighting: Sendable, Equatable, Identifiable, Hashable {
     public var readable: String {
         label.replacingOccurrences(of: "_", with: " ")
     }
+
+    /// Ce qu'il faut écrire sur la ligne, dans la langue de l'athlète.
+    ///
+    /// Pourquoi ce n'est pas `readable`
+    /// --------------------------------
+    /// L'écran montrait le mot brut du classificateur — « chicken_breast » —
+    /// et rangeait le nom français en petit sur le côté. Résultat : une
+    /// liste anglaise dans une application française, où l'information la
+    /// plus utile était la plus discrète.
+    ///
+    /// Dès qu'on sait à quoi le mot correspond, on connaît son nom dans la
+    /// bonne langue : le catalogue le porte, et le rayon aussi. Le mot du
+    /// système garde sa place, en dessous et annoncé comme tel — c'est lui
+    /// qu'on apprend, donc le cacher tout à fait rendrait l'apprentissage
+    /// incompréhensible.
+    ///
+    /// Reste le cas honnête : un mot que le catalogue ne connaît pas ne se
+    /// traduit pas. On l'affiche tel quel, en anglais, parce qu'inventer une
+    /// traduction pour un mot dont on ignore le sens serait une invention de
+    /// plus, pas une aide.
+    public func name(in language: Language) -> String {
+        switch outcome {
+        case .food(let foodID), .refused(let foodID):
+            return FoodCatalog.food(id: foodID)?.name[language] ?? readable
+        case .aisle(let role):
+            return role.label[language]
+        case .unknown:
+            return readable
+        }
+    }
+
+    /// Le nom affiché est-il celui du système, faute de mieux ?
+    ///
+    /// L'écran s'en sert pour dire « mot du système » sous un mot anglais,
+    /// plutôt que de laisser croire à une faute de traduction.
+    public var namedBySystem: Bool {
+        outcome == .unknown
+    }
 }
 
 /// Tout ce qu'une photo a donné.
@@ -151,6 +189,47 @@ extension PlateVision {
         "plate", "plateful", "dish", "bowl", "serving", "portion", "meal",
         "food", "meat", "closeup", "close", "up", "of", "and", "with", "on",
         "a", "the", "some", "half", "whole", "piece", "pieces", "slice", "slices",
+    ]
+
+    /// Les mots qui nomment le décor, jamais ce qu'on mange.
+    ///
+    /// Pourquoi les jeter plutôt que les montrer
+    /// -----------------------------------------
+    /// Un classificateur généraliste décrit toute l'image, et une photo
+    /// d'assiette contient surtout autre chose que de la nourriture : la
+    /// table, l'assiette, les couverts, la nappe, la bouteille à côté. Il
+    /// rendait donc « structure », « wood processed », « container »,
+    /// « utensil », « tableware » — six lignes en tête de liste avant le
+    /// premier aliment.
+    ///
+    /// Les laisser coûtait deux fois. Elles noyaient ce qu'on cherchait, et
+    /// surtout l'application proposait de les **apprendre** : traduire
+    /// « wood processed » en un aliment aurait sali la table de corrections
+    /// pour de bon, et cette table sert ensuite à toutes les photos.
+    ///
+    /// Le filtre ne s'applique qu'aux mots qui n'ont mené à rien. Si l'un
+    /// d'eux désigne malgré tout un aliment du catalogue, c'est cet aliment
+    /// qui gagne — un décor reconnu comme nourriture n'est plus du décor.
+    static let scenery: Set<String> = [
+        // La pièce et le mobilier
+        "structure", "furniture", "table", "desk", "chair", "counter",
+        "countertop", "kitchen", "restaurant", "cafe", "diner", "indoor",
+        "indoors", "room", "interior", "floor", "wall", "window", "shelf",
+        // La vaisselle et les couverts
+        "tableware", "dishware", "utensil", "utensils", "cutlery", "silverware",
+        "fork", "knife", "spoon", "chopsticks", "straw", "container",
+        "containers", "bottle", "jar", "can", "tin", "glass", "cup", "mug",
+        "tray", "pan", "pot", "skillet", "saucepan", "lid", "napkin",
+        "tablecloth", "placemat", "coaster", "packaging", "wrapper", "box",
+        "bag", "carton", "label", "menu",
+        // Les matières
+        "wood", "wood_processed", "wooden", "plastic", "metal", "steel",
+        "ceramic", "porcelain", "paper", "cardboard", "textile", "fabric",
+        "cloth", "linen", "marble", "granite", "stone", "glassware",
+        // Ce qui n'est pas l'assiette
+        "person", "people", "hand", "hands", "finger", "fingers", "arm",
+        "face", "phone", "book", "plant", "flower", "candle", "light",
+        "shadow", "reflection", "text", "handwriting", "logo",
     ]
 
     /// Les mots qui nomment un plat, et dont l'ingrédient de tête compte
@@ -314,6 +393,11 @@ extension PlateVision {
                 outcome = excluded.contains(foodID) ? .refused(foodID) : .food(foodID)
             } else if let role = category(for: label) {
                 outcome = .aisle(role)
+            } else if scenery.contains(label) {
+                // La table, l'assiette et la fourchette ne sont pas le repas.
+                // Un mot du décor qui n'a mené à aucun aliment ne mérite ni
+                // une ligne ni une proposition d'apprentissage.
+                continue
             } else {
                 outcome = .unknown
             }

@@ -489,7 +489,11 @@ struct PlatePhotoView: View {
         VStack(alignment: .leading, spacing: 3) {
             HStack(spacing: 8) {
                 ConfidenceBar(fraction: strength.fraction, tint: strength.tint)
-                Text(sighting.readable)
+                // Le nom dans la langue de l'athlète dès qu'on le connaît.
+                // Le mot du classificateur passe en dessous : il faut le
+                // voir — c'est lui qu'on apprend — mais il n'a pas à tenir
+                // la ligne de titre d'une application française.
+                Text(sighting.name(in: language))
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(Theme.primaryText)
                     .lineLimit(1)
@@ -506,6 +510,22 @@ struct PlatePhotoView: View {
                     .font(.system(size: 10))
                     .foregroundStyle(Theme.secondaryText)
                     .lineLimit(1)
+            }
+            // Le mot brut, annoncé comme venant du système. Sans cette
+            // mention, un mot anglais sous un titre français ressemble à une
+            // traduction oubliée ; avec elle, on comprend qu'on lit la
+            // machine, et qu'on peut lui répondre.
+            if !sighting.namedBySystem {
+                Text(
+                    LocalizedText(
+                        fr: "mot du système : \(sighting.readable)",
+                        en: "system word: \(sighting.readable)",
+                        es: "palabra del sistema: \(sighting.readable)"
+                    )[language]
+                )
+                .font(.system(size: 10))
+                .foregroundStyle(Theme.secondaryText)
+                .lineLimit(1)
             }
         }
     }
