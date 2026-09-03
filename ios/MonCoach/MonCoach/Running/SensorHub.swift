@@ -29,32 +29,47 @@ final class SensorHub: NSObject {
 
     /// Les services que nous savons lire, dans l'ordre où ils comptent.
     ///
-    /// Calculés plutôt que rangés dans des constantes : `CBUUID` est une
-    /// classe d'Objective-C que Swift 6 ne considère pas comme sûre à
-    /// partager entre tâches, et une constante statique d'un tel type est
-    /// refusée à la compilation. Une propriété calculée rend un objet neuf à
-    /// chaque lecture — rien n'est partagé, donc rien n'est à protéger. Le
-    /// coût est celui d'un identifiant de seize bits construit depuis une
-    /// chaîne, quelques fois par sortie.
+    /// Ce sont des **chaînes**, et le `CBUUID` n'est construit que là où
+    /// CoreBluetooth en réclame un.
+    ///
+    /// `CBUUID` est une classe d'Objective-C que Swift 6 ne laisse ni
+    /// ranger dans une constante statique, ni traverser une frontière de
+    /// concurrence. Or les délégués Bluetooth arrivent hors du fil
+    /// principal : tout identifiant qui doit remonter jusqu'à l'écran
+    /// traverse forcément cette frontière. Le garder en texte règle les
+    /// deux problèmes d'un coup, là où une propriété calculée n'en réglait
+    /// que le premier.
+    ///
+    /// Pour un service à seize bits, ce texte est exactement celui de la
+    /// spécification — « 180D », « 2A37 » — ce qui se relit mieux qu'un
+    /// objet opaque.
     enum Service {
-        static var heartRate: CBUUID { CBUUID(string: "180D") }
-        static var cyclingPower: CBUUID { CBUUID(string: "1818") }
-        static var cadence: CBUUID { CBUUID(string: "1816") }
+        static let heartRate = "180D"
+        static let cyclingPower = "1818"
+        static let cadence = "1816"
 
-        static var all: [CBUUID] { [heartRate, cyclingPower, cadence] }
+        static var all: [CBUUID] {
+            [heartRate, cyclingPower, cadence].map { CBUUID(string: $0) }
+        }
     }
 
     private enum Characteristic {
-        static var heartRate: CBUUID { CBUUID(string: "2A37") }
-        static var cyclingPower: CBUUID { CBUUID(string: "2A63") }
-        static var cadence: CBUUID { CBUUID(string: "2A5B") }
+        static let heartRate = "2A37"
+        static let cyclingPower = "2A63"
+        static let cadence = "2A5B"
+
+        static var all: [CBUUID] {
+            [heartRate, cyclingPower, cadence].map { CBUUID(string: $0) }
+        }
     }
 
     /// Un capteur trouvé, tel qu'on peut le montrer.
     struct Device: Identifiable, Equatable {
         let id: UUID
         var name: String
-        var services: [CBUUID]
+        /// Les services annoncés, en texte : « 180D » pour la fréquence
+        /// cardiaque. Voir `Service` pour la raison.
+        var services: [String]
     }
 
     // MARK: - Ce que l'écran lit
@@ -166,7 +181,10 @@ extension SensorHub: CBCentralManagerDelegate {
         let name = peripheral.name
             ?? (advertisementData[CBAdvertisementDataLocalNameKey] as? String)
             ?? "Capteur"
-        let services = (advertisementData[CBAdvertisementDataServiceUUIDsKey] as? [CBUUID]) ?? []
+        // Traduits en texte avant de partir vers le fil principal : un
+        // `CBUUID` ne traverse pas la frontière, une chaîne oui.
+        let services = ((advertisementData[CBAdvertisementDataServiceUUIDsKey] as? [CBUUID]) ?? [])
+            .map(\.uuidString)
         let identifier = peripheral.identifier
         Task { @MainActor in
             guard !self.devices.contains(where: { $0.id == identifier }) else { return }
@@ -186,10 +204,7 @@ extension SensorHub: CBCentralManagerDelegate {
 extension SensorHub: CBPeripheralDelegate {
     nonisolated func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
         for service in peripheral.services ?? [] {
-            peripheral.discoverCharacteristics(
-                [Characteristic.heartRate, Characteristic.cyclingPower, Characteristic.cadence],
-                for: service
-            )
+            peripheral.discoverCharacteristics(Characteristic.all, for: service)
         }
     }
 
@@ -215,15 +230,19 @@ extension SensorHub: CBPeripheralDelegate {
     ) {
         guard let data = characteristic.value else { return }
         let bytes = [UInt8](data)
-        let uuid = characteristic.uuid
+        let uuid = characteristic.uuid.uuidString
         Task { @MainActor in
             self.received(bytes, from: uuid)
         }
     }
 
-    private func received(_ bytes: [UInt8], from characteristic: CBUUID) {
+    private func received(_ bytes: [UInt8], from characteristic: String) {
         let now = Date()
-        switch characteristic {
+        // Comparaison en majuscules : `uuidString` rend « 2A37 » pour un
+        // service à seize bits, mais rien ne garantit la casse, et une
+        // comparaison qui échoue silencieusement donnerait un capteur
+        // connecté qui n'affiche jamais rien.
+        switch characteristic.uppercased() {
         case Characteristic.heartRate:
             guard let reading = BluetoothSensors.heartRate(bytes) else { return }
             bpm = reading.bpm
