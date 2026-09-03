@@ -48,6 +48,12 @@ GROUP_NAMES = {
 
 # Les deux offres. Le prix est en euros, tel qu'on veut le voir sur la fiche ;
 # le point de prix exact est choisi plus bas parmi ceux qu'Apple propose.
+# Les deux offres.
+#
+# La description tient en 55 caractères — Apple l'a dit en refusant les
+# paragraphes du premier essai : « the field (DESCRIPTION) is too long, max
+# number of characters is (55) ». Ce n'est pas la description de
+# l'application, c'est la ligne que l'App Store affiche sous le prix.
 OFFERS = [
     {
         "productId": "com.maxlestage.fitnesscoach.plus.monthly",
@@ -55,24 +61,9 @@ OFFERS = [
         "period": "ONE_MONTH",
         "price": 14.99,
         "texts": {
-            "fr-FR": (
-                "Stride+ mensuel",
-                "Le coach complet : plan qui s'adapte chaque semaine, "
-                "programme alimentaire, course et multi-sport, montre et "
-                "capteurs. Tout reste sur ton téléphone.",
-            ),
-            "en-US": (
-                "Stride+ monthly",
-                "The full coach: a plan that adapts every week, meal "
-                "planning, running and multi-sport, watch and sensors. "
-                "Everything stays on your phone.",
-            ),
-            "es-ES": (
-                "Stride+ mensual",
-                "El entrenador completo: un plan que se adapta cada semana, "
-                "plan de comidas, carrera y multideporte, reloj y sensores. "
-                "Todo se queda en tu teléfono.",
-            ),
+            "fr-FR": ("Stride+ mensuel", "Le coach complet, mois par mois."),
+            "en-US": ("Stride+ monthly", "The full coach, month by month."),
+            "es-ES": ("Stride+ mensual", "El entrenador completo, mes a mes."),
         },
     },
     {
@@ -81,27 +72,17 @@ OFFERS = [
         "period": "ONE_YEAR",
         "price": 119.99,
         "texts": {
-            "fr-FR": (
-                "Stride+ annuel",
-                "Douze mois de coach complet, à un tiers de moins que le "
-                "mois par mois. Plan adaptatif, alimentation, course, "
-                "montre et capteurs. Tout reste sur ton téléphone.",
-            ),
-            "en-US": (
-                "Stride+ yearly",
-                "Twelve months of the full coach, a third less than paying "
-                "monthly. Adaptive plan, nutrition, running, watch and "
-                "sensors. Everything stays on your phone.",
-            ),
-            "es-ES": (
-                "Stride+ anual",
-                "Doce meses del entrenador completo, un tercio menos que "
-                "mes a mes. Plan adaptativo, nutrición, carrera, reloj y "
-                "sensores. Todo se queda en tu teléfono.",
-            ),
+            "fr-FR": ("Stride+ annuel", "Douze mois de coach, un tiers de moins."),
+            "en-US": ("Stride+ yearly", "Twelve months of coach, a third less."),
+            "es-ES": ("Stride+ anual", "Doce meses de entrenador, un tercio menos."),
         },
     },
 ]
+
+# Ce qu'Apple accepte comme description d'abonnement. Vérifié avant d'écrire
+# plutôt qu'après avoir été refusé : un texte trop long ne se voit pas à
+# l'œil, et le refus arrive une requête trop tard.
+DESCRIPTION_LIMIT = 55
 
 # Le territoire dont le prix commande tous les autres. Apple convertit le
 # reste du monde à partir de celui-là.
@@ -275,37 +256,70 @@ def ensure_offer_texts(client: Client, subscription_id: str, texts: dict) -> Non
             print(f"::warning::Texte {locale} refusé : {refusal.detail}")
 
 
+def all_pages(client: Client, path: str) -> list[dict]:
+    """Toutes les pages, et non la première.
+
+    Apple plafonne une page à deux cents entrées, et la grille des prix en
+    compte largement plus. Le premier essai s'est arrêté à la première page,
+    et a conclu que le point le plus proche de 119,99 € était 24,90 € — ce
+    qui n'était pas faux dans ce qu'il avait lu, et complètement faux dans
+    la réalité. Un « plus proche » calculé sur une liste tronquée est le
+    genre d'erreur qui ne se signale pas toute seule.
+    """
+    items: list[dict] = []
+    page = client.call(path)
+    while True:
+        items.extend(page.get("data", []))
+        following = (page.get("links") or {}).get("next")
+        if not following:
+            return items
+        # Le lien rendu est absolu ; le client, lui, préfixe. On lui repasse
+        # ce qui suit /v1/.
+        page = client.call(following.split("/v1/", 1)[-1])
+
+
+def territory_of(point: dict) -> str:
+    relationship = (point.get("relationships") or {}).get("territory") or {}
+    return ((relationship.get("data") or {}).get("id")) or ""
+
+
 def ensure_price(client: Client, subscription_id: str, wanted: float) -> None:
     existing = client.call(
-        f"subscriptions/{subscription_id}/prices"
-        f"?filter[territory]={TERRITORY}&limit=50"
+        f"subscriptions/{subscription_id}/prices?limit=50"
     ).get("data", [])
     if existing:
         print(f"    prix déjà posé ({len(existing)})")
         return
 
-    points = client.call(
-        f"subscriptions/{subscription_id}/pricePoints"
-        f"?filter[territory]={TERRITORY}&limit=200"
-    ).get("data", [])
+    points = [
+        point
+        for point in all_pages(
+            client,
+            f"subscriptions/{subscription_id}/pricePoints"
+            f"?filter[territory]={TERRITORY}&limit=200",
+        )
+        # Le filtre est passé à Apple, et vérifié au retour : un point d'un
+        # autre territoire porte un prix dans une autre monnaie, et « 14,99 »
+        # y désigne autre chose. Posé tel quel, il fait échouer la tarification
+        # sans dire pourquoi.
+        if territory_of(point) in ("", TERRITORY)
+    ]
     if not points:
-        print("::warning::Apple ne propose aucun point de prix pour ce territoire.")
+        print(f"::error::Aucun point de prix pour {TERRITORY}.")
         return
 
-    # Le point le plus proche du prix voulu. Apple n'accepte pas n'importe
-    # quelle valeur : la grille est fixe, et 14,99 € en fait partie — mais on
-    # ne le suppose pas, on cherche.
-    def distance(point: dict) -> float:
+    def price_of(point: dict) -> float:
         try:
-            return abs(float(point["attributes"]["customerPrice"]) - wanted)
+            return float(point["attributes"]["customerPrice"])
         except (KeyError, TypeError, ValueError):
             return float("inf")
 
-    best = min(points, key=distance)
-    price = best["attributes"].get("customerPrice")
-    if distance(best) > 0.01:
+    exact = [point for point in points if abs(price_of(point) - wanted) < 0.005]
+    chosen = exact[0] if exact else min(points, key=lambda p: abs(price_of(p) - wanted))
+    if not exact:
         print(
-            f"::warning::Pas de point à {wanted} € — le plus proche est {price} €."
+            f"::warning::Pas de point à {wanted} € parmi {len(points)} —"
+            f" le plus proche est {price_of(chosen)} €."
         )
 
     try:
@@ -315,7 +329,8 @@ def ensure_price(client: Client, subscription_id: str, wanted: float) -> None:
             body={
                 "data": {
                     "type": "subscriptionPrices",
-                    "attributes": {"preserveCurrentPrice": False},
+                    # Sans date de début : le prix s'applique tout de suite.
+                    "attributes": {"startDate": None},
                     "relationships": {
                         "subscription": {
                             "data": {"type": "subscriptions", "id": subscription_id}
@@ -323,14 +338,14 @@ def ensure_price(client: Client, subscription_id: str, wanted: float) -> None:
                         "subscriptionPricePoint": {
                             "data": {
                                 "type": "subscriptionPricePoints",
-                                "id": best["id"],
+                                "id": chosen["id"],
                             }
                         },
                     },
                 }
             },
         )
-        print(f"    prix posé : {price} € ({TERRITORY})")
+        print(f"    prix posé : {price_of(chosen)} € ({TERRITORY})")
     except AppleRefused as refusal:
         print(f"::error::Prix refusé : {refusal.detail}")
 
@@ -344,6 +359,20 @@ def main() -> int:
         return 1
 
     print(f"Fiche : « {name} » ({BUNDLE_ID})\n")
+
+    too_long = [
+        (offer["productId"], locale, len(description))
+        for offer in OFFERS
+        for locale, (_, description) in offer["texts"].items()
+        if len(description) > DESCRIPTION_LIMIT
+    ]
+    for product, locale, length in too_long:
+        print(
+            f"::error::{product} {locale} : description de {length} caractères,"
+            f" la limite est {DESCRIPTION_LIMIT}."
+        )
+    if too_long:
+        return 1
 
     try:
         group_id = ensure_group(client, app_id)
