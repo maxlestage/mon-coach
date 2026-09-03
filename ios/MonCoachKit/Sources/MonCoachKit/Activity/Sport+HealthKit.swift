@@ -130,9 +130,13 @@ extension Sport {
 /// arrière sans choisir — et on choisit le cas le plus courant, celui qui se
 /// corrige d'un geste si l'athlète veut autre chose.
 ///
-/// Un type qu'on ne sait pas nommer devient `.other` plutôt que d'être jeté :
-/// une séance faite ailleurs compte dans la semaine même si son nom exact
-/// nous échappe, et la charge d'entraînement serait fausse sans elle.
+/// Un type qu'on ne sait pas nommer devient `.crossTraining` plutôt que
+/// d'être jeté : une séance faite ailleurs compte dans la semaine même si son
+/// nom exact nous échappe, et la charge d'entraînement serait fausse sans
+/// elle. `crossTraining` est le fourre-tout honnête du catalogue, et c'est
+/// aussi le nom qu'Apple donne à la même idée — le sport n'a pas de cas
+/// « autre », et lui en inventer un pour l'occasion ferait une case de plus
+/// dans quarante-sept `switch` exhaustifs.
 extension Sport {
     public static func from(_ activity: HKWorkoutActivityType) -> Sport {
         switch activity {
@@ -167,7 +171,7 @@ extension Sport {
         case .golf: .golf
         case .equestrianSports: .equestrian
         case .dance, .cardioDance, .socialDance: .dance
-        default: .other
+        default: .crossTraining
         }
     }
 }
