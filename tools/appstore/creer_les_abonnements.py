@@ -215,7 +215,14 @@ def ensure_offer(client: Client, group_id: str, offer: dict, known: dict) -> str
                         "familySharable": False,
                     },
                     "relationships": {
-                        "subscriptionGroup": {
+                        # « group », et non « subscriptionGroup » : la
+                        # relation ne porte pas le nom de la ressource
+                        # qu'elle pointe. Apple l'avait dit clairement —
+                        # « 'subscriptionGroup' is not a relationship on the
+                        # resource 'subscriptions' » — ce qui vaut d'être
+                        # noté, parce que le voisin `subscriptionGroup-
+                        # Localizations` emploie bien l'autre nom.
+                        "group": {
                             "data": {"type": "subscriptionGroups", "id": group_id}
                         }
                     },
