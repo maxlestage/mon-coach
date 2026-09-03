@@ -82,19 +82,49 @@ public struct BodyLog: Codable, Sendable, Equatable, Identifiable {
     public var weightKg: Double
     public var bodyFatPercent: Double?
     public var waistCm: Double?
+    /// Les photos prises ce jour-là, par identifiant.
+    ///
+    /// Pourquoi des photos à côté des nombres
+    /// --------------------------------------
+    /// Le journal corporel ne connaissait que des chiffres. Or trois mois de
+    /// chiffres ne valent pas deux photos côte à côte : la balance bouge de
+    /// six cents grammes par semaine, ce qui ne se voit pas, alors que la
+    /// même personne à trois mois d'écart se voit tout de suite.
+    ///
+    /// C'est aussi la fonctionnalité qui tire le plus de « rien ne sort du
+    /// téléphone » : personne n'envoie ces photos-là sur un serveur.
+    ///
+    /// Les images vivent en fichiers à part, comme celles des sorties :
+    /// l'état est relu et réécrit à chaque geste, et y coller des photos le
+    /// ferait peser cent mégaoctets.
+    public var photoIDs: [String]
 
     public init(
         id: UUID = UUID(),
         date: Date,
         weightKg: Double,
         bodyFatPercent: Double? = nil,
-        waistCm: Double? = nil
+        waistCm: Double? = nil,
+        photoIDs: [String] = []
     ) {
         self.id = id
         self.date = date
         self.weightKg = weightKg
         self.bodyFatPercent = bodyFatPercent
         self.waistCm = waistCm
+        self.photoIDs = photoIDs
+    }
+
+    /// Absentes de tout ce qui a été noté avant les photos. Les exiger
+    /// rendrait illisible l'historique entier.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        date = try container.decode(Date.self, forKey: .date)
+        weightKg = try container.decode(Double.self, forKey: .weightKg)
+        bodyFatPercent = try container.decodeIfPresent(Double.self, forKey: .bodyFatPercent)
+        waistCm = try container.decodeIfPresent(Double.self, forKey: .waistCm)
+        photoIDs = try container.decodeIfPresent([String].self, forKey: .photoIDs) ?? []
     }
 }
 
