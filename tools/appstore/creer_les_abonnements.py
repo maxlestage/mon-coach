@@ -322,32 +322,66 @@ def ensure_price(client: Client, subscription_id: str, wanted: float) -> None:
             f" le plus proche est {price_of(chosen)} €."
         )
 
-    try:
-        client.call(
-            "subscriptionPrices",
-            method="POST",
-            body={
-                "data": {
-                    "type": "subscriptionPrices",
-                    # Sans date de début : le prix s'applique tout de suite.
-                    "attributes": {"startDate": None},
-                    "relationships": {
-                        "subscription": {
-                            "data": {"type": "subscriptions", "id": subscription_id}
-                        },
-                        "subscriptionPricePoint": {
-                            "data": {
-                                "type": "subscriptionPricePoints",
-                                "id": chosen["id"],
-                            }
-                        },
-                    },
-                }
+    post_price(client, subscription_id, chosen, price_of(chosen))
+
+
+# Les formes de requête à essayer pour poser un prix, de la plus simple à la
+# plus explicite.
+#
+# Pourquoi une échelle et non un pari
+# -----------------------------------
+# Apple refuse la tarification par un message qui ne dit rien de la cause :
+# « an error occurred while processing the pricing information ». Le point de
+# prix, lui, est le bon — la version précédente cherchait le plus proche et
+# se trompait de deux ordres de grandeur ; celle-ci trouve l'exact et se fait
+# refuser quand même. Ce qui reste en cause est donc la forme du corps.
+#
+# Deviner une quatrième fois coûterait un aller-retour par hypothèse. Les
+# essayer toutes en un passage coûte un aller-retour en tout, et rend une
+# réponse plutôt qu'une supposition : le journal dit laquelle est passée, et
+# les suivantes ne sont même pas tentées.
+PRICE_SHAPES = [
+    ("sans attribut", {}, False),
+    ("preserveCurrentPrice", {"preserveCurrentPrice": False}, False),
+    ("sans attribut + territoire", {}, True),
+    ("preserveCurrentPrice + territoire", {"preserveCurrentPrice": False}, True),
+    ("startDate nul", {"startDate": None}, False),
+]
+
+
+def post_price(
+    client: Client, subscription_id: str, point: dict, price: float
+) -> None:
+    refusals = []
+    for label, attributes, with_territory in PRICE_SHAPES:
+        relationships = {
+            "subscription": {
+                "data": {"type": "subscriptions", "id": subscription_id}
             },
-        )
-        print(f"    prix posé : {price_of(chosen)} € ({TERRITORY})")
-    except AppleRefused as refusal:
-        print(f"::error::Prix refusé : {refusal.detail}")
+            "subscriptionPricePoint": {
+                "data": {"type": "subscriptionPricePoints", "id": point["id"]}
+            },
+        }
+        if with_territory:
+            relationships["territory"] = {
+                "data": {"type": "territories", "id": TERRITORY}
+            }
+
+        data: dict = {"type": "subscriptionPrices", "relationships": relationships}
+        if attributes:
+            data["attributes"] = attributes
+
+        try:
+            client.call("subscriptionPrices", method="POST", body={"data": data})
+        except AppleRefused as refusal:
+            refusals.append(f"{label} → {refusal.detail}")
+            continue
+        print(f"    prix posé : {price} € ({TERRITORY}) — forme « {label} »")
+        return
+
+    print(f"::error::Aucune forme acceptée pour le prix {price} € :")
+    for refusal in refusals:
+        print(f"::error::  {refusal}")
 
 
 def main() -> int:
