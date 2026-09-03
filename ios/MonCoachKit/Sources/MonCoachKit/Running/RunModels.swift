@@ -194,6 +194,31 @@ public struct PlannedRun: Codable, Sendable, Equatable, Identifiable, Hashable {
     }
 }
 
+extension PlannedRun {
+
+    /// Ce que la sortie demande, en une ligne.
+    ///
+    /// Une sortie prescrite se définit par sa distance, par sa durée, ou par
+    /// ses répétitions — jamais par les trois. Chaque écran qui l'affichait
+    /// choisissait jusqu'ici la distance et laissait les autres muettes :
+    /// une séance de quarante-cinq minutes s'affichait sans rien du tout.
+    public func summary(unit: UnitSystem, language: Language = .french) -> String? {
+        // Un fractionné se dit par ses répétitions : « 6 × 400 m » porte
+        // toute la séance, là où « 2,40 km » n'en dit rien.
+        if intervals.count == 1, let block = intervals.first, block.repetitions > 0 {
+            let leg = Format.distance(meters: block.meters, unit: unit, language: language)
+            return "\(block.repetitions) × \(leg)"
+        }
+        if let targetMeters, targetMeters > 0 {
+            return Format.distance(meters: targetMeters, unit: unit, language: language)
+        }
+        if let targetDuration, targetDuration > 0 {
+            return Format.duration(minutes: Int((targetDuration / 60).rounded()), language: language)
+        }
+        return nil
+    }
+}
+
 /// Une répétition d'un fractionné.
 public struct RunInterval: Codable, Sendable, Equatable, Hashable {
     public var repetitions: Int

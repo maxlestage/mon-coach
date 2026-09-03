@@ -1,4 +1,5 @@
 import Foundation
+import WidgetKit
 import Observation
 import MonCoachKit
 
@@ -51,6 +52,11 @@ final class WatchStore {
             Task { @MainActor in self?.pendingUploads = 0 }
         }
         link.activate()
+
+        // Le cadran est réécrit dès le démarrage, et pas seulement à la
+        // réception : la montre peut avoir été redémarrée sans que le
+        // téléphone n'ait rien de neuf à envoyer.
+        if let cached = snapshot { pushToComplication(cached) }
     }
 
     // MARK: - Instantané
@@ -61,6 +67,19 @@ final class WatchStore {
         if let current = snapshot, current.generatedAt > fresh.generatedAt { return }
         snapshot = fresh
         try? WatchSyncCodec.encode(fresh).write(to: cacheURL, options: [.atomic])
+        pushToComplication(fresh)
+    }
+
+    /// Réécrit ce que le cadran affiche.
+    ///
+    /// La complication vit dans une extension : elle ne voit ni cette
+    /// mémoire ni ce cache, seulement le fichier du groupe partagé. Sans
+    /// cette ligne, le cadran resterait vide quoi que le téléphone envoie.
+    private func pushToComplication(_ fresh: WatchSnapshot) {
+        let store = WidgetSnapshotStore.shared()
+        if store.save(WidgetSnapshot.make(watch: fresh)) {
+            WidgetCenter.shared.reloadAllTimelines()
+        }
     }
 
     private static func loadCache(from url: URL) -> WatchSnapshot? {

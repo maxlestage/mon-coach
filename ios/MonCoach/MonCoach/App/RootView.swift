@@ -126,14 +126,33 @@ struct RootView: View {
             // Les intentions écrivent alors dans le magasin affiché, et non
             // dans une copie qui serait écrasée au geste suivant.
             router.live = store
+            WidgetBridge.push(store: store)
         }
         // L'instantané part vers la montre à chaque changement qui la
         // concerne : nouvelle séance enregistrée, nouveau bloc, retour au
         // premier plan après une nuit.
-        .onChange(of: store.history) { _, _ in watchLink.push() }
-        .onChange(of: store.plan) { _, _ in watchLink.push() }
+        // L'écran d'accueil suit les mêmes changements que la montre : ce
+        // qui vaut d'être poussé au poignet vaut d'être écrit sous l'icône.
+        .onChange(of: store.history) { _, _ in
+            watchLink.push()
+            WidgetBridge.push(store: store)
+        }
+        .onChange(of: store.plan) { _, _ in
+            watchLink.push()
+            WidgetBridge.push(store: store)
+        }
+        // La langue aussi : l'instantané porte des phrases déjà traduites,
+        // et un widget resté en français après un passage à l'anglais est
+        // le genre de détail qu'on ne pardonne pas à une application payante.
+        .onChange(of: store.language) { _, _ in WidgetBridge.push(store: store) }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active { watchLink.push() }
+            if phase == .active {
+                watchLink.push()
+                // Le jour a pu changer pendant la nuit sans que rien d'autre
+                // ne bouge : l'instantané d'hier décrirait alors une journée
+                // qui n'est plus.
+                WidgetBridge.push(store: store)
+            }
         }
     }
 

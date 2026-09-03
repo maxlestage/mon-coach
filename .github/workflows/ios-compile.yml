@@ -72,8 +72,10 @@ jobs:
 
       - name: Compiler l'iPhone, la montre et les widgets
         run: |
-          # Le schéma MonCoach entraîne les trois cibles : l'application, la
-          # montre et l'extension de widgets. Les trois sont donc lues.
+          # Le schéma MonCoach entraîne les quatre cibles : l'application, la
+          # montre, l'extension de widgets et la complication. Toutes sont
+          # donc lues — les deux extensions parce qu'elles sont embarquées
+          # par les applications qui les portent.
           #
           # Sans signature : c'est la compilation qu'on vérifie, pas le droit
           # de distribuer. Cela évite de créer un certificat — un compte n'en

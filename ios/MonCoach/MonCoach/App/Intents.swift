@@ -181,12 +181,13 @@ struct TodaySummaryIntent: AppIntent {
 
         // La sortie prévue s'ajoute quand il y en a une : un jour peut porter
         // une séance et une sortie, ce sont deux demandes, pas deux états.
-        if let run = briefing.plannedRun, briefing.recordedRun == nil {
-            let km = Format.number(Double(run.meters) / 1000, decimals: 1, language: language)
+        if let run = briefing.plannedRun,
+           briefing.recordedRun == nil,
+           let demand = run.summary(unit: store.profile?.unit ?? .metric, language: language) {
             return .result(dialog: IntentDialog(stringLiteral: LocalizedText(
-                fr: "\(sentence.fr) Et \(km) km de course.",
-                en: "\(sentence.en) Plus a \(km) km run.",
-                es: "\(sentence.es) Y \(km) km de carrera."
+                fr: "\(sentence.fr) Et \(demand) de course.",
+                en: "\(sentence.en) Plus a \(demand) run.",
+                es: "\(sentence.es) Y \(demand) de carrera."
             )[language]))
         }
         return .result(dialog: IntentDialog(stringLiteral: sentence[language]))

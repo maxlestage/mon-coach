@@ -6,6 +6,7 @@ import MonCoachKit
 @main
 struct MonCoachWidgets: WidgetBundle {
     var body: some Widget {
+        TodayWidget()
         WorkoutLiveActivity()
         RunLiveActivity()
     }
