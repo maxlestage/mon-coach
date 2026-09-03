@@ -393,7 +393,7 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				CODE_SIGN_ENTITLEMENTS = MonCoach.entitlements;
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Stride se connecte aux ceintures cardio et aux capteurs de puissance et de cadence pendant tes sorties. Rien n'est envoyé nulle part : les mesures restent sur ton téléphone.";
-				INFOPLIST_KEY_NSHealthShareUsageDescription = "Stride lit ton poids, tes nuits et les séances enregistrées par d'autres applications, pour éviter de te les redemander. Rien n'est envoyé nulle part.";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Stride lit ton poids, tes nuits et les séances enregistrées par d'autres applications, pour éviter de te les redemander. Si tu actives le suivi du cycle, il lit aussi le premier jour de tes règles, et rien d'autre. Tout reste sur ton téléphone.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Stride n'écrit rien dans Santé depuis l'iPhone : seule la montre y enregistre tes entraînements, pour fermer tes anneaux.";
 				INFOPLIST_FILE = MonCoach/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -434,7 +434,7 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				CODE_SIGN_ENTITLEMENTS = MonCoach.entitlements;
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Stride se connecte aux ceintures cardio et aux capteurs de puissance et de cadence pendant tes sorties. Rien n'est envoyé nulle part : les mesures restent sur ton téléphone.";
-				INFOPLIST_KEY_NSHealthShareUsageDescription = "Stride lit ton poids, tes nuits et les séances enregistrées par d'autres applications, pour éviter de te les redemander. Rien n'est envoyé nulle part.";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Stride lit ton poids, tes nuits et les séances enregistrées par d'autres applications, pour éviter de te les redemander. Si tu actives le suivi du cycle, il lit aussi le premier jour de tes règles, et rien d'autre. Tout reste sur ton téléphone.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Stride n'écrit rien dans Santé depuis l'iPhone : seule la montre y enregistre tes entraînements, pour fermer tes anneaux.";
 				INFOPLIST_FILE = MonCoach/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

@@ -81,6 +81,22 @@ public struct UserProfile: Codable, Sendable, Equatable, Identifiable {
     /// Whether the run map is allowed to contact a tile server.
     public var loadsMapTiles: Bool { mapTiles ?? true }
 
+    // MARK: Cycle
+
+    /// Le premier jour des dernières règles, quand l'athlète suit son cycle.
+    ///
+    /// Nil par défaut, et pour tout le monde : c'est une donnée intime qui ne
+    /// se demande pas au passage. Elle se renseigne dans le profil, ou se lit
+    /// dans Santé quand l'athlète y consent — et rien ne s'affiche tant
+    /// qu'elle est absente.
+    public var lastPeriodStart: Date?
+    /// La durée habituelle du cycle, en jours.
+    ///
+    /// Vingt-huit par défaut parce qu'il faut bien une valeur, mais la
+    /// moyenne réelle varie beaucoup d'une personne à l'autre : c'est
+    /// justement pour cela que le moteur mesure au lieu de supposer.
+    public var cycleLength: Int
+
     // MARK: Preferences
     public var unit: UnitSystem
     /// Chosen display language. Nil means "follow the system", which is what
@@ -116,6 +132,8 @@ public struct UserProfile: Codable, Sendable, Equatable, Identifiable {
         dislikedFoodIDs: Set<String>? = nil,
         running: RunningProfile? = nil,
         mapTiles: Bool? = nil,
+        lastPeriodStart: Date? = nil,
+        cycleLength: Int = CycleEngine.defaultLength,
         unit: UnitSystem = .metric,
         language: Language? = nil
     ) {
@@ -147,6 +165,8 @@ public struct UserProfile: Codable, Sendable, Equatable, Identifiable {
         self.dislikedFoodIDs = dislikedFoodIDs
         self.running = running
         self.mapTiles = mapTiles
+        self.lastPeriodStart = lastPeriodStart
+        self.cycleLength = cycleLength
         self.unit = unit
         self.language = language
     }

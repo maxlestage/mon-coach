@@ -201,6 +201,30 @@ public final class CoachStore {
             .flatMap { log in log.photoIDs.map { (log, $0) } }
     }
 
+    /// Où en est le cycle, et ce que les bilans de l'athlète en disent.
+    ///
+    /// Nil tant qu'elle n'a pas renseigné le premier jour de ses dernières
+    /// règles : c'est une donnée intime, elle ne se devine pas, et rien ne
+    /// s'affiche sans elle.
+    public func cyclePattern(on date: Date = Date()) -> CyclePattern? {
+        guard let profile, let start = profile.lastPeriodStart else { return nil }
+        return CycleEngine.pattern(
+            on: date,
+            lastPeriodStart: start,
+            length: profile.cycleLength,
+            checks: history.readiness,
+            profile: profile
+        )
+    }
+
+    /// Note le premier jour des dernières règles.
+    public func setLastPeriodStart(_ date: Date?) {
+        guard var profile else { return }
+        profile.lastPeriodStart = date
+        self.profile = profile
+        save()
+    }
+
     /// Comment reprendre, si l'athlète revient d'un arrêt.
     ///
     /// Nil quand il n'y a rien à signaler — c'est le cas le plus fréquent, et

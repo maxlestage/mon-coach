@@ -29,6 +29,9 @@ final class HealthReader {
 
     private let store = HKHealthStore()
 
+    /// L'athlète suit-elle son cycle ? Décide si on demande la donnée.
+    var wantsCycle = false
+
     /// Les noms sous lesquels nos propres enregistrements apparaissent.
     ///
     /// Une séance que nous avons écrite et que nous relirions serait comptée
@@ -43,6 +46,12 @@ final class HealthReader {
         var types: Set<HKObjectType> = [HKObjectType.workoutType()]
         if let mass = HKObjectType.quantityType(forIdentifier: .bodyMass) { types.insert(mass) }
         if let sleep = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) { types.insert(sleep) }
+        // Le cycle n'est demandé que si l'athlète a activé son suivi : une
+        // case de plus dans l'écran d'autorisation est une raison de plus de
+        // tout refuser, et cette donnée-là ne se demande pas au passage.
+        if wantsCycle, let flow = HKObjectType.categoryType(forIdentifier: .menstrualFlow) {
+            types.insert(flow)
+        }
         return types
     }
 
@@ -159,6 +168,42 @@ final class HealthReader {
                         source: workout.sourceRevision.source.name
                     )
                 })
+            }
+            store.execute(query)
+        }
+    }
+
+    /// Le premier jour des dernières règles, d'après Santé.
+    ///
+    /// Santé enregistre un échantillon de flux par jour. Le début d'un cycle
+    /// est le premier jour d'une suite : on remonte donc les échantillons du
+    /// plus récent au plus ancien et on s'arrête dès qu'un jour manque. Sans
+    /// cela, une saisie isolée d'il y a trois mois passerait pour le début
+    /// du cycle en cours.
+    func lastPeriodStart(calendar: Calendar = .current) async -> Date? {
+        guard let type = HKObjectType.categoryType(forIdentifier: .menstrualFlow) else { return nil }
+        let since = calendar.date(byAdding: .day, value: -120, to: Date()) ?? Date()
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(
+                sampleType: type,
+                predicate: HKQuery.predicateForSamples(withStart: since, end: Date()),
+                limit: HKObjectQueryNoLimit,
+                sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)]
+            ) { _, results, _ in
+                let samples = (results as? [HKCategorySample]) ?? []
+                let flowing = samples.filter {
+                    $0.value != HKCategoryValueVaginalBleeding.none.rawValue
+                }
+                guard var start = flowing.first?.startDate else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+                let days = Set(flowing.map { calendar.startOfDay(for: $0.startDate) })
+                while let previous = calendar.date(byAdding: .day, value: -1, to: start),
+                      days.contains(calendar.startOfDay(for: previous)) {
+                    start = previous
+                }
+                continuation.resume(returning: calendar.startOfDay(for: start))
             }
             store.execute(query)
         }

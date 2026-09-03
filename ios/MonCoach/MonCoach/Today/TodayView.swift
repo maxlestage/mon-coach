@@ -38,14 +38,20 @@ struct TodayView: View {
                         if let comeback = store.returnPlan() {
                             returnCard(comeback).appears(1)
                         }
-                        readinessCard(briefing).appears(2)
-                        stateCard(briefing).appears(3)
-                        if let run = briefing.plannedRun {
-                            plannedRunCard(run, done: briefing.recordedRun).appears(4)
+                        // Après la reprise, avant le bilan de forme : elle
+                        // situe la journée, et c'est le bilan qui décide de
+                        // la séance. Jamais l'inverse.
+                        if let cycle = store.cyclePattern() {
+                            cycleCard(cycle).appears(2)
                         }
-                        nutritionCard(briefing.nutrition).appears(5)
-                        trialBanner.appears(6)
-                        insightsCard.appears(7)
+                        readinessCard(briefing).appears(3)
+                        stateCard(briefing).appears(4)
+                        if let run = briefing.plannedRun {
+                            plannedRunCard(run, done: briefing.recordedRun).appears(5)
+                        }
+                        nutritionCard(briefing.nutrition).appears(6)
+                        trialBanner.appears(7)
+                        insightsCard.appears(8)
                     } else {
                         Card(title: LocalizedText(fr: "Aucun programme", en: "No programme", es: "Sin programa")[language]) {
                             Text(LocalizedText(fr: "Le coach n'a pas encore de plan pour toi.", en: "The coach has no plan for you yet.", es: "El entrenador aún no tiene un plan para ti.")[language])
@@ -162,6 +168,51 @@ struct TodayView: View {
 
     // MARK: - Cards
 
+
+
+    // MARK: - Le cycle
+
+    /// Où en est le cycle, et ce que ses propres bilans en disent.
+    ///
+    /// Cette carte ne change aucune charge. C'est délibéré : les effets des
+    /// phases du cycle sur la performance sont petits, contradictoires d'une
+    /// étude à l'autre, et écrasés par la variation entre personnes.
+    /// Appliquer une règle de population à quelqu'un, c'est se tromper la
+    /// plupart du temps avec l'assurance d'un chiffre. L'ajustement du jour
+    /// reste celui du bilan de forme, qui mesure la personne.
+    private func cycleCard(_ cycle: CyclePattern) -> some View {
+        Card(
+            title: cycle.phase.label[language],
+            subtitle: cycle.isMeaningful
+                ? LocalizedText(fr: "Mesuré sur tes bilans", en: "Measured on your check-ins", es: "Medido en tus balances")[language]
+                : nil
+        ) {
+            VStack(alignment: .leading, spacing: 10) {
+                CoachText(cycle.message, font: Theme.bodyFont)
+                if cycle.isMeaningful,
+                   let phase = cycle.averageReadiness, let overall = cycle.overallReadiness {
+                    HStack(spacing: 12) {
+                        StatTile(
+                            value: "\(phase)",
+                            label: LocalizedText(fr: "forme ici", en: "readiness here", es: "forma aquí")[language],
+                            tint: phase < overall ? Theme.warning : Theme.accent,
+                            amount: Double(phase)
+                        )
+                        StatTile(
+                            value: "\(overall)",
+                            label: LocalizedText(fr: "ta moyenne", en: "your average", es: "tu media")[language],
+                            amount: Double(overall)
+                        )
+                        StatTile(
+                            value: "\(cycle.samples)",
+                            label: LocalizedText(fr: "bilans", en: "check-ins", es: "balances")[language],
+                            amount: Double(cycle.samples)
+                        )
+                    }
+                }
+            }
+        }
+    }
 
     // MARK: - La reprise
 
