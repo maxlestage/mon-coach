@@ -75,6 +75,10 @@ jobs:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID || secrets.APPSTORE_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID || secrets.APPSTORE_ISSUER_ID }}
         run: |
+          # pipefail, sans quoi le code de sortie est celui de `tee` et non
+          # celui du script : une erreur 500 d'Apple a ainsi fait passer un
+          # abandon en plein travail pour une étape réussie.
+          set -o pipefail
           echo "::group::Abonnements"
           python3 tools/appstore/creer_les_abonnements.py | tee "$RUNNER_TEMP/abonnements.txt"
           echo "::endgroup::"
@@ -85,6 +89,7 @@ jobs:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID || secrets.APPSTORE_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID || secrets.APPSTORE_ISSUER_ID }}
         run: |
+          set -o pipefail
           echo "::group::Langues de la fiche"
           python3 tools/appstore/ajouter_les_langues.py | tee "$RUNNER_TEMP/langues.txt"
           echo "::endgroup::"
