@@ -6,7 +6,15 @@ import MonCoachKit
 @main
 struct MonCoachWidgets: WidgetBundle {
     var body: some Widget {
-        TodayWidget()
+        // TodayWidget() — retiré tant que le groupe d'applications n'existe
+        // pas chez Apple. Sans conteneur partagé, l'extension ne voit rien de
+        // ce que l'application écrit : le widget s'installerait, occuperait
+        // une place sur l'écran d'accueil, et n'afficherait jamais rien.
+        //
+        // Un widget vide est pire qu'un widget absent — on lui a fait de la
+        // place. Il revient en décommentant cette ligne, en réactivant la
+        // cible MonCoachWatchWidgets, et en retirant les quatre blocs DORMANT
+        // des entitlements. Le code et ses tests sont déjà là.
         WorkoutLiveActivity()
         RunLiveActivity()
     }

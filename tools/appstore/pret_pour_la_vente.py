@@ -230,9 +230,10 @@ def app_group(report: Report) -> None:
     else:
         report.comfort.append(
             f"Créer le groupe {APP_GROUP} sur developer.apple.com "
-            "(Certificates, Identifiers & Profiles → Identifiers → App Groups), "
-            "puis décommenter les quatre fichiers d'entitlements. "
-            "Sans lui, les widgets et la complication s'installent mais restent vides."
+            "(Certificates, Identifiers & Profiles → Identifiers → App Groups) "
+            "pour rallumer le widget d'écran d'accueil et la complication de "
+            "montre, aujourd'hui retirés du build faute de conteneur partagé. "
+            "La marche à suivre est écrite dans MonCoachWatchWidgets/StrideComplications.swift."
         )
 
 

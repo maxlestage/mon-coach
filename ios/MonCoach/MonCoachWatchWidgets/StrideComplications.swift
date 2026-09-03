@@ -1,3 +1,21 @@
+// CIBLE DÉSACTIVÉE — ce dossier n'est plus rattaché au projet Xcode.
+//
+// Une complication ne peut lire que le conteneur du groupe d'applications,
+// et ce groupe n'existe pas encore chez Apple. Livrée quand même, elle
+// occuperait une place sur le cadran pour n'y afficher jamais rien — ce qui
+// est pire que de n'y être pas.
+//
+// Le code reste ici, compilé nulle part, testé quand même : le moteur de
+// l'instantané et le chemin « montre » sont couverts par
+// WidgetSnapshotTests. Pour la rallumer :
+//
+//   1. Créer `group.com.maxlestage.fitnesscoach` sur developer.apple.com
+//      (Certificates, Identifiers & Profiles → Identifiers → App Groups)
+//   2. Retirer les quatre blocs DORMANT des fichiers d'entitlements
+//   3. Recréer la cible MonCoachWatchWidgets (extension de widget watchOS,
+//      identifiant com.maxlestage.fitnesscoach.watchkitapp.widgets), et
+//      décommenter TodayWidget() dans MonCoachWidgets.swift
+
 import SwiftUI
 import WidgetKit
 import MonCoachKit
