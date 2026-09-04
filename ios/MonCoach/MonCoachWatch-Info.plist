@@ -48,14 +48,25 @@
   passait à chaque appui sur Démarrer, pour tous les sports qui se
   déplacent : course, vélo, marche, rando.
 
-  UIBackgroundModes est déclaré à côté, avec la même valeur. Sur le
-  téléphone c'est la clé attendue ; sur la montre, WKBackgroundModes est
-  la clé documentée, mais le fil Apple qui décrit ce plantage sur watchOS
-  montre CoreLocation cherchant UIBackgroundModes là aussi. Les sources ne
-  tranchent pas, les deux clés ne coûtent rien, et le code ne pose de
-  toute façon plus l'assertion sans avoir lu le bundle : la déclaration
-  fait marcher le suivi écran éteint, elle n'est plus ce qui empêche de
-  planter.
+  Et c'est UIBackgroundModes qui le porte, pas WKBackgroundModes.
+
+  Les deux avaient d'abord été déclarées, faute de source qui tranche.
+  Apple a tranché, en refusant le build 79 à l'envoi :
+
+      Validation failed. Invalid Info.plist value. The value for the key
+      'WKBackgroundModes' in bundle MonCoach.app/Watch/MonCoachWatch.app
+      is invalid.
+
+  « location » n'est donc pas une valeur de WKBackgroundModes, qui ne
+  connaît que ses modes à lui — workout-processing et ses semblables. Le
+  suivi de position se déclare sur la montre comme sur le téléphone, dans
+  UIBackgroundModes, ce que disait déjà le fil Apple décrivant ce
+  plantage sur watchOS.
+
+  À noter : le refus est venu de la validation d'Apple, pas d'un plantage
+  au poignet. Le code ne pose plus l'assertion sans avoir lu le bundle,
+  donc une déclaration fausse ou absente coûte un suivi qui s'arrête
+  écran éteint — jamais une application qui meurt.
 
   NSLocationAlwaysAndWhenInUseUsageDescription accompagne la déclaration.
   L'application ne demande que « pendant l'utilisation », mais le suivi
@@ -73,7 +84,6 @@
 	<key>WKBackgroundModes</key>
 	<array>
 		<string>workout-processing</string>
-		<string>location</string>
 	</array>
 	<key>UIBackgroundModes</key>
 	<array>
