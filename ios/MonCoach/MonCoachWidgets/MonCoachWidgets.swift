@@ -245,7 +245,7 @@ struct RunLockScreenView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                Spacer()
+                Spacer(minLength: 8)
                 if state.elevationGain >= 10 {
                     VStack(alignment: .trailing, spacing: 2) {
                         Text("+\(state.elevationGain)")
@@ -256,8 +256,87 @@ struct RunLockScreenView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+                // Le tracé prend la place qui reste, et seulement s'il a
+                // quelque chose à dire : vide pendant les cinquante premiers
+                // mètres, sur un tapis, ou quand le signal ne prend pas. Un
+                // cadre vide à côté des chiffres ferait croire à une panne.
+                if !state.trace.isEmpty {
+                    TraceThumbnail(trace: state.trace, isPaused: state.isPaused)
+                        .frame(width: 56, height: 56)
+                }
             }
         }
         .padding(14)
+    }
+}
+
+
+/// La trace de la sortie, dessinée sur l'écran verrouillé.
+///
+/// Pourquoi un tracé et pas une carte
+/// ..................................
+/// Une Live Activity ne peut pas afficher de carte. Son extension n'a ni
+/// réseau, ni position, ni MapKit, et l'état qu'on lui passe est plafonné à
+/// quatre kilooctets — aucune tuile n'y tient. Ce qui tient, c'est la forme
+/// du parcours, réduite dans MonCoachKit à une cinquantaine de points sur un
+/// octet chacun.
+///
+/// Et c'est peut-être mieux ainsi : sur un écran verrouillé qu'on regarde
+/// une seconde, en courant, on ne lit pas une carte. On reconnaît une forme
+/// — la boucle qui se referme, l'aller-retour à mi-chemin.
+struct TraceShape: Shape {
+    var trace: TraceMiniature
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let points = trace.points
+        guard points.count >= 2 else { return path }
+        for (index, point) in points.enumerated() {
+            let place = CGPoint(
+                x: rect.minX + point.x * rect.width,
+                y: rect.minY + point.y * rect.height
+            )
+            if index == 0 {
+                path.move(to: place)
+            } else {
+                path.addLine(to: place)
+            }
+        }
+        return path
+    }
+}
+
+/// La vignette entière : le tracé, et le point où l'on se trouve.
+///
+/// Le point compte autant que le trait. Sans lui, une boucle ne dit pas où
+/// l'on en est ; avec lui, elle dit d'un coup d'œil s'il reste un quart ou
+/// la moitié du tour.
+struct TraceThumbnail: View {
+    var trace: TraceMiniature
+    var isPaused: Bool
+
+    /// La moitié de l'épaisseur du trait, pour que le tracé ne soit pas
+    /// coupé quand il touche le bord du cadre.
+    private let inset: CGFloat = 2
+
+    var body: some View {
+        GeometryReader { geometry in
+            let frame = CGRect(origin: .zero, size: geometry.size).insetBy(dx: inset, dy: inset)
+            ZStack {
+                TraceShape(trace: trace)
+                    .path(in: frame)
+                    .strokedPath(StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
+                    .foregroundStyle(isPaused ? Color.orange : Color.green)
+                if let current = trace.current {
+                    Circle()
+                        .fill(.white)
+                        .frame(width: 5, height: 5)
+                        .position(
+                            x: frame.minX + current.x * frame.width,
+                            y: frame.minY + current.y * frame.height
+                        )
+                }
+            }
+        }
     }
 }

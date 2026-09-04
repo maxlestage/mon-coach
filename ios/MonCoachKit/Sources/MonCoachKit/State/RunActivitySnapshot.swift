@@ -22,6 +22,12 @@ public struct RunActivitySnapshot: Codable, Sendable, Hashable {
     public var isPaused: Bool
     /// Vrai quand le signal ne permet pas de garantir les chiffres affichés.
     public var hasWeakSignal: Bool
+    /// La forme du parcours, dessinable telle quelle sur l'écran verrouillé.
+    ///
+    /// Vide tant qu'il n'y a rien à montrer — les cinquante premiers mètres,
+    /// une machine sans GPS, un signal qui ne prend pas. La vue s'en sert
+    /// comme d'une question : s'il y a une trace, elle la dessine.
+    public var trace: TraceMiniature
 
     public init(
         typeLabel: String,
@@ -31,7 +37,8 @@ public struct RunActivitySnapshot: Codable, Sendable, Hashable {
         startedAt: Date,
         movingSeconds: TimeInterval,
         isPaused: Bool,
-        hasWeakSignal: Bool
+        hasWeakSignal: Bool,
+        trace: TraceMiniature = .empty
     ) {
         self.typeLabel = typeLabel
         self.distance = distance
@@ -41,6 +48,7 @@ public struct RunActivitySnapshot: Codable, Sendable, Hashable {
         self.movingSeconds = movingSeconds
         self.isPaused = isPaused
         self.hasWeakSignal = hasWeakSignal
+        self.trace = trace
     }
 }
 
@@ -58,7 +66,13 @@ extension LocationTracker {
             startedAt: startedAt ?? Date(),
             movingSeconds: movingDuration,
             isPaused: state == .paused,
-            hasWeakSignal: !hasUsableSignal
+            hasWeakSignal: !hasUsableSignal,
+            // La trace nettoyée plutôt que les points bruts : c'est celle
+            // dont les chiffres au-dessus sont tirés, et elle a déjà écarté
+            // les points aberrants. Dessiner les points bruts montrerait des
+            // écarts que la distance affichée ignore — deux versions de la
+            // même sortie sur le même écran.
+            trace: TraceMiniature.make(from: trace?.samples.map(\.point) ?? points)
         )
     }
 }
