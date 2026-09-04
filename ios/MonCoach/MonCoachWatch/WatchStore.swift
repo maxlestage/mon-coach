@@ -17,34 +17,82 @@ final class WatchStore {
     private(set) var snapshot: WatchSnapshot?
     var activeSession: ActiveSession?
 
+    /// L'écran que l'accueil doit ouvrir, ou nul s'il n'a rien à ouvrir.
+    ///
+    /// L'intention vit ici plutôt que dans la vue, parce qu'elle naît à
+    /// deux endroits qui ne se voient pas : la liste des activités, qui
+    /// démarre, et la bannière du haut, qui rouvre ce qui tourne déjà. Un
+    /// drapeau posé par la vue ne savait dire que le premier cas — « une
+    /// sortie vient de commencer » — et une sortie déjà commencée ne le
+    /// faisait plus changer : la bannière était morte au toucher.
+    ///
+    /// Une route, elle, se repose à l'identique autant de fois qu'on veut.
+    var route: Route?
+
+    enum Route: Hashable { case activity, session }
+
     /// La session d'entraînement HealthKit, pour la séance comme pour les
     /// sorties. Une seule, tenue ici : c'est elle qui garde l'application
     /// éveillée, et elle doit survivre à l'écran qui l'a lancée.
     let workout = WatchWorkout()
 
-    /// Le GPS d'une sortie. Tenu ici et non dans l'écran de course : une
-    /// vue qu'on quitte d'un glissement détruit son état, et un tracker
-    /// détruit est une sortie perdue. L'accueil montre la sortie en cours
-    /// et permet d'y revenir, comme pour la séance.
-    let tracker = LocationTracker()
     /// Séances terminées sur la montre, en attente de confirmation de départ
     /// vers le téléphone. WatchConnectivity garde sa propre file ; ceci ne
     /// sert qu'à l'affichage « en attente de synchronisation ».
     private(set) var pendingUploads: Int = 0
 
-    private let link: PhoneLink
-    private let cacheURL: URL
+    private let link = PhoneLink()
+    private var cacheURL: URL?
+    /// Le réveil a-t-il déjà eu lieu ? Le rejouer relierait la montre au
+    /// téléphone une seconde fois pour rien.
+    private var awake = false
 
-    init() {
+    /// Le GPS d'une sortie.
+    ///
+    /// Il vit ici et non dans l'écran de course : une vue qu'on quitte d'un
+    /// glissement détruit son état, et un tracker détruit est une sortie
+    /// perdue. L'accueil montre la sortie en cours et permet d'y revenir,
+    /// comme pour la séance.
+    let tracker = LocationTracker()
+
+    /// Une sortie est-elle en cours, écran de course quitté ou non ?
+    var activityInProgress: Bool { tracker.isActive }
+
+    /// Rien ici ne fait de travail.
+    ///
+    /// L'init ouvrait le lien WatchConnectivity, lisait un cache sur
+    /// disque et écrivait dans le conteneur partagé du cadran — trois
+    /// choses qui parlent au système, exécutées avant que la première
+    /// image ne soit dessinée. Une seule qui échoue, et l'application
+    /// meurt au lancement : écran noir, aucune trace, rien à lire. C'est
+    /// la forme exacte du défaut qu'on cherchait, et même si ce n'était
+    /// pas celui-là, c'est une forme qu'il ne faut pas garder.
+    ///
+    /// Le magasin se construit donc sans rien demander à personne, et
+    /// l'application s'affiche. Le réveil vient après, depuis l'écran, où
+    /// un échec ne coûte qu'une fonction en moins.
+    init() {}
+
+    /// Relie la montre au téléphone, après la première image.
+    ///
+    /// Appelé depuis la vue racine. Idempotent : watchOS peut redessiner
+    /// la racine sans que la montre ait à se reconnecter.
+    func wakeUp() {
+        guard !awake else { return }
+        awake = true
+
         cacheURL = (try? FileManager.default.url(
             for: .applicationSupportDirectory,
             in: .userDomainMask,
             appropriateFor: nil,
             create: true
-        ))?.appending(path: "watch-snapshot.json") ?? URL.temporaryDirectory.appending(path: "watch-snapshot.json")
+        ))?.appending(path: "watch-snapshot.json")
 
-        link = PhoneLink()
-        snapshot = Self.loadCache(from: cacheURL)
+        if let cacheURL, let cached = Self.loadCache(from: cacheURL) {
+            snapshot = cached
+            pushToComplication(cached)
+        }
+
         link.onSnapshot = { [weak self] fresh in
             Task { @MainActor in self?.apply(fresh) }
         }
@@ -52,11 +100,6 @@ final class WatchStore {
             Task { @MainActor in self?.pendingUploads = 0 }
         }
         link.activate()
-
-        // Le cadran est réécrit dès le démarrage, et pas seulement à la
-        // réception : la montre peut avoir été redémarrée sans que le
-        // téléphone n'ait rien de neuf à envoyer.
-        if let cached = snapshot { pushToComplication(cached) }
     }
 
     // MARK: - Instantané
@@ -66,7 +109,7 @@ final class WatchStore {
         // plus récent arrivé par un autre canal.
         if let current = snapshot, current.generatedAt > fresh.generatedAt { return }
         snapshot = fresh
-        try? WatchSyncCodec.encode(fresh).write(to: cacheURL, options: [.atomic])
+        if let cacheURL { try? WatchSyncCodec.encode(fresh).write(to: cacheURL, options: [.atomic]) }
         pushToComplication(fresh)
     }
 
@@ -123,6 +166,7 @@ final class WatchStore {
     func startSession() {
         guard let session = todaySession else { return }
         activeSession = ActiveSession(session: session)
+        route = .session
         // La séance de salle ouvre aussi sa session d'entraînement : c'est
         // ce qui fait vibrer le poignet à la fin du repos même écran
         // éteint, mesure le cardio entre les séries, et ferme les anneaux.
@@ -145,6 +189,7 @@ final class WatchStore {
             }
         }
         activeSession = nil
+        route = nil
     }
 
     /// Abandonne la séance en cours sans rien enregistrer.
@@ -155,6 +200,7 @@ final class WatchStore {
     /// mot « abandonner » : l'écran le demande deux fois avant.
     func discardActiveSession() {
         activeSession = nil
+        route = nil
         workout.discard()
     }
 
@@ -178,11 +224,14 @@ final class WatchStore {
     /// se déplace — le tracker sait déjà ne rien allumer pour un rameur.
     func startActivity(sport: Sport, type: RunType) {
         tracker.start(sport: sport, type: type)
+        route = .activity
         Task { await workout.start(sport: sport) }
     }
 
-    /// Une sortie est-elle en cours, écran de course quitté ou non ?
-    var activityInProgress: Bool { tracker.isActive }
+    /// Rouvre l'écran de ce qui tourne déjà, sans rien redémarrer.
+    func reopenActivity() { route = .activity }
+
+    func reopenSession() { route = .session }
 
     /// Enregistre une sortie menée au poignet et la fait remonter.
     ///

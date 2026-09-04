@@ -10,11 +10,14 @@ import MonCoachKit
 /// chiffre, toujours le cardio et la dépense, parce que la session
 /// d'entraînement les mesure pour tous.
 ///
-/// Trois écrans : le choix, l'effort, le bilan. Le bilan est nouveau, et
-/// c'est lui qui répond à la question restée ouverte des machines : un home
-/// trainer affiche sa distance sur son propre écran, la montre ne la voit
-/// pas, et on la demande à la couronne avant d'enregistrer plutôt que
-/// d'écrire zéro kilomètre pour quarante minutes.
+/// Deux écrans : l'effort et le bilan. Le choix, lui, a quitté cette vue
+/// pour devenir une page de l'accueil — au poignet, ce qu'on fait à chaque
+/// sortie ne doit pas se trouver au fond d'un écran.
+///
+/// Le bilan répond à la question des machines : un home trainer affiche sa
+/// distance sur son propre écran, la montre ne la voit pas, et on la
+/// demande à la couronne avant d'enregistrer plutôt que d'écrire zéro
+/// kilomètre pour quarante minutes.
 struct WatchRunView: View {
     @Environment(WatchStore.self) private var store
     @Environment(\.dismiss) private var dismiss
@@ -27,22 +30,9 @@ struct WatchRunView: View {
     /// La distance dite à la couronne, en kilomètres, pour les machines.
     @State private var typedKm: Double = 0
 
-    /// Le sport de la dernière sortie, gardé d'une fois sur l'autre.
-    ///
-    /// Ce n'est pas un réglage du plan mais une habitude : quelqu'un qui
-    /// pédale tous les jours ne doit pas redescendre la liste chaque matin.
-    /// Le rang brut plutôt que le type : `AppStorage` ne sait garder que des
-    /// valeurs simples, et le catalogue des sports peut s'allonger sans que
-    /// ce qui est déjà écrit sur la montre devienne illisible.
-    @AppStorage("sport-de-la-sortie") private var lastSportID: String = Sport.run.rawValue
-
-    /// Les derniers sports pratiqués, du plus récent au plus ancien.
-    @AppStorage("sports-recents") private var recentIDs: String = ""
-
     private var tracker: LocationTracker { store.tracker }
     private var workout: WatchWorkout { store.workout }
     private var unit: UnitSystem { store.unit }
-    private var lastSport: Sport { Sport(rawValue: lastSportID) ?? .run }
 
     /// Ce que la sortie a produit, une fois arrêtée.
     struct Summary {
@@ -56,25 +46,6 @@ struct WatchRunView: View {
         var log: ActivityLog?
     }
 
-    /// Le haut du menu : ce que l'athlète fait vraiment.
-    ///
-    /// Quarante-huit sports ne se parcourent pas à la couronne. Les quatre
-    /// derniers pratiqués tiennent sur un écran et couvrent presque toutes
-    /// les sorties ; le reste attend derrière sa famille, à un appui.
-    private var favourites: [Sport] {
-        var result: [Sport] = []
-        for id in recentIDs.split(separator: ",") {
-            if let sport = Sport(rawValue: String(id)), !result.contains(sport) {
-                result.append(sport)
-            }
-        }
-        if !result.contains(lastSport) { result.insert(lastSport, at: 0) }
-        for fallback in [Sport.run, .ride, .walk] where result.count < 4 {
-            if !result.contains(fallback) { result.append(fallback) }
-        }
-        return Array(result.prefix(4))
-    }
-
     var body: some View {
         Group {
             if let summary {
@@ -82,7 +53,12 @@ struct WatchRunView: View {
             } else {
                 switch tracker.state {
                 case .idle, .requestingPermission:
-                    startScreen
+                    // On n'arrive plus ici par un menu : l'activité est
+                    // choisie sur l'accueil, et cet écran n'est poussé
+                    // qu'une fois qu'elle est partie. Reste le battement
+                    // entre l'appui et le premier point GPS, qui doit
+                    // dire qu'il se passe quelque chose.
+                    preparingScreen
                 case .denied:
                     deniedScreen
                 case .running, .paused, .finished:
@@ -105,173 +81,19 @@ struct WatchRunView: View {
     }
 
     private var title: String {
-        if summary != nil { return WatchUI.summary[language] }
-        switch tracker.state {
-        case .idle, .requestingPermission, .denied: return WatchUI.activity[language]
-        default: return tracker.sport.label[language]
-        }
+        summary != nil ? WatchUI.summary[language] : tracker.sport.label[language]
     }
 
-    // MARK: - Le choix
-
-    /// Le menu de départ.
-    ///
-    /// C'est l'écran entier, et pas un sélecteur caché derrière un second
-    /// écran : au poignet, on tourne la couronne et on appuie. Une ligne
-    /// touchée démarre la sortie — c'est le geste de l'application Exercice
-    /// d'Apple, et c'est celui qu'on fait déjà sans y penser.
-    private var startScreen: some View {
-        List {
-            if let planned = store.todayRun {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(planned.type.label[language])
-                        .font(.system(.body, design: .rounded, weight: .semibold))
-                    Text(planned.note[language])
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                    if let range = planned.paceRangeSecondsPerKm {
-                        Text(
-                            Format.pace(secondsPerKm: range.lowerBound, unit: unit)
-                                + " – " + Format.pace(secondsPerKm: range.upperBound, unit: unit)
-                        )
-                        .font(.caption)
-                        .foregroundStyle(.green)
-                    }
-                }
-                .listRowBackground(
-                    RoundedRectangle(cornerRadius: 12).fill(.green.opacity(0.15))
-                )
-            }
-
-            Section {
-                if let session = store.todaySession {
-                    Button {
-                        store.startSession()
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "dumbbell.fill")
-                                .font(.system(size: 15))
-                                .foregroundStyle(.green)
-                                .frame(width: 22)
-                            VStack(alignment: .leading, spacing: 1) {
-                                Text(session.title[language])
-                                    .font(.system(.body, design: .rounded, weight: .medium))
-                                Text(
-                                    WatchUI.sessionSummary(
-                                        exercises: session.exercises.count,
-                                        sets: session.totalSets,
-                                        minutes: session.estimatedMinutes
-                                    )[language]
-                                )
-                                .font(.system(size: 10))
-                                .foregroundStyle(.secondary)
-                            }
-                            Spacer()
-                        }
-                    }
-                }
-                ForEach(favourites) { sport in
-                    Button {
-                        start(sport)
-                    } label: {
-                        row(for: sport)
-                    }
-                }
-            } header: {
-                Text(WatchUI.chooseActivity[language])
-                    .font(.caption2)
-            }
-
-            Section {
-                ForEach(SportFamily.allCases) { family in
-                    NavigationLink {
-                        familyScreen(family)
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: family.sports.first?.symbolName ?? "figure.run")
-                                .font(.system(size: 15))
-                                .foregroundStyle(.green)
-                                .frame(width: 22)
-                            Text(family.label[language])
-                                .font(.system(.body, design: .rounded, weight: .medium))
-                            Spacer()
-                        }
-                    }
-                }
-            } header: {
-                Text(WatchUI.allSports[language])
-                    .font(.caption2)
-            }
-        }
-    }
-
-    private func familyScreen(_ family: SportFamily) -> some View {
-        List {
-            ForEach(family.sports) { sport in
-                Button {
-                    start(sport)
-                } label: {
-                    row(for: sport)
-                }
-            }
-        }
-        .navigationTitle(family.label[language])
-    }
-
-    private func row(for sport: Sport) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: sport.symbolName)
-                .font(.system(size: 15))
+    private var preparingScreen: some View {
+        VStack(spacing: 8) {
+            Image(systemName: tracker.sport.symbolName)
+                .font(.system(size: 26))
                 .foregroundStyle(.green)
-                .frame(width: 22)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(sport.label[language])
-                    .font(.system(.body, design: .rounded, weight: .medium))
-                if let note = note(for: sport) {
-                    Text(note[language])
-                        .font(.system(size: 10))
-                        .foregroundStyle(.secondary)
-                }
-            }
-            Spacer()
+            Text(WatchUI.searchingGPS[language])
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
         }
-    }
-
-    /// Ce qui distingue une ligne des autres, quand quelque chose la
-    /// distingue.
-    private func note(for sport: Sport) -> LocalizedText? {
-        if store.todayRun != nil && sport == .run { return WatchUI.planned }
-        if sport == lastSport { return WatchUI.lastTime }
-        // Dit avant de partir : la montre mesure elle-même un tapis ou un
-        // rameur, et compte au chrono ce qu'elle ne sait pas mesurer.
-        if !sport.tracksLocation {
-            return sport.workoutDistanceType != nil ? WatchUI.measuredByWatch : WatchUI.noGPS
-        }
-        return nil
-    }
-
-    /// Lance la sortie : la session d'entraînement d'abord, le GPS ensuite.
-    ///
-    /// L'intention de séance suit le plan quand c'est bien la course prévue
-    /// qu'on va faire, et vaut « endurance » sinon : un tempo prescrit n'a
-    /// aucun sens appliqué à une randonnée.
-    private func start(_ sport: Sport) {
-        lastSportID = sport.rawValue
-        remember(sport)
-        let planned = store.todayRun
-        store.startActivity(
-            sport: sport,
-            type: sport.feedsRunningPlan ? (planned?.type ?? .easy) : .easy
-        )
-    }
-
-    private func remember(_ sport: Sport) {
-        var kept = [sport.rawValue]
-        for id in recentIDs.split(separator: ",").map(String.init)
-        where id != sport.rawValue && Sport(rawValue: id) != nil {
-            kept.append(id)
-        }
-        recentIDs = kept.prefix(4).joined(separator: ",")
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var deniedScreen: some View {

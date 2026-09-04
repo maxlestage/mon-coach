@@ -2,22 +2,50 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
   Le complément de l'Info.plist engendré par Xcode pour la montre, sur le
-  même modèle que celui du téléphone : ici ne vivent que les clés qu'un
-  réglage de build ne sait pas écrire correctement.
+  même modèle que celui du téléphone : ici vivent les clés qu'un réglage de
+  build ne sait pas écrire, ou pas écrire de façon sûre.
 
   Il vit à la racine du projet et non dans le dossier synchronisé de la
-  cible : posé dedans, Xcode le copiait aussi comme ressource, et
-  l'archive s'arrêtait sur « Multiple commands produce …/Info.plist ». Le
-  dossier du téléphone a une exception déclarée pour le sien ; celui de la
-  montre n'en a pas, et un fichier hors du dossier n'en a pas besoin.
+  cible : posé dedans, Xcode le copiait aussi comme ressource, et l'archive
+  s'arrêtait sur « Multiple commands produce …/Info.plist ». Le dossier du
+  téléphone a une exception déclarée pour le sien ; celui de la montre n'en
+  a pas, et un fichier hors du dossier n'en a pas besoin.
 
-  WKBackgroundModes doit être un tableau, et le réglage INFOPLIST_KEY_… en
-  produit une chaîne que watchOS ne lit pas. Sans « workout-processing »,
-  la session d'entraînement est interrompue dès que l'application quitte
-  l'avant-plan — c'est-à-dire dès que le poignet baisse.
+  WKApplication en premier, et c'est la clé qui manquait.
+
+  watchOS refuse de lancer une application dont le bundle ne la porte pas :
+  « A value for the key WKApplication, or WKWatchKitApp if your project has
+  a WatchKit App Extension target, is required in the app bundle. »
+
+  Elle avait d'abord été posée en réglage de build,
+  INFOPLIST_KEY_WKApplication. C'était un pari, et il était perdu : Xcode ne
+  traduit en clés d'Info.plist qu'une liste fermée de réglages
+  INFOPLIST_KEY_…, et ce qui n'y figure pas est ignoré sans un mot. Le build
+  partait vert, s'installait, et plantait au lancement exactement comme
+  avant.
+
+  Écrite ici, elle est dans le fichier de base que Xcode complète : elle
+  arrive à coup sûr. Et pour ne plus avoir à le croire sur parole, la CI
+  ouvre l'Info.plist de l'application construite et échoue si la clé n'y
+  est pas.
+
+  Les deux clés de compagnonnage suivent le même chemin, pour la même
+  raison : elles disent à watchOS de quelle application de téléphone la
+  montre est la compagne, et qu'elle sait fonctionner sans elle.
+
+  WKBackgroundModes enfin, qui doit être un tableau. Le réglage
+  INFOPLIST_KEY_… en produit une chaîne que watchOS ne lit pas, et sans
+  « workout-processing » la session d'entraînement est interrompue dès que
+  l'application quitte l'avant-plan, c'est-à-dire dès que le poignet baisse.
 -->
 <plist version="1.0">
 <dict>
+	<key>WKApplication</key>
+	<true/>
+	<key>WKCompanionAppBundleIdentifier</key>
+	<string>com.maxlestage.fitnesscoach</string>
+	<key>WKRunsIndependentlyOfCompanionApp</key>
+	<true/>
 	<key>WKBackgroundModes</key>
 	<array>
 		<string>workout-processing</string>

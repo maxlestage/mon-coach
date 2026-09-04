@@ -87,11 +87,52 @@ jobs:
             -scheme MonCoach \
             -configuration Debug \
             -destination 'generic/platform=iOS' \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             2>&1 | tee "$RUNNER_TEMP/compilation.log" | \
             (xcbeautify --renderer github-actions || cat)
+
+      - name: Les clés sans lesquelles la montre ne se lance pas
+        run: |
+          # Pourquoi cette étape existe
+          #
+          # watchOS refuse de lancer une application dont le bundle ne porte
+          # pas WKApplication. Le build est vert, l'installation réussit,
+          # l'icône apparaît — et l'application meurt au lancement, sans
+          # rien dans le journal tant qu'un testeur n'envoie pas un retour.
+          #
+          # La clé avait été posée en réglage de build. Xcode ne traduit
+          # qu'une liste fermée de réglages INFOPLIST_KEY_… et ignore le
+          # reste sans un mot : le build 77 est parti, vert, sans la clé.
+          #
+          # On ne le croit donc plus sur parole. On ouvre l'Info.plist de
+          # l'application réellement construite et on regarde ce qu'il y a
+          # dedans. Un pari devient un fait vérifié à chaque compilation.
+          set -o pipefail
+          APP="$(find "$RUNNER_TEMP/DerivedData/Build/Products" \
+                   -name "MonCoachWatch.app" -maxdepth 3 | head -1)"
+          if [ -z "$APP" ]; then
+            echo "::error::Aucune MonCoachWatch.app construite : rien à vérifier."
+            exit 1
+          fi
+          echo "Application montre : ${APP#$RUNNER_TEMP/}"
+          PLIST="$APP/Info.plist"
+          plutil -p "$PLIST"
+
+          manquantes=""
+          for cle in WKApplication WKCompanionAppBundleIdentifier WKBackgroundModes; do
+            if ! plutil -extract "$cle" raw -o - "$PLIST" >/dev/null 2>&1; then
+              manquantes="$manquantes $cle"
+            fi
+          done
+          if [ -n "$manquantes" ]; then
+            echo "::error::L'Info.plist de la montre n'a pas :$manquantes"
+            echo "::error::Sans WKApplication, watchOS refuse de lancer l'application."
+            exit 1
+          fi
+          echo "Les trois clés sont dans le bundle construit."
 
       - name: Ce que le compilateur a refusé
         if: failure()
