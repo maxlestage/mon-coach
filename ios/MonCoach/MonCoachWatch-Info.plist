@@ -37,6 +37,30 @@
   INFOPLIST_KEY_… en produit une chaîne que watchOS ne lit pas, et sans
   « workout-processing » la session d'entraînement est interrompue dès que
   l'application quitte l'avant-plan, c'est-à-dire dès que le poignet baisse.
+
+  « location » à côté, et c'est le second plantage de cette montre.
+
+  Le suivi GPS pose allowsBackgroundLocationUpdates pour continuer écran
+  éteint. Ce n'est pas un réglage mais une assertion : posée par une
+  application dont le bundle ne déclare pas le mode, CoreLocation ne
+  refuse pas, il jette — « Invalid parameter not satisfying: !stayUp ||
+  CLClientIsBackgroundable(…) » — et l'application meurt. C'est ce qui se
+  passait à chaque appui sur Démarrer, pour tous les sports qui se
+  déplacent : course, vélo, marche, rando.
+
+  UIBackgroundModes est déclaré à côté, avec la même valeur. Sur le
+  téléphone c'est la clé attendue ; sur la montre, WKBackgroundModes est
+  la clé documentée, mais le fil Apple qui décrit ce plantage sur watchOS
+  montre CoreLocation cherchant UIBackgroundModes là aussi. Les sources ne
+  tranchent pas, les deux clés ne coûtent rien, et le code ne pose de
+  toute façon plus l'assertion sans avoir lu le bundle : la déclaration
+  fait marcher le suivi écran éteint, elle n'est plus ce qui empêche de
+  planter.
+
+  NSLocationAlwaysAndWhenInUseUsageDescription accompagne la déclaration.
+  L'application ne demande que « pendant l'utilisation », mais le suivi
+  d'arrière-plan la réclame, et une phrase manquante se paie au même prix
+  qu'une clé manquante.
 -->
 <plist version="1.0">
 <dict>
@@ -49,6 +73,13 @@
 	<key>WKBackgroundModes</key>
 	<array>
 		<string>workout-processing</string>
+		<string>location</string>
 	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Pendant une sortie, la montre continue de mesurer ta trace écran éteint. En dehors d'une sortie, elle ne regarde jamais où tu es.</string>
 </dict>
 </plist>

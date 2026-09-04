@@ -223,9 +223,24 @@ final class WatchStore {
     /// de continuer écran éteint ; le GPS ensuite, et seulement pour ce qui
     /// se déplace — le tracker sait déjà ne rien allumer pour un rameur.
     func startActivity(sport: Sport, type: RunType) {
-        tracker.start(sport: sport, type: type)
         route = .activity
-        Task { await workout.start(sport: sport) }
+        // La session d'entraînement d'abord, le GPS ensuite — et cette
+        // fois dans cet ordre pour de bon. Le commentaire l'annonçait déjà,
+        // le code faisait l'inverse : `tracker.start` était appelé tout de
+        // suite et la session partait dans une tâche, donc après.
+        //
+        // L'ordre compte parce que c'est la session qui garde
+        // l'application éveillée. Un suivi lancé avant elle demande le
+        // droit de continuer écran éteint à un moment où rien ne le lui
+        // donne encore.
+        //
+        // `workout.start` ne jette jamais : Santé refusé ou absent, elle
+        // se déclare indisponible et rend la main. La sortie part donc
+        // dans tous les cas, au GPS et au chrono.
+        Task {
+            await workout.start(sport: sport)
+            tracker.start(sport: sport, type: type)
+        }
     }
 
     /// Rouvre l'écran de ce qui tourne déjà, sans rien redémarrer.

@@ -132,7 +132,33 @@ jobs:
             echo "::error::Sans WKApplication, watchOS refuse de lancer l'application."
             exit 1
           fi
-          echo "Les trois clés sont dans le bundle construit."
+
+          # Le mode d'arrière-plan « location », dans les deux applications.
+          #
+          # Le suivi GPS pose allowsBackgroundLocationUpdates. Ce n'est pas
+          # un réglage mais une assertion : posée par un bundle qui ne
+          # déclare pas le mode, CoreLocation jette et l'application meurt
+          # à l'appui sur « Démarrer ». Le code ne la pose plus sans avoir
+          # lu le bundle, donc l'absence ne plante plus — elle rend
+          # seulement le suivi muet dès que l'écran s'éteint, ce qui est
+          # exactement le genre de panne qu'on ne remarque qu'en course.
+          PHONE="$(find "$RUNNER_TEMP/DerivedData/Build/Products" \
+                     -name "MonCoach.app" -maxdepth 3 | head -1)"
+          for cible in "$APP" "$PHONE"; do
+            [ -n "$cible" ] && [ -f "$cible/Info.plist" ] || continue
+            NOM="$(basename "$cible")"
+            if plutil -extract WKBackgroundModes json -o - "$cible/Info.plist" 2>/dev/null \
+                 | grep -q location \
+               || plutil -extract UIBackgroundModes json -o - "$cible/Info.plist" 2>/dev/null \
+                 | grep -q location; then
+              echo "$NOM déclare le suivi de position écran éteint."
+            else
+              echo "::error::$NOM ne déclare pas le mode d'arrière-plan « location »."
+              echo "::error::Le suivi GPS s'arrêtera dès que l'écran s'éteint."
+              exit 1
+            fi
+          done
+          echo "Le bundle construit porte tout ce qu'il faut."
 
       - name: Ce que le compilateur a refusé
         if: failure()
