@@ -88,10 +88,18 @@ struct WatchBundleTests {
     /// le même tracker : c'est cette communauté qui a fait voyager le
     /// défaut du téléphone — où il était déjà corrigé — jusqu'à la montre,
     /// où une exception l'avait rouvert.
+    /// La clé est `UIBackgroundModes` des deux côtés, et c'est Apple qui
+    /// l'a dit — en refusant le build 79 à l'envoi :
+    ///
+    ///     Validation failed. Invalid Info.plist value. The value for the
+    ///     key 'WKBackgroundModes' in bundle …/MonCoachWatch.app is invalid.
+    ///
+    /// Les deux clés avaient été déclarées faute de source qui tranche.
+    /// Celle-ci tranche.
     @Test(
         "Ce qui suit la position écran éteint le déclare",
         arguments: [
-            ("MonCoachWatch-Info.plist", "WKBackgroundModes"),
+            ("MonCoachWatch-Info.plist", "UIBackgroundModes"),
             ("MonCoach/Info.plist", "UIBackgroundModes"),
         ]
     )
@@ -110,6 +118,17 @@ struct WatchBundleTests {
     func theWatchExplainsBackgroundLocation() throws {
         let sentence = try watchInfoPlist["NSLocationAlwaysAndWhenInUseUsageDescription"] as? String
         #expect(sentence?.isEmpty == false)
+    }
+
+    /// Le revers du correctif précédent : « location » n'est pas une
+    /// valeur de WKBackgroundModes, qui ne connaît que ses modes à lui.
+    /// L'y remettre ne planterait pas au poignet — le code lit le bundle
+    /// avant d'affirmer quoi que ce soit — mais ferait refuser l'envoi par
+    /// Apple, après six minutes d'archive et un certificat consommé.
+    @Test("La montre ne remet pas « location » là où Apple le refuse")
+    func watchBackgroundModesStayWatchModes() throws {
+        let modes = try watchInfoPlist["WKBackgroundModes"] as? [String] ?? []
+        #expect(!modes.contains("location"), Comment(rawValue: "\(modes)"))
     }
 
     /// Le revers de la leçon : si quelqu'un remet un jour ces clés en
