@@ -274,10 +274,36 @@ public final class LocationTracker: NSObject {
     /// ne lit alors aucun mode, le réglage paraît juste et ne l'est pas.
     /// C'est pour ce cas-là que la vérification existe — pas pour le cas où
     /// quelqu'un aurait oublié la ligne.
+    /// L'application qui tourne a-t-elle le droit de suivre la position
+    /// écran éteint ?
+    ///
+    /// La question n'est pas rhétorique : `allowsBackgroundLocationUpdates`
+    /// n'est pas un réglage mais une assertion. Posé à vrai par une
+    /// application dont le bundle ne déclare pas le mode d'arrière-plan,
+    /// CoreLocation ne se contente pas de refuser — il jette, et
+    /// l'application meurt sur-le-champ :
+    ///
+    ///     NSInternalInconsistencyException — Invalid parameter not
+    ///     satisfying: !stayUp || CLClientIsBackgroundable(…) || …
+    ///
+    /// Les deux clés sont lues parce que les deux ont cours. Le téléphone
+    /// déclare `UIBackgroundModes` ; la montre déclare `WKBackgroundModes`,
+    /// mais le fil Apple qui documente ce plantage sur watchOS montre
+    /// CoreLocation cherchant `UIBackgroundModes` là aussi. On ne tranche
+    /// pas : on regarde les deux, et on ne pose l'assertion que si l'une
+    /// des deux la porte.
+    ///
+    /// C'est la lecture du bundle qui tourne, pas une supposition sur ce
+    /// qu'il contient — et c'est tout l'intérêt. Une déclaration oubliée
+    /// coûte alors une sortie qui s'arrête quand l'écran s'éteint, ce qui
+    /// se voit et se corrige. Elle ne coûte plus une application qui meurt
+    /// quand on appuie sur Démarrer, ce qui ne laisse rien à lire.
     public static let declaresBackgroundLocation: Bool = {
-        guard let modes = Bundle.main.object(forInfoDictionaryKey: "UIBackgroundModes") as? [String]
-        else { return false }
-        return modes.contains("location")
+        for key in ["UIBackgroundModes", "WKBackgroundModes"] {
+            let modes = Bundle.main.object(forInfoDictionaryKey: key) as? [String]
+            if modes?.contains("location") == true { return true }
+        }
+        return false
     }()
 
     private func beginUpdates() {
@@ -285,21 +311,20 @@ public final class LocationTracker: NSObject {
         // Continuer écran éteint, mais seulement pendant une sortie : le mode
         // « toujours » n'est jamais demandé au démarrage de l'application.
         //
-        // Et seulement si l'application a le droit de le demander. Sans la
-        // déclaration, mieux vaut une sortie qui s'arrête quand l'écran
-        // s'éteint qu'une application qui meurt quand on appuie sur Démarrer.
-        #if os(watchOS)
-        // Sur la montre, il n'y a pas de mode d'arrière-plan « location » à
-        // déclarer : c'est la session d'entraînement HealthKit, ouverte par
-        // l'application avant d'appeler ici, qui donne le droit de
-        // continuer écran éteint. Sans elle, ce réglage ne fait rien — et
-        // avec elle, il est indispensable.
-        manager.allowsBackgroundLocationUpdates = true
-        #else
+        // Et seulement si le bundle le déclare. La montre avait ici une
+        // exception — « pas de mode d'arrière-plan à déclarer sur watchOS,
+        // c'est la session d'entraînement qui donne le droit » — et cette
+        // exception était fausse. La session d'entraînement garde bien
+        // l'application éveillée, mais elle ne dispense pas de la
+        // déclaration : CoreLocation vérifie le bundle, pas l'état de
+        // HealthKit. Le résultat était un plantage sur chaque sport qui se
+        // déplace, à l'appui sur Démarrer.
+        //
+        // Il n'y a donc plus d'exception. Les deux plateformes lisent leur
+        // propre bundle et lui obéissent.
         if Self.declaresBackgroundLocation {
             manager.allowsBackgroundLocationUpdates = true
         }
-        #endif
         manager.startUpdatingLocation()
     }
 

@@ -24,20 +24,22 @@ import Testing
 @Suite("Le bundle de la montre")
 struct WatchBundleTests {
 
+    private func plist(_ name: String) throws -> [String: Any] {
+        let path = URL(filePath: #filePath)
+            .deletingLastPathComponent()  // MonCoachKitTests
+            .deletingLastPathComponent()  // Tests
+            .deletingLastPathComponent()  // MonCoachKit
+            .deletingLastPathComponent()  // ios
+            .appending(path: "MonCoach/\(name)")
+        let data = try Data(contentsOf: path)
+        let parsed = try PropertyListSerialization.propertyList(
+            from: data, options: [], format: nil
+        )
+        return parsed as? [String: Any] ?? [:]
+    }
+
     private var watchInfoPlist: [String: Any] {
-        get throws {
-            let path = URL(filePath: #filePath)
-                .deletingLastPathComponent()  // MonCoachKitTests
-                .deletingLastPathComponent()  // Tests
-                .deletingLastPathComponent()  // MonCoachKit
-                .deletingLastPathComponent()  // ios
-                .appending(path: "MonCoach/MonCoachWatch-Info.plist")
-            let data = try Data(contentsOf: path)
-            let parsed = try PropertyListSerialization.propertyList(
-                from: data, options: [], format: nil
-            )
-            return parsed as? [String: Any] ?? [:]
-        }
+        get throws { try plist("MonCoachWatch-Info.plist") }
     }
 
     @Test("WKApplication, sans quoi watchOS refuse de lancer l'application")
@@ -58,10 +60,56 @@ struct WatchBundleTests {
     /// dès que le poignet baisse. Et le mode doit être dans un tableau : le
     /// réglage de build équivalent en produisait une chaîne, que watchOS ne
     /// lit pas.
+    ///
+    /// On demande que le mode soit présent, pas qu'il soit seul : la liste
+    /// s'est allongée depuis, et un test qui exige un tableau exact refuse
+    /// les ajouts légitimes au lieu de garder ce qui compte.
     @Test("L'entraînement continue poignet baissé")
     func theWorkoutSurvivesTheWristDropping() throws {
         let modes = try watchInfoPlist["WKBackgroundModes"] as? [String]
-        #expect(modes == ["workout-processing"])
+        #expect(modes?.contains("workout-processing") == true)
+    }
+
+    /// Le second plantage de cette montre, et le plus cher : il ne tuait
+    /// pas l'application au lancement mais à l'appui sur « Démarrer », ce
+    /// qui laissait croire que le premier correctif avait marché.
+    ///
+    /// `LocationTracker` pose `allowsBackgroundLocationUpdates` pour
+    /// suivre la trace écran éteint. Ce n'est pas un réglage mais une
+    /// assertion : posée par une application dont le bundle ne déclare pas
+    /// le mode d'arrière-plan, CoreLocation jette et l'application meurt.
+    ///
+    /// Le code ne la pose plus sans avoir lu le bundle — c'est ce qui
+    /// empêche le plantage. Ce test garde l'autre moitié : que la
+    /// déclaration soit là, pour que le suivi marche vraiment au lieu de
+    /// s'arrêter silencieusement dès que le poignet baisse.
+    ///
+    /// Les deux applications sont vérifiées, parce que les deux partagent
+    /// le même tracker : c'est cette communauté qui a fait voyager le
+    /// défaut du téléphone — où il était déjà corrigé — jusqu'à la montre,
+    /// où une exception l'avait rouvert.
+    @Test(
+        "Ce qui suit la position écran éteint le déclare",
+        arguments: [
+            ("MonCoachWatch-Info.plist", "WKBackgroundModes"),
+            ("MonCoach/Info.plist", "UIBackgroundModes"),
+        ]
+    )
+    func backgroundLocationIsDeclaredWhereItIsUsed(file: String, key: String) throws {
+        let modes = try plist(file)[key] as? [String]
+        #expect(
+            modes?.contains("location") == true,
+            Comment(rawValue: "\(file) → \(key) = \(modes ?? [])")
+        )
+    }
+
+    /// La phrase qu'Apple montre quand l'application demande à suivre la
+    /// position hors de l'avant-plan. Absente, la demande est refusée sans
+    /// un mot.
+    @Test("La montre explique pourquoi elle suit une sortie écran éteint")
+    func theWatchExplainsBackgroundLocation() throws {
+        let sentence = try watchInfoPlist["NSLocationAlwaysAndWhenInUseUsageDescription"] as? String
+        #expect(sentence?.isEmpty == false)
     }
 
     /// Le revers de la leçon : si quelqu'un remet un jour ces clés en
