@@ -172,9 +172,13 @@ struct RunLiveActivity: Widget {
                     }
                 }
                 DynamicIslandExpandedRegion(.bottom) {
-                    RunTimer(state: context.state)
-                        .font(.system(size: 15, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.secondary)
+                    HStack {
+                        RunTimer(state: context.state)
+                            .font(.system(size: 15, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        HeartRate(state: context.state)
+                    }
                 }
             } compactLeading: {
                 Image(systemName: "figure.run")
@@ -244,6 +248,7 @@ struct RunLockScreenView: View {
                     Text(state.pace)
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                    HeartRate(state: state)
                 }
                 Spacer(minLength: 8)
                 if state.elevationGain >= 10 {
@@ -337,6 +342,50 @@ struct TraceThumbnail: View {
                         )
                 }
             }
+        }
+    }
+}
+
+
+/// Le pouls, et ce qu'il veut dire.
+///
+/// Le chiffre seul ne dit rien : cent cinquante-deux battements sont
+/// excellents pour l'un et une alerte pour l'autre. C'est la couleur qui
+/// porte le sens — verte tant que l'effort se tient, orange au tempo, rouge
+/// au seuil et au-delà — et elle se lit sans être lue, ce qui est tout ce
+/// qu'on demande à un écran regardé une seconde en courant.
+///
+/// La zone manque quand le profil ne donne pas d'âge : le chiffre s'affiche
+/// alors en blanc. Mieux vaut un pouls sans zone qu'une zone inventée.
+///
+/// Rien ne s'affiche sans ceinture cardio appairée, et c'est le cas
+/// ordinaire : le téléphone n'a aucun moyen de connaître le pouls tout seul.
+/// Une case vide qui attend une ceinture jamais branchée ferait croire à une
+/// panne, et volerait la place des chiffres qui, eux, sont mesurés.
+struct HeartRate: View {
+    var state: RunActivitySnapshot
+
+    var body: some View {
+        if let bpm = state.heartRateBpm {
+            HStack(spacing: 3) {
+                Image(systemName: "heart.fill")
+                    .font(.system(size: 10))
+                Text("\(bpm)")
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+            }
+            .foregroundStyle(tint)
+        }
+    }
+
+    /// La même échelle que les statistiques de l'application : zones 1 et 2
+    /// au vert, 3 à l'orange, 4 et 5 au rouge. Deux échelles pour la même
+    /// chose finiraient par ne pas dire la même chose.
+    private var tint: Color {
+        switch state.heartRateZone {
+        case 1, 2: .green
+        case 3: .orange
+        case 4, 5: .red
+        default: .white
         }
     }
 }
