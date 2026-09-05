@@ -20,8 +20,8 @@ const copy = {
     splitsNote: "La barre est pleine pour le kilomètre le plus rapide : comparer les kilomètres entre eux dit bien plus que les comparer à une allure absolue.",
     points: [
       {
-        title: "Une trace qui dit ce qu'elle a jeté",
-        body: "Les points imprécis et les sauts impossibles sont écartés — et comptés. Si une sortie annonce 8,2 km au lieu de 9, l'application te dit que quarante points ont été jetés pour imprécision, au lieu de te laisser croire que tu as ralenti.",
+        title: "Une trace qui garde ce qu'elle peut, et dit le reste",
+        body: "Un point flou n'est pas un point faux. En ville entre les immeubles, le téléphone annonce couramment quarante mètres de précision sur des points parfaitement corrects : les jeter effaçait des tronçons entiers de sortie réelle. Ils sont maintenant gardés et comptés, et signalés quand ils portent plus d'un cinquième de la mesure. Au-delà de cent mètres, ou sur un saut impossible, le point part — et il est compté, pour qu'une sortie qui annonce 8,2 km au lieu de 9 te dise pourquoi au lieu de te laisser croire que tu as ralenti.",
       },
       {
         title: "Un dénivelé qui n'invente rien",
@@ -49,8 +49,8 @@ const copy = {
     splitsNote: "The bar is full for the fastest kilometre: comparing the splits to each other says far more than comparing them to an absolute pace.",
     points: [
       {
-        title: "A trace that says what it threw away",
-        body: "Imprecise points and impossible jumps are discarded — and counted. If a run reads 8.2 km instead of 9, the app tells you forty points were dropped for poor accuracy, rather than letting you believe you slowed down.",
+        title: "A trace that keeps what it can, and says the rest",
+        body: "A fuzzy point is not a false one. In a city, between buildings, the phone routinely reports forty metres of accuracy on perfectly correct points: throwing them away erased whole stretches of a real run. They are now kept and counted, and flagged when they carry more than a fifth of the measurement. Past a hundred metres, or on an impossible jump, the point goes — and it is counted, so that a run reading 8.2 km instead of 9 tells you why rather than letting you believe you slowed down.",
       },
       {
         title: "Elevation that invents nothing",
@@ -78,8 +78,8 @@ const copy = {
     splitsNote: "La barra está llena en el kilómetro más rápido: comparar los parciales entre sí dice mucho más que compararlos con un ritmo absoluto.",
     points: [
       {
-        title: "Una traza que dice lo que ha descartado",
-        body: "Los puntos imprecisos y los saltos imposibles se descartan, y se cuentan. Si un rodaje marca 8,2 km en lugar de 9, la aplicación te dice que se han descartado cuarenta puntos por imprecisión, en vez de dejarte creer que has ido más lento.",
+        title: "Una traza que conserva lo que puede, y dice el resto",
+        body: "Un punto borroso no es un punto falso. En ciudad, entre edificios, el teléfono anuncia habitualmente cuarenta metros de precisión sobre puntos perfectamente correctos: descartarlos borraba tramos enteros de un rodaje real. Ahora se conservan y se cuentan, y se señalan cuando sostienen más de una quinta parte de la medición. Más allá de cien metros, o ante un salto imposible, el punto se va — y se cuenta, para que un rodaje que marca 8,2 km en lugar de 9 te diga por qué en vez de dejarte creer que has ido más lento.",
       },
       {
         title: "Un desnivel que no se inventa nada",
