@@ -16,20 +16,21 @@ struct ActivitiesHomeView: View {
     /// à glisser devant un onglet vide pour atteindre ses courbes.
     private var runs: Bool { store.profile?.runs == true }
 
-    /// La voiture n'apparaît qu'une fois qu'il y a un trajet, sur le même
-    /// principe que le plan de course.
+    /// La voiture est toujours là.
     ///
-    /// C'est un volet de plus dans un sélecteur qui en compte déjà trois, et
-    /// la plupart des athlètes n'enregistreront jamais un trajet de leur
-    /// vie. Le montrer à tout le monde ajouterait un onglet vide à traverser
-    /// pour atteindre ses courbes — exactement ce qu'on évite déjà pour le
-    /// plan de course.
+    /// Elle ne l'était pas : elle n'apparaissait qu'une fois qu'un trajet
+    /// existait, sur le modèle du plan de course absent pour qui ne court
+    /// pas. Le raisonnement se tenait — la plupart des athlètes
+    /// n'enregistreront jamais un trajet, et un volet vide à traverser est
+    /// le prix de rien — mais il produisait un cercle : la section n'existe
+    /// qu'après un premier trajet, et personne ne pense à enregistrer un
+    /// trajet dans une application de sport tant qu'il n'a pas vu qu'elle
+    /// savait le faire.
     ///
-    /// Il suffit d'un trajet pour qu'il apparaisse, et il apparaît alors
-    /// tout seul : rien à activer dans un réglage que personne ne lit.
-    private var drives: Bool {
-        store.history.activities.contains { !$0.sport.countsAsTraining }
-    }
+    /// Une fonction qu'il faut deviner pour la découvrir n'existe pas. Le
+    /// volet est donc là dès le départ, en dernier — il ne coûte qu'un
+    /// segment, et il se traverse d'un geste — et son écran vide explique
+    /// lui-même comment démarrer un trajet.
 
     var body: some View {
         NavigationStack {
@@ -40,10 +41,8 @@ struct ActivitiesHomeView: View {
                     }
                     Text(LocalizedText(fr: "Journal", en: "Journal", es: "Diario")[language]).tag(Pane.journal)
                     Text(UI.stats[language]).tag(Pane.stats)
-                    if drives {
-                        Text(LocalizedText(fr: "Voiture", en: "Car", es: "Coche")[language])
-                            .tag(Pane.car)
-                    }
+                    Text(LocalizedText(fr: "Voiture", en: "Car", es: "Coche")[language])
+                        .tag(Pane.car)
                 }
                 .pickerStyle(.segmented)
                 .padding(.horizontal, 16)
@@ -96,9 +95,6 @@ struct ActivitiesHomeView: View {
             // Un athlète qui ne court pas ne doit jamais atterrir sur un
             // onglet que son profil ne montre pas.
             if !runs, pane == .plan { pane = .journal }
-            // Un trajet supprimé fait disparaître le volet : y rester
-            // laisserait un écran vide sans moyen d'en sortir.
-            if !drives, pane == .car { pane = .journal }
         }
     }
 }

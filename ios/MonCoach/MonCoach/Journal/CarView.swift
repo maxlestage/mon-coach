@@ -48,24 +48,49 @@ struct CarView: View {
 
     // MARK: - Rien encore
 
+    /// L'écran qu'on voit en premier, et longtemps.
+    ///
+    /// Le volet est là dès le départ, donc cet écran est ce que découvre
+    /// quiconque le touche par curiosité. Il ne peut pas se contenter de
+    /// dire « rien à afficher » : c'est lui qui doit apprendre que
+    /// l'application sait tracer un trajet, où le démarrer, et — le point
+    /// qui compte le plus — que ça ne viendra rien polluer.
+    ///
+    /// Cette dernière phrase n'est pas décorative. La crainte légitime, dans
+    /// une application d'entraînement, est qu'un trajet en voiture aille
+    /// gonfler les kilomètres de la semaine. Le dire ici, avant de
+    /// commencer, coûte deux lignes ; le découvrir après coup coûterait la
+    /// confiance dans tous les autres chiffres.
     private var emptyCard: some View {
         Card(
             title: LocalizedText(
-                fr: "Aucun trajet enregistré",
-                en: "No trips recorded",
-                es: "Ningún trayecto registrado"
+                fr: "Les trajets en voiture",
+                en: "Car trips",
+                es: "Los trayectos en coche"
             )[language],
             subtitle: LocalizedText(
-                fr: "Démarre une activité « Conduite » pour tracer un trajet. Il sera compté ici, et nulle part ailleurs : ni calories, ni charge d'entraînement, ni séance de la semaine.",
-                en: "Start a “Driving” activity to trace a trip. It gets counted here, and nowhere else: no calories, no training load, no session of the week.",
-                es: "Inicia una actividad «Conducción» para trazar un trayecto. Se cuenta aquí, y en ningún otro sitio: ni calorías, ni carga de entrenamiento, ni sesión de la semana."
+                fr: "Démarre une activité « Conduite », dans la famille Déplacements, et le trajet se trace comme une sortie.",
+                en: "Start a “Driving” activity, in the Getting around family, and the trip is traced like an outing.",
+                es: "Inicia una actividad «Conducción», en la familia Desplazamientos, y el trayecto se traza como una salida."
             )[language]
         ) {
-            Image(systemName: "car.fill")
-                .font(.system(size: 34))
+            VStack(spacing: 12) {
+                Image(systemName: "car.fill")
+                    .font(.system(size: 34))
+                    .foregroundStyle(Theme.secondaryText)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 4)
+                Text(
+                    LocalizedText(
+                        fr: "Il sera compté ici, et nulle part ailleurs : aucune calorie, aucune charge d'entraînement, aucune séance de la semaine. Tes chiffres sportifs ne bougent pas d'un mètre.",
+                        en: "It gets counted here, and nowhere else: no calories, no training load, no session of the week. Your sports figures do not move by a single metre.",
+                        es: "Se cuenta aquí, y en ningún otro sitio: ni calorías, ni carga de entrenamiento, ni sesión de la semana. Tus cifras deportivas no se mueven ni un metro."
+                    )[language]
+                )
+                .font(.footnote)
                 .foregroundStyle(Theme.secondaryText)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
     }
 
