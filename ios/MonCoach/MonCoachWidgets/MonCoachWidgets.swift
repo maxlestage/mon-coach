@@ -172,9 +172,13 @@ struct RunLiveActivity: Widget {
                     }
                 }
                 DynamicIslandExpandedRegion(.bottom) {
-                    RunTimer(state: context.state)
-                        .font(.system(size: 15, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.secondary)
+                    HStack {
+                        RunTimer(state: context.state)
+                            .font(.system(size: 15, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        HeartRate(state: context.state)
+                    }
                 }
             } compactLeading: {
                 Image(systemName: "figure.run")
@@ -244,8 +248,9 @@ struct RunLockScreenView: View {
                     Text(state.pace)
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                    HeartRate(state: state)
                 }
-                Spacer()
+                Spacer(minLength: 8)
                 if state.elevationGain >= 10 {
                     VStack(alignment: .trailing, spacing: 2) {
                         Text("+\(state.elevationGain)")
@@ -256,8 +261,131 @@ struct RunLockScreenView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+                // Le tracé prend la place qui reste, et seulement s'il a
+                // quelque chose à dire : vide pendant les cinquante premiers
+                // mètres, sur un tapis, ou quand le signal ne prend pas. Un
+                // cadre vide à côté des chiffres ferait croire à une panne.
+                if !state.trace.isEmpty {
+                    TraceThumbnail(trace: state.trace, isPaused: state.isPaused)
+                        .frame(width: 56, height: 56)
+                }
             }
         }
         .padding(14)
+    }
+}
+
+
+/// La trace de la sortie, dessinée sur l'écran verrouillé.
+///
+/// Pourquoi un tracé et pas une carte
+/// ..................................
+/// Une Live Activity ne peut pas afficher de carte. Son extension n'a ni
+/// réseau, ni position, ni MapKit, et l'état qu'on lui passe est plafonné à
+/// quatre kilooctets — aucune tuile n'y tient. Ce qui tient, c'est la forme
+/// du parcours, réduite dans MonCoachKit à une cinquantaine de points sur un
+/// octet chacun.
+///
+/// Et c'est peut-être mieux ainsi : sur un écran verrouillé qu'on regarde
+/// une seconde, en courant, on ne lit pas une carte. On reconnaît une forme
+/// — la boucle qui se referme, l'aller-retour à mi-chemin.
+struct TraceShape: Shape {
+    var trace: TraceMiniature
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let points = trace.points
+        guard points.count >= 2 else { return path }
+        for (index, point) in points.enumerated() {
+            let place = CGPoint(
+                x: rect.minX + point.x * rect.width,
+                y: rect.minY + point.y * rect.height
+            )
+            if index == 0 {
+                path.move(to: place)
+            } else {
+                path.addLine(to: place)
+            }
+        }
+        return path
+    }
+}
+
+/// La vignette entière : le tracé, et le point où l'on se trouve.
+///
+/// Le point compte autant que le trait. Sans lui, une boucle ne dit pas où
+/// l'on en est ; avec lui, elle dit d'un coup d'œil s'il reste un quart ou
+/// la moitié du tour.
+struct TraceThumbnail: View {
+    var trace: TraceMiniature
+    var isPaused: Bool
+
+    /// La moitié de l'épaisseur du trait, pour que le tracé ne soit pas
+    /// coupé quand il touche le bord du cadre.
+    private let inset: CGFloat = 2
+
+    var body: some View {
+        GeometryReader { geometry in
+            let frame = CGRect(origin: .zero, size: geometry.size).insetBy(dx: inset, dy: inset)
+            ZStack {
+                TraceShape(trace: trace)
+                    .path(in: frame)
+                    .strokedPath(StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
+                    .foregroundStyle(isPaused ? Color.orange : Color.green)
+                if let current = trace.current {
+                    Circle()
+                        .fill(.white)
+                        .frame(width: 5, height: 5)
+                        .position(
+                            x: frame.minX + current.x * frame.width,
+                            y: frame.minY + current.y * frame.height
+                        )
+                }
+            }
+        }
+    }
+}
+
+
+/// Le pouls, et ce qu'il veut dire.
+///
+/// Le chiffre seul ne dit rien : cent cinquante-deux battements sont
+/// excellents pour l'un et une alerte pour l'autre. C'est la couleur qui
+/// porte le sens — verte tant que l'effort se tient, orange au tempo, rouge
+/// au seuil et au-delà — et elle se lit sans être lue, ce qui est tout ce
+/// qu'on demande à un écran regardé une seconde en courant.
+///
+/// La zone manque quand le profil ne donne pas d'âge : le chiffre s'affiche
+/// alors en blanc. Mieux vaut un pouls sans zone qu'une zone inventée.
+///
+/// Rien ne s'affiche sans ceinture cardio appairée, et c'est le cas
+/// ordinaire : le téléphone n'a aucun moyen de connaître le pouls tout seul.
+/// Une case vide qui attend une ceinture jamais branchée ferait croire à une
+/// panne, et volerait la place des chiffres qui, eux, sont mesurés.
+struct HeartRate: View {
+    var state: RunActivitySnapshot
+
+    var body: some View {
+        if let bpm = state.heartRateBpm {
+            HStack(spacing: 3) {
+                Image(systemName: "heart.fill")
+                    .font(.system(size: 10))
+                Text("\(bpm)")
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+            }
+            .foregroundStyle(tint)
+        }
+    }
+
+    /// La même échelle que les statistiques de l'application : zones 1 et 2
+    /// au vert, 3 à l'orange, 4 et 5 au rouge. Deux échelles pour la même
+    /// chose finiraient par ne pas dire la même chose.
+    private var tint: Color {
+        switch state.heartRateZone {
+        case 1, 2: .green
+        case 3: .orange
+        case 4, 5: .red
+        default: .white
+        }
     }
 }

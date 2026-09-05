@@ -96,6 +96,21 @@ public enum HeartRateAnalysis {
         }
     }
 
+    /// La zone d'un battement, de 1 à 5.
+    ///
+    /// Extraite du calcul des temps par zone, qui la faisait au passage :
+    /// l'écran verrouillé pose la même question pour un seul battement, en
+    /// direct, et deux façons de répondre finiraient par diverger d'une
+    /// zone — celle qui décide si l'athlète lève le pied.
+    ///
+    /// Sous la première borne, la zone 1 : un cœur au repos n'est pas
+    /// « hors zone », il est en bas.
+    public static func zone(for bpm: Double, maximumBpm: Double) -> Int {
+        let table = zones(maximumBpm: maximumBpm)
+        if let found = table.last(where: { $0.range.lowerBound <= bpm }) { return found.index }
+        return bpm < table[0].range.lowerBound ? 1 : 5
+    }
+
     /// Temps passé dans chaque zone, en secondes, zones 1 à 5.
     ///
     /// Chaque échantillon vaut jusqu'au suivant, plafonné : un trou de
@@ -106,7 +121,6 @@ public enum HeartRateAnalysis {
         maximumBpm: Double,
         maxSampleGap: TimeInterval = 15
     ) -> [Int: TimeInterval] {
-        let zones = zones(maximumBpm: maximumBpm)
         let ordered = samples.sorted { $0.timestamp < $1.timestamp }
         var result: [Int: TimeInterval] = [:]
         for index in 0..<ordered.count {
@@ -118,9 +132,7 @@ public enum HeartRateAnalysis {
                 span = min(maxSampleGap, 5)
             }
             guard span > 0, sample.bpm > 0 else { continue }
-            let zone = zones.last { $0.range.lowerBound <= sample.bpm }?.index
-                ?? (sample.bpm < zones[0].range.lowerBound ? 1 : 5)
-            result[zone, default: 0] += span
+            result[zone(for: sample.bpm, maximumBpm: maximumBpm), default: 0] += span
         }
         return result
     }

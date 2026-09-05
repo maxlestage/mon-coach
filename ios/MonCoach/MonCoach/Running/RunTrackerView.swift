@@ -471,7 +471,7 @@ struct RunTrackerView: View {
                 if store.isUnlocked(.liveActivities) {
                     liveActivity.start(
                         id: UUID(),
-                        snapshot: tracker.activitySnapshot(unit: unit, language: language)
+                        snapshot: liveSnapshot()
                     )
                 }
             }
@@ -782,7 +782,7 @@ struct RunTrackerView: View {
             // lui-même la cadence réellement poussée au système, et l'écart
             // au parcours n'est dit qu'aux changements d'état.
                 .onChange(of: tracker.points.count) { _, _ in
-                    liveActivity.update(tracker.activitySnapshot(unit: unit, language: language))
+                    liveActivity.update(liveSnapshot())
                     announceRouteDeviation()
                 }
             }
@@ -811,7 +811,7 @@ struct RunTrackerView: View {
                     GhostButton(title: UI.pause[language], systemImage: "pause.fill") {
                         tracker.pause()
                         liveActivity.update(
-                            tracker.activitySnapshot(unit: unit, language: language),
+                            liveSnapshot(),
                             force: true
                         )
                     }
@@ -819,7 +819,7 @@ struct RunTrackerView: View {
                     GhostButton(title: UI.resume[language], systemImage: "play.fill") {
                         tracker.resume()
                         liveActivity.update(
-                            tracker.activitySnapshot(unit: unit, language: language),
+                            liveSnapshot(),
                             force: true
                         )
                     }
@@ -850,6 +850,24 @@ struct RunTrackerView: View {
         }
     }
 
+
+    /// L'état poussé à l'écran verrouillé.
+    ///
+    /// Rassemblé ici parce qu'il vient de trois endroits qui ne se voient
+    /// pas : le suivi GPS pour la trace et les chiffres, la ceinture pour le
+    /// pouls, le profil pour la fréquence maximale qui en fait une zone.
+    /// Quatre appels le construisaient chacun de leur côté ; il en aurait
+    /// suffi d'un oublié pour que le cardio disparaisse à la mise en pause.
+    private func liveSnapshot() -> RunActivitySnapshot {
+        tracker.activitySnapshot(
+            unit: unit,
+            language: language,
+            heartRateBpm: sensors.bpm,
+            maximumBpm: store.profile.map {
+                HeartRateAnalysis.estimatedMaximum(age: $0.age())
+            }
+        )
+    }
 
     /// L'icône dit s'il y a quelque chose au bout du fil, sans l'ouvrir.
     private var sensorsConnected: Bool {

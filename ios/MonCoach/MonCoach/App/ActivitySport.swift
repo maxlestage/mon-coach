@@ -60,6 +60,24 @@ enum ActivitySport: String, AppEnum, CaseIterable {
     case yoga
     case pilates
     case stretching
+    // Sports adaptés. Ils sont dans la liste que Siri lit comme les autres :
+    // demander « démarre un handbike » doit marcher exactement comme
+    // demander « démarre une course », et une liste qui s'arrêterait aux
+    // sports valides ferait de l'assistant vocal — l'outil qui sert le plus
+    // quand les mains sont prises — le seul endroit inaccessible de
+    // l'application.
+    case adaptiveWalk
+    case wheelchairPush
+    case wheelchairRacing
+    case handcycling
+    case adaptiveTricycle
+    case adaptiveSwim
+    case seatedStrength
+    case seatedMobility
+    case wheelchairBasketball
+    case wheelchairTennis
+    case boccia
+
     case climbing
     case golf
     case tennis
@@ -126,6 +144,18 @@ enum ActivitySport: String, AppEnum, CaseIterable {
         .martialArts: DisplayRepresentation(title: "Arts martiaux"),
         .dance: DisplayRepresentation(title: "Danse"),
         .equestrian: DisplayRepresentation(title: "Équitation"),
+
+        .adaptiveWalk: DisplayRepresentation(title: "Marche adaptée"),
+        .wheelchairPush: DisplayRepresentation(title: "Fauteuil"),
+        .wheelchairRacing: DisplayRepresentation(title: "Fauteuil de course"),
+        .handcycling: DisplayRepresentation(title: "Handbike"),
+        .adaptiveTricycle: DisplayRepresentation(title: "Tricycle adapté"),
+        .adaptiveSwim: DisplayRepresentation(title: "Natation adaptée"),
+        .seatedStrength: DisplayRepresentation(title: "Renforcement assis"),
+        .seatedMobility: DisplayRepresentation(title: "Mobilité assise"),
+        .wheelchairBasketball: DisplayRepresentation(title: "Basket fauteuil"),
+        .wheelchairTennis: DisplayRepresentation(title: "Tennis fauteuil"),
+        .boccia: DisplayRepresentation(title: "Boccia"),
     ]
 
     /// Le sport du moteur. Les deux listes partagent leurs identifiants

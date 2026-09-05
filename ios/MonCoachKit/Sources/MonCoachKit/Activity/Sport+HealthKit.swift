@@ -52,6 +52,28 @@ extension Sport {
         case .pilates: .pilates
         case .stretching: .flexibility
 
+        // Apple a des types dédiés au fauteuil et au handbike, et il faut
+        // les utiliser plutôt qu'un « autre » : ce sont eux qui font
+        // basculer la montre en mode fauteuil, compter les poussées au lieu
+        // des pas, et estimer la dépense sur la bonne table. Une heure de
+        // basket fauteuil enregistrée en basket compterait la dépense d'un
+        // joueur qui court.
+        //
+        // La boccia n'a pas de type : elle devient « autre », ce qui est la
+        // réponse honnête. Le chrono et le cardio comptent quand même, et
+        // c'est l'essentiel de ce qu'il y a à mesurer.
+        case .adaptiveWalk: .walking
+        case .wheelchairPush: .wheelchairWalkPace
+        case .wheelchairRacing: .wheelchairRunPace
+        case .handcycling: .handCycling
+        case .adaptiveTricycle: .cycling
+        case .adaptiveSwim: .swimming
+        case .seatedStrength: .functionalStrengthTraining
+        case .seatedMobility: .flexibility
+        case .wheelchairBasketball: .basketball
+        case .wheelchairTennis: .tennis
+        case .boccia: .other
+
         case .climbing: .climbing
         case .golf: .golf
         case .tennis, .padel: .tennis
@@ -83,11 +105,18 @@ extension Sport {
     /// tennis : une distance inventée vaudrait moins que pas de distance.
     public var workoutDistanceType: HKQuantityTypeIdentifier? {
         switch self {
-        case .run, .trail, .walk, .hike, .treadmill, .snowshoe, .golf:
+        case .run, .trail, .walk, .hike, .treadmill, .snowshoe, .golf, .adaptiveWalk:
             .distanceWalkingRunning
-        case .ride, .mountainBike, .gravelRide, .eBike, .indoorRide:
+        // La montre mesure la distance en fauteuil à la poussée, comme elle
+        // mesure la marche au pas. C'est une grandeur à part chez Apple, et
+        // la donner ici est ce qui fait qu'un tour de parc en fauteuil
+        // s'enregistre en kilomètres plutôt qu'en minutes.
+        case .wheelchairPush, .wheelchairRacing:
+            .distanceWheelchair
+        case .ride, .mountainBike, .gravelRide, .eBike, .indoorRide,
+             .handcycling, .adaptiveTricycle:
             .distanceCycling
-        case .swim, .openWaterSwim:
+        case .swim, .openWaterSwim, .adaptiveSwim:
             .distanceSwimming
         case .rowing, .rowingMachine:
             .distanceRowing
@@ -170,6 +199,12 @@ extension Sport {
         case .basketball: .basketball
         case .golf: .golf
         case .equestrianSports: .equestrian
+        // Le chemin du retour n'a d'ambiguïté que là où la table aller en a
+        // créé : le fauteuil et le handbike ont chacun leur type chez
+        // Apple, donc chacun retrouve son sport sans qu'on ait à choisir.
+        case .wheelchairWalkPace: .wheelchairPush
+        case .wheelchairRunPace: .wheelchairRacing
+        case .handCycling: .handcycling
         case .dance, .cardioDance, .socialDance: .dance
         default: .crossTraining
         }
