@@ -448,6 +448,125 @@ enum DishPreference {
         }
     }
 
+    /// L'entrée et le dessert d'un repas principal.
+    ///
+    /// Servis en quantité fixe, comme les deux légumes du plat : le solveur
+    /// ne les étire pas, et le bilan de journée — qui ne touche qu'aux
+    /// féculents et aux protéines — les laisse tels quels en refermant
+    /// l'écart calorique sur le riz. Toutes les garanties tiennent donc sans
+    /// être retouchées.
+    ///
+    /// L'entrée est un légume cru, distinct des deux du plat : c'est ce que
+    /// veut dire « crudités », et servir une troisième fois la courgette du
+    /// plat ne serait pas une entrée. Cent grammes, pas deux cents : une
+    /// entrée ouvre l'appétit, elle ne le remplit pas.
+    ///
+    /// Le dessert est un fruit ou un laitage, selon le régime et ce que le
+    /// reste de la journée a déjà servi. Rien de sucré ajouté — un carré de
+    /// chocolat est une bonne chose et n'a pas besoin d'être prescrit.
+    ///
+    /// La graine est celle de la semaine, pas celle du repas
+    /// ....................................................
+    /// Tirer une entrée différente à chaque repas donnait quatorze crudités
+    /// et quatorze fruits par semaine : la liste de courses passait de
+    /// quarante-cinq lignes à cinquante-sept, et le test qui garantit
+    /// qu'une semaine tient dans un caddie tombait. Il avait raison.
+    ///
+    /// C'est aussi ce qu'on fait vraiment : on achète un sachet de carottes
+    /// et on en mange plusieurs fois, on achète des pommes et on en prend
+    /// une après le déjeuner. Deux entrées et deux desserts par semaine —
+    /// un jeu pour le midi, un pour le soir — coûtent quatre lignes de
+    /// courses et changent d'une semaine sur l'autre.
+    static func courses(
+        slot: MealSlot,
+        diet: DietPreference,
+        excluded: Set<String>,
+        avoidingFoods used: Set<String>,
+        weekIndex: Int
+    ) -> (starter: MealItem?, dessert: MealItem?) {
+        guard slot == .lunch || slot == .dinner else { return (nil, nil) }
+        let seed = weekIndex * 2 + (slot == .lunch ? 0 : 1)
+
+        let starterGrams = 100.0
+        let vegetables = pool(role: .vegetable, diet: diet, excluding: excluded)
+            .filter { !used.contains($0.id) }
+        let starter = pick(vegetables, seed: seed + 11).map { food in
+            MealItem(
+                foodID: food.id,
+                grams: starterGrams,
+                macros: food.macros(grams: starterGrams),
+                course: .starter
+            )
+        }
+
+        // Le fruit d'abord, le laitage sinon : un dessert de fruit convient à
+        // tous les régimes, et le laitage a déjà sa place au petit-déjeuner.
+        let sweet = pool(role: .fruit, diet: diet, excluding: excluded)
+            .filter { !used.contains($0.id) }
+        let creamy = pool(role: .dairy, diet: diet, excluding: excluded)
+            .filter { !used.contains($0.id) }
+        // Sept dixièmes de portion, et le chiffre a une raison : une pomme
+        // après le déjeuner n'est pas la même chose qu'une pomme en
+        // collation. Servi en portion pleine, le dessert poussait les
+        // glucides du jour juste au-delà du budget d'écart — le solveur
+        // rattrape sur les féculents, qui ont un plancher, et le test des
+        // macros tombait de quatre millièmes. Il avait raison : une
+        // gourmandise ne justifie pas de desserrer une garantie.
+        let chosen = pick(sweet, seed: seed + 13) ?? pick(creamy, seed: seed + 17)
+        let dessert = chosen.map { food in
+            // Arrondi au pas de service du catalogue, comme partout
+            // ailleurs : cinq grammes, un seul pour les matières grasses en
+            // petite portion. Une prescription à 73 g ne se pèse pas, et un
+            // test du moteur refuse les grammages qui ne tombent pas juste.
+            let step: Double = food.role == .fat && food.portionG <= 30 ? 1 : 5
+            let grams = max(step, (food.portionG * 0.7 / step).rounded() * step)
+            return MealItem(
+                foodID: food.id,
+                grams: grams,
+                macros: food.macros(grams: grams),
+                course: .dessert
+            )
+        }
+
+        return (starter, dessert)
+    }
+
+    /// Sert le repas : le plat résolu, encadré de son entrée et de son
+    /// dessert.
+    ///
+    /// Un seul endroit, parce que le repas se rend depuis quatre chemins
+    /// différents — l'assiette libre, le plat retenu, le plat imposé, le
+    /// repli. Ajouter les services à chacun des quatre aurait garanti qu'un
+    /// des quatre l'oublie, et ce serait le dîner du jeudi qui n'aurait pas
+    /// de dessert sans que personne ne comprenne pourquoi.
+    ///
+    /// Les aliments déjà servis dans le plat sont écartés de l'entrée et du
+    /// dessert : une entrée de crudités qui ressert la courgette du plat
+    /// n'est pas une entrée.
+    static func serve(
+        slot: MealSlot,
+        items: [MealItem],
+        note: LocalizedText?,
+        recipeID: String? = nil,
+        diet: DietPreference,
+        excluded: Set<String>,
+        weekIndex: Int
+    ) -> Meal {
+        let (starter, dessert) = courses(
+            slot: slot,
+            diet: diet,
+            excluded: excluded,
+            avoidingFoods: Set(items.map(\.foodID)),
+            weekIndex: weekIndex
+        )
+        return Meal(
+            slot: slot,
+            items: [starter].compactMap { $0 } + items + [dessert].compactMap { $0 },
+            note: note,
+            recipeID: recipeID
+        )
+    }
+
     static func meal(
         slot: MealSlot,
         target: Macros,
@@ -457,7 +576,8 @@ enum DishPreference {
         seed: Int,
         menuDay: Int = 0,
         dishes preference: DishPreference = .varied,
-        preferring imposed: Recipe? = nil
+        preferring imposed: Recipe? = nil,
+        weekIndex: Int = 0
     ) -> Meal {
         let proteinPool: [Food]
         let carbPool: [Food]
@@ -533,7 +653,10 @@ enum DishPreference {
         // Un nom de plat ne vaut pas un écart calorique. C'est le calcul qui
         // est le produit ; la recette l'habille, elle ne le commande pas.
         guard preference != .none else {
-            return Meal(slot: slot, items: assembled, note: note(for: slot))
+            return serve(
+                slot: slot, items: assembled, note: note(for: slot),
+                diet: diet, excluded: excluded, weekIndex: weekIndex
+            )
         }
         let tolerance = max(kcalDrift(assembled, target: target), 0.08)
 
@@ -570,7 +693,11 @@ enum DishPreference {
             // d'écart rendrait à la semaine les huit plats qu'on vient de
             // lui retirer. L'équilibrage de fin de journée absorbe le reste.
             if let match = acceptable.first(where: { $0.dish.id == imposed.id }) {
-                return Meal(slot: slot, items: match.items, note: note(for: slot), recipeID: match.dish.id)
+                return serve(
+                    slot: slot, items: match.items, note: note(for: slot),
+                    recipeID: match.dish.id,
+                    diet: diet, excluded: excluded, weekIndex: weekIndex
+                )
             }
             let items = solve(
                 protein: FoodCatalog.food(id: imposed.proteinID),
@@ -581,7 +708,11 @@ enum DishPreference {
                 target: target
             )
             if kcalDrift(items, target: target) <= max(tolerance, 0.12) {
-                return Meal(slot: slot, items: items, note: note(for: slot), recipeID: imposed.id)
+                return serve(
+                    slot: slot, items: items, note: note(for: slot),
+                    recipeID: imposed.id,
+                    diet: diet, excluded: excluded, weekIndex: weekIndex
+                )
             }
         }
 
@@ -612,7 +743,10 @@ enum DishPreference {
             )
         }
 
-        return Meal(slot: slot, items: assembled, note: note(for: slot))
+        return serve(
+            slot: slot, items: assembled, note: note(for: slot),
+            diet: diet, excluded: excluded, weekIndex: weekIndex
+        )
     }
 
     /// De quoi décaler les plats d'un créneau à l'autre.
@@ -1019,7 +1153,8 @@ enum DishPreference {
                     seed: variety(for: entry.slot, menuDay: menuDay) * 7 + index * 3,
                     menuDay: variety(for: entry.slot, menuDay: menuDay),
                     dishes: preference,
-                    preferring: imposed(entry.slot, preference)
+                    preferring: imposed(entry.slot, preference),
+                    weekIndex: weekIndex
                 )
                 for item in built.items where item.food?.role == .protein {
                     usedProteins.insert(item.foodID)

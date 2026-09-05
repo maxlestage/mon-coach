@@ -36,7 +36,7 @@
             "tier" : "base"
           },
           {
-            "grams" : 95,
+            "grams" : 85,
             "name" : {
               "en" : "Brown rice cakes",
               "es" : "Tortitas de arroz integral",
@@ -78,13 +78,13 @@
             "tier" : "moderate"
           }
         ],
-        "kcal" : 716,
+        "kcal" : 678,
         "note" : {
           "en" : "Thirty grams of protein first thing blunts hunger for the whole day: this is the highest-return meal to fix.",
           "es" : "Treinta gramos de proteína a primera hora cortan el hambre de todo el día: es la comida más rentable de corregir.",
           "fr" : "Trente grammes de protéines dès le matin coupent la faim de la journée entière : c'est le repas le plus rentable à corriger."
         },
-        "proteinG" : 36,
+        "proteinG" : 35,
         "slot" : {
           "en" : "Breakfast",
           "es" : "Desayuno",
@@ -93,6 +93,20 @@
       },
       {
         "items" : [
+          {
+            "grams" : 100,
+            "name" : {
+              "en" : "Beetroot",
+              "es" : "Remolacha",
+              "fr" : "Betterave"
+            },
+            "reason" : {
+              "en" : "Its nitrates measurably improve endurance when eaten regularly.",
+              "es" : "Sus nitratos mejoran de forma medible la resistencia si se toma con regularidad.",
+              "fr" : "Ses nitrates améliorent mesurablement l'endurance quand elle est prise régulièrement."
+            },
+            "tier" : "base"
+          },
           {
             "grams" : 80,
             "name" : {
@@ -108,7 +122,7 @@
             "tier" : "base"
           },
           {
-            "grams" : 620,
+            "grams" : 565,
             "name" : {
               "en" : "Boiled potatoes",
               "es" : "Patatas cocidas",
@@ -162,10 +176,24 @@
               "fr" : "Le gras le mieux documenté sur la santé cardiovasculaire. Une cuillère à soupe pèse 120 kcal : c'est là que les déficits se perdent."
             },
             "tier" : "base"
+          },
+          {
+            "grams" : 90,
+            "name" : {
+              "en" : "Raspberries",
+              "es" : "Frambuesas",
+              "fr" : "Framboises"
+            },
+            "reason" : {
+              "en" : "6.5 g of fibre per 100 g: the fruit-shelf record, level with many a dried legume.",
+              "es" : "6,5 g de fibra por 100 g: el récord de la frutería, a la altura de muchas legumbres.",
+              "fr" : "6,5 g de fibres aux 100 g : le record du rayon fruits, à égalité avec bien des légumes secs."
+            },
+            "tier" : "base"
           }
         ],
-        "kcal" : 844,
-        "proteinG" : 36,
+        "kcal" : 886,
+        "proteinG" : 37,
         "slot" : {
           "en" : "Lunch",
           "es" : "Comida",
@@ -228,6 +256,20 @@
       {
         "items" : [
           {
+            "grams" : 100,
+            "name" : {
+              "en" : "Brussels sprouts",
+              "es" : "Coles de Bruselas",
+              "fr" : "Choux de Bruxelles"
+            },
+            "reason" : {
+              "en" : "Among the densest vegetables in vitamin K and fibre — roasted, they taste nothing like their reputation.",
+              "es" : "De las verduras más densas en vitamina K y fibra; asadas no se parecen en nada a su fama.",
+              "fr" : "Parmi les légumes les plus denses en vitamine K et en fibres — rôtis au four, ils ne ressemblent plus du tout à leur réputation."
+            },
+            "tier" : "base"
+          },
+          {
             "grams" : 80,
             "name" : {
               "en" : "Prawns",
@@ -242,7 +284,7 @@
             "tier" : "base"
           },
           {
-            "grams" : 395,
+            "grams" : 360,
             "name" : {
               "en" : "Basmati rice",
               "es" : "Arroz basmati",
@@ -296,15 +338,29 @@
               "fr" : "Le gras le mieux documenté sur la santé cardiovasculaire. Une cuillère à soupe pèse 120 kcal : c'est là que les déficits se perdent."
             },
             "tier" : "base"
+          },
+          {
+            "grams" : 90,
+            "name" : {
+              "en" : "Blackberries",
+              "es" : "Moras",
+              "fr" : "Mûres"
+            },
+            "reason" : {
+              "en" : "Nearly raspberry-level fibre, and free along the paths of August.",
+              "es" : "Casi tanta fibra como la frambuesa, y gratis en los caminos de agosto.",
+              "fr" : "Presque autant de fibres que la framboise, et gratuites au bord des chemins d'août."
+            },
+            "tier" : "base"
           }
         ],
-        "kcal" : 763,
+        "kcal" : 803,
         "note" : {
           "en" : "Eating late does not make you fat: the day's total is what counts. A protein-rich dinner just helps you sleep.",
           "es" : "Cenar tarde no engorda: lo que cuenta es el total del día. Una cena proteica solo ayuda a dormir mejor.",
           "fr" : "Manger tard ne fait pas grossir : c'est le total de la journée qui compte. Un dîner protéiné aide simplement à mieux dormir."
         },
-        "proteinG" : 36,
+        "proteinG" : 39,
         "slot" : {
           "en" : "Dinner",
           "es" : "Cena",
@@ -324,14 +380,14 @@
         "fr" : "Les féculents sont donnés cuits. Sur le paquet, ils sont donnés crus : 100 g de riz sec deviennent environ 300 g de riz cuit."
       },
       {
-        "en" : "This day brings 36 g of fibre against 39 g recommended. That is the difference between a deficit you can hold and one that breaks on Thursday night.",
-        "es" : "Este día aporta 36 g de fibra frente a los 39 g recomendados. Es la diferencia entre un déficit sostenible y uno que se rompe el jueves por la noche.",
-        "fr" : "Cette journée apporte 36 g de fibres, pour 39 g recommandés. C'est ce qui fait la différence entre un déficit tenable et un déficit qui craque le jeudi soir."
+        "en" : "This day brings 51 g of fibre against 39 g recommended. That is the difference between a deficit you can hold and one that breaks on Thursday night.",
+        "es" : "Este día aporta 51 g de fibra frente a los 39 g recomendados. Es la diferencia entre un déficit sostenible y uno que se rompe el jueves por la noche.",
+        "fr" : "Cette journée apporte 51 g de fibres, pour 39 g recommandés. C'est ce qui fait la différence entre un déficit tenable et un déficit qui craque le jeudi soir."
       }
     ],
-    "totalFiberG" : 36,
-    "totalKcal" : 2720,
-    "totalProteinG" : 143
+    "totalFiberG" : 51,
+    "totalKcal" : 2763,
+    "totalProteinG" : 148
   },
   "nutrition" : {
     "calories" : 2768,

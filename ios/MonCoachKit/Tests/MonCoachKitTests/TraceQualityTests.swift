@@ -26,24 +26,43 @@ struct TraceQualityTests {
         #expect(TraceAnalysis.quality(of: trace) == nil, "un écran qui rassure sans qu'on doute occupe la place")
     }
 
-    @Test("Des points imprécis sont comptés, et dits")
-    func inaccuratePointsAreReported() throws {
+    /// Ce test disait auparavant que quarante points à 80 m étaient jetés.
+    /// Ils ne le sont plus : ils sont gardés, comptés dans la distance, et
+    /// dits. La promesse — « on ne cache pas ce qui s'est passé » — n'a pas
+    /// changé ; c'est la réponse qui a changé, de « jeté » à « gardé et
+    /// signalé ».
+    @Test("Des points imprécis sont gardés, comptés, et dits")
+    func poorPointsAreKeptAndReported() throws {
         var points = cleanRun()
-        // Quarante points sous les arbres : le GPS annonce lui-même son
-        // erreur. C'est le cas exact que la promesse décrit.
-        for index in stride(from: 50, to: 130, by: 2) {
+        // Sous les arbres, le GPS annonce lui-même son erreur. Un point sur
+        // deux sur presque toute la sortie : la mesure repose franchement
+        // dessus, et ça se dit.
+        for index in stride(from: 20, to: 300, by: 2) {
             points[index].horizontalAccuracy = 80
         }
         let trace = TraceAnalysis.clean(points, filter: Sport.run.filter)
         let note = try #require(TraceAnalysis.quality(of: trace))
 
-        #expect(note.rejectedTotal == 40)
-        #expect(note.retention < 1)
-        #expect(note.reasons.count == 1)
-        #expect(note.reasons[0].fr.contains("40"))
-        #expect(note.reasons[0].isComplete)
+        #expect(trace.rejectedForAccuracy == 0)
+        #expect(trace.keptWithPoorAccuracy == 140)
+        #expect(note.retention == 1)
+        #expect(note.reasons.contains { $0.fr.contains("signal faible") })
+        #expect(note.reasons.allSatisfy { $0.isComplete })
         #expect(note.headline.isComplete)
-        #expect(note.headline.fr.contains("%"))
+    }
+
+    /// L'autre moitié de la règle : quelques points flous sur une sortie en
+    /// ville sont l'ordinaire, et ne méritent aucune remarque. Une remarque
+    /// à chaque sortie est une remarque qu'on apprend à ne plus lire.
+    @Test("Quelques points flous ne déclenchent rien")
+    func aFewPoorPointsStayQuiet() {
+        var points = cleanRun()
+        for index in stride(from: 50, to: 90, by: 2) {
+            points[index].horizontalAccuracy = 80
+        }
+        let trace = TraceAnalysis.clean(points, filter: Sport.run.filter)
+        #expect(trace.keptWithPoorAccuracy == 20)
+        #expect(TraceAnalysis.quality(of: trace) == nil)
     }
 
     @Test("Un saut de GPS est dit comme un saut, pas comme une accélération")
@@ -65,8 +84,13 @@ struct TraceQualityTests {
         var points = cleanRun()
         // La moitié de la sortie perdue : la distance affichée est fausse,
         // et l'athlète doit savoir que ce n'est pas lui qui a ralenti.
+        //
+        // Deux cent cinquante mètres et non quatre-vingt-dix : depuis que la
+        // précision se lit sur deux seuils, quatre-vingt-dix mètres est du
+        // signal médiocre qu'on garde, pas du bruit qu'on jette. Pour tester
+        // une trace vraiment amputée, il faut des points vraiment muets.
         for index in 0..<150 {
-            points[index * 2].horizontalAccuracy = 90
+            points[index * 2].horizontalAccuracy = 250
         }
         let trace = TraceAnalysis.clean(points, filter: Sport.run.filter)
         let note = try #require(TraceAnalysis.quality(of: trace))
@@ -87,8 +111,10 @@ struct TraceQualityTests {
     @Test("La lecture se refait depuis une activité enregistrée")
     func activityIsReadable() throws {
         var points = cleanRun()
+        // Au-delà du tolérable : ces points-là sont vraiment jetés, et c'est
+        // ce que la note doit pouvoir raconter depuis une activité relue.
         for index in stride(from: 40, to: 120, by: 2) {
-            points[index].horizontalAccuracy = 80
+            points[index].horizontalAccuracy = 250
         }
         let activity = TraceAnalysis.summarise(rawPoints: points, sport: .run, type: .easy)
         #expect(TraceAnalysis.quality(of: activity) != nil)

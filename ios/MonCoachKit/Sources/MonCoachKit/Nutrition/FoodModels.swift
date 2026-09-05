@@ -204,17 +204,71 @@ extension Sequence where Element == Macros {
     public var total: Macros { reduce(.zero, +) }
 }
 
+/// Le service auquel un aliment appartient dans un repas.
+///
+/// Pourquoi un repas a des services
+/// --------------------------------
+/// Le planificateur savait composer une assiette juste, et il ne savait
+/// servir qu'elle : une protéine, un féculent, deux légumes, posés
+/// ensemble. C'est une assiette de cantine, pas un repas — et un repas
+/// français en a trois, ce qui n'est pas une coquetterie mais la façon dont
+/// on mange vraiment. Une entrée de crudités change le rassasiement avant le
+/// plat ; un dessert évite d'aller chercher autre chose une heure après.
+///
+/// Le service ne change rien au calcul : l'entrée et le dessert sont servis
+/// en quantité fixe, comme les deux légumes du plat, et le solveur ajuste
+/// le reste autour d'eux. Toutes les garanties de la journée tiennent donc
+/// telles quelles — les macros dans leur budget, le minimum de protéines,
+/// le régime respecté, les aliments refusés écartés.
+public enum MealCourse: String, Codable, CaseIterable, Sendable, Identifiable {
+    case starter
+    case main
+    case dessert
+
+    public var id: String { rawValue }
+
+    public var label: LocalizedText {
+        switch self {
+        case .starter: LocalizedText(fr: "Entrée", en: "Starter", es: "Entrante")
+        case .main: LocalizedText(fr: "Plat", en: "Main", es: "Plato")
+        case .dessert: LocalizedText(fr: "Dessert", en: "Dessert", es: "Postre")
+        }
+    }
+}
+
 /// Un aliment servi en quantité, dans un repas.
 public struct MealItem: Codable, Sendable, Equatable, Identifiable, Hashable {
     public var id: String { foodID }
     public var foodID: String
     public var grams: Double
     public var macros: Macros
+    /// Le service. « Plat » par défaut : c'est le cas de tout ce qui existait
+    /// avant que les repas en aient.
+    public var course: MealCourse
 
-    public init(foodID: String, grams: Double, macros: Macros) {
+    public init(
+        foodID: String,
+        grams: Double,
+        macros: Macros,
+        course: MealCourse = .main
+    ) {
         self.foodID = foodID
         self.grams = grams
         self.macros = macros
+        self.course = course
+    }
+
+    /// Le décodage est écrit à la main pour une seule raison : le service est
+    /// arrivé après. Un plan enregistré avant lui n'a pas la clé, et le
+    /// décodeur engendré par Swift échouerait dessus — la valeur par défaut
+    /// d'une propriété ne le rend pas tolérant. Un journal alimentaire qui
+    /// refuse de se relire après une mise à jour est une perte de données.
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        foodID = try container.decode(String.self, forKey: .foodID)
+        grams = try container.decode(Double.self, forKey: .grams)
+        macros = try container.decode(Macros.self, forKey: .macros)
+        course = try container.decodeIfPresent(MealCourse.self, forKey: .course) ?? .main
     }
 
     public var food: Food? { FoodCatalog.food(id: foodID) }

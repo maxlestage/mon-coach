@@ -6,8 +6,29 @@ import Foundation
 /// d'un téléphone ou d'une montre. Elles sont volontairement exposées : un
 /// trail en forêt et un 400 m sur piste n'ont pas le même bruit.
 public struct TraceFilter: Sendable, Equatable {
-    /// Précision horizontale au-delà de laquelle un point est jeté, en mètres.
+    /// Précision horizontale en deçà de laquelle un point est pleinement
+    /// fiable, en mètres.
     public var maxHorizontalAccuracy: Double
+    /// Précision horizontale au-delà de laquelle un point est vraiment jeté,
+    /// en mètres.
+    ///
+    /// Pourquoi deux seuils et non un
+    /// ..............................
+    /// Il n'y en avait qu'un, et il jetait. En ville entre les immeubles, ou
+    /// sous un ciel couvert, le téléphone annonce couramment trente à
+    /// cinquante mètres de précision sur des points parfaitement corrects.
+    /// Dix minutes de course dans ces conditions étaient effacées d'un bloc :
+    /// la distance de ce tronçon tombait à zéro, et la sortie rendait trois
+    /// kilomètres de moins que ce qui avait été couru.
+    ///
+    /// Un point à quarante mètres près dit approximativement où l'on était.
+    /// Le jeter perd bien davantage que le bruit qu'il apporte. Il est donc
+    /// gardé, compté, et signalé comme douteux — ce qui laisse à l'athlète le
+    /// droit de savoir, sans lui retirer ses kilomètres.
+    ///
+    /// Au-delà de cent mètres en revanche, le point ne dit plus rien
+    /// d'utile : là, jeter reste la bonne réponse.
+    public var tolerableHorizontalAccuracy: Double
     /// Vitesse au-delà de laquelle un déplacement est jugé impossible, en m/s.
     /// 12 m/s, c'est 2:19/km : plus rapide que le record du monde du 100 m
     /// tenu sur un kilomètre. Un tel saut est un artefact, pas une foulée.
@@ -23,6 +44,7 @@ public struct TraceFilter: Sendable, Equatable {
 
     public init(
         maxHorizontalAccuracy: Double = 25,
+        tolerableHorizontalAccuracy: Double = 100,
         maxSpeed: Double = 12,
         pauseSpeed: Double = 0.5,
         minSegmentMeters: Double = 1,
@@ -30,6 +52,7 @@ public struct TraceFilter: Sendable, Equatable {
         elevationThreshold: Double = 1
     ) {
         self.maxHorizontalAccuracy = maxHorizontalAccuracy
+        self.tolerableHorizontalAccuracy = max(tolerableHorizontalAccuracy, maxHorizontalAccuracy)
         self.maxSpeed = maxSpeed
         self.pauseSpeed = pauseSpeed
         self.minSegmentMeters = minSegmentMeters
@@ -46,6 +69,10 @@ public struct TraceFilter: Sendable, Equatable {
 /// Un point retenu, enrichi de ce que l'analyse en a déduit.
 public struct TraceSample: Sendable, Equatable {
     public var point: GPSPoint
+    /// Le point a-t-il été gardé malgré une précision médiocre ?
+    /// Sert à dessiner le tronçon douteux autrement sur la carte, plutôt
+    /// qu'à le faire disparaître.
+    public var hasPoorAccuracy: Bool = false
     /// Distance parcourue depuis le départ, en mètres.
     public var cumulativeMeters: Double
     /// Temps en mouvement depuis le départ, pauses exclues.
@@ -68,12 +95,24 @@ public struct CleanTrace: Sendable, Equatable {
     public var elevationLoss: Double
     /// Points écartés parce que leur précision annoncée était insuffisante.
     public var rejectedForAccuracy: Int
+    /// Points gardés malgré une précision médiocre.
+    ///
+    /// Ils comptent dans la distance — c'est tout l'intérêt — et leur nombre
+    /// est dit, pour que l'athlète sache sur quoi repose sa mesure au lieu de
+    /// la découvrir amputée.
+    public var keptWithPoorAccuracy: Int
     /// Points écartés parce que le déplacement impliqué était impossible.
     public var rejectedForSpeed: Int
     /// Points écartés parce qu'ils n'avançaient pas dans le temps.
     public var rejectedForOrder: Int
 
     public var isEmpty: Bool { samples.count < 2 }
+    /// La mesure repose-t-elle en bonne partie sur des points douteux ?
+    /// Au-delà d'un point sur cinq, la distance mérite d'être annoncée avec
+    /// une réserve plutôt qu'au mètre près.
+    public var leansOnPoorSignal: Bool {
+        samples.count > 0 && Double(keptWithPoorAccuracy) / Double(samples.count) > 0.2
+    }
     public var paceSecondsPerKm: Double { TraceMath.pace(meters: meters, seconds: movingDuration) }
     /// Part des points d'origine effectivement retenus, 0 à 1.
     public var retention: Double {
@@ -91,13 +130,29 @@ public enum TraceAnalysis {
         var rejectedForAccuracy = 0
         var rejectedForSpeed = 0
         var rejectedForOrder = 0
+        var poor: Set<Date> = []
 
-        // 1. Précision. Une précision négative signale, côté CoreLocation, une
-        //    mesure invalide : ce n'est pas « très précis », c'est « pas de fix ».
+        // 1. Précision, en deux temps plutôt qu'en un.
+        //
+        //    Une précision négative signale, côté CoreLocation, une mesure
+        //    invalide : ce n'est pas « très précis », c'est « pas de fix ».
+        //    Celle-là part.
+        //
+        //    Au-delà du seuil de confiance mais en deçà du seuil de tolérance,
+        //    le point est gardé et noté douteux. C'est le cas de la ville et
+        //    du couvert forestier, et c'est là que l'ancien filtre effaçait
+        //    des kilomètres réels par tronçons entiers.
         let accurate = rawPoints.filter { point in
-            let ok = point.horizontalAccuracy >= 0 && point.horizontalAccuracy <= filter.maxHorizontalAccuracy
-            if !ok { rejectedForAccuracy += 1 }
-            return ok
+            guard point.horizontalAccuracy >= 0,
+                  point.horizontalAccuracy <= filter.tolerableHorizontalAccuracy
+            else {
+                rejectedForAccuracy += 1
+                return false
+            }
+            if point.horizontalAccuracy > filter.maxHorizontalAccuracy {
+                poor.insert(point.timestamp)
+            }
+            return true
         }
         let ordered = accurate.sorted { $0.timestamp < $1.timestamp }
 
@@ -128,6 +183,7 @@ public enum TraceAnalysis {
                 samples: kept.map {
                     TraceSample(
                         point: $0,
+                        hasPoorAccuracy: poor.contains($0.timestamp),
                         cumulativeMeters: 0,
                         cumulativeMovingSeconds: 0,
                         smoothedAltitude: $0.altitude
@@ -141,6 +197,7 @@ public enum TraceAnalysis {
                 elevationGain: 0,
                 elevationLoss: 0,
                 rejectedForAccuracy: rejectedForAccuracy,
+                keptWithPoorAccuracy: kept.count { poor.contains($0.timestamp) },
                 rejectedForSpeed: rejectedForSpeed,
                 rejectedForOrder: rejectedForOrder
             )
@@ -157,6 +214,7 @@ public enum TraceAnalysis {
         var samples: [TraceSample] = [
             TraceSample(
                 point: kept[0],
+                hasPoorAccuracy: poor.contains(kept[0].timestamp),
                 cumulativeMeters: 0,
                 cumulativeMovingSeconds: 0,
                 smoothedAltitude: smoothed[0]
@@ -177,6 +235,7 @@ public enum TraceAnalysis {
             samples.append(
                 TraceSample(
                     point: point,
+                    hasPoorAccuracy: poor.contains(point.timestamp),
                     cumulativeMeters: meters,
                     cumulativeMovingSeconds: moving,
                     smoothedAltitude: smoothed[index]
@@ -202,6 +261,7 @@ public enum TraceAnalysis {
             elevationGain: gain,
             elevationLoss: loss,
             rejectedForAccuracy: rejectedForAccuracy,
+            keptWithPoorAccuracy: samples.count { $0.hasPoorAccuracy },
             rejectedForSpeed: rejectedForSpeed,
             rejectedForOrder: rejectedForOrder
         )

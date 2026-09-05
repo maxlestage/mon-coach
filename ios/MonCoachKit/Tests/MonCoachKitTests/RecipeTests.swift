@@ -153,7 +153,7 @@ struct RecipeInPlanTests {
             // au plafond lipidique — et le plat reste ce plat. Ce qui ne peut
             // pas disparaître, c'est ce qui le définit.
             #expect(
-                Set(meal.items.map(\.foodID)).isSubset(of: Set(recipe.foodIDs)),
+                Set(meal.items.filter { $0.course == .main }.map(\.foodID)).isSubset(of: Set(recipe.foodIDs)),
                 Comment(rawValue: "\(recipe.id) : \(meal.items.map(\.foodID))")
             )
             #expect(

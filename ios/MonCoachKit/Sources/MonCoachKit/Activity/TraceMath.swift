@@ -151,6 +151,26 @@ public enum TraceMath {
             // kayak ou d'escalade : c'est le temps passé qui le porte. Les
             // MET du Compendium sont tabulés pour exactement ça.
             return metabolic(sport: sport, movingSeconds: movingSeconds, weightKg: weightKg)
+        case .motorised:
+            // Le mode dit comment l'engin se déplace, pas si le corps
+            // fournit — et ici les deux ne coïncident pas.
+            //
+            // Un trajet en voiture ne coûte rien : passer par les MET
+            // aurait donné 350 kcal pour deux heures de route, et ces
+            // 350 kcal seraient revenues dans la journée alimentaire sous
+            // forme d'un repas à manger pour un effort qui n'a pas eu lieu.
+            // Le trajet garde ses kilomètres, son temps et sa trace, et perd
+            // ce qu'il n'a jamais coûté.
+            //
+            // Un motocross partage ce mode — un rallye et une autoroute
+            // dépassent tous deux le plafond du vélo — et coûte, lui, une
+            // heure d'effort réel. Le rendre à zéro parce qu'il a un moteur
+            // serait la même erreur, retournée.
+            //
+            // Ni le kilomètre ni la vitesse ne disent ce coût : c'est le
+            // temps passé qui le porte, comme pour l'escalade ou le kayak.
+            guard sport.countsAsTraining else { return 0 }
+            return metabolic(sport: sport, movingSeconds: movingSeconds, weightKg: weightKg)
         }
     }
 

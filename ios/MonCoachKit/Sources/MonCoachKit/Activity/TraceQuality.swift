@@ -44,7 +44,21 @@ public extension TraceAnalysis {
     /// la place de ce qui compte.
     static func quality(of trace: CleanTrace) -> TraceQualityNote? {
         let total = trace.rejectedForAccuracy + trace.rejectedForSpeed + trace.rejectedForOrder
-        guard total >= quietRejectionCount || trace.retention < 0.97, total > 0 else { return nil }
+        // Deux portes plutôt qu'une : ce qui a été jeté, et ce qui a été
+        // gardé de justesse.
+        //
+        // La seconde est nouvelle, et elle est la contrepartie de la
+        // tolérance. Les points au signal médiocre ne sont plus jetés — ils
+        // comptent — mais quand ils portent plus d'un cinquième de la
+        // mesure, la distance affichée n'a plus la précision qu'elle
+        // laisse croire, et le taire serait remplacer un défaut par un
+        // autre.
+        //
+        // En dessous de ce cinquième, on se tait : quelques points flous
+        // sur une sortie en ville sont l'ordinaire, et une remarque à
+        // chaque sortie est une remarque qu'on apprend à ne plus lire.
+        let worthSaying = (total >= quietRejectionCount || trace.retention < 0.97) && total > 0
+        guard worthSaying || trace.leansOnPoorSignal else { return nil }
 
         var reasons: [LocalizedText] = []
         if trace.rejectedForAccuracy > 0 {
@@ -57,6 +71,25 @@ public extension TraceAnalysis {
                 )
             )
         }
+        // Ce qui a été gardé malgré un signal médiocre se dit aussi.
+        //
+        // Ces points-là ne sont plus jetés — c'était le défaut : en ville ou
+        // sous les arbres, des tronçons entiers de sortie réelle
+        // disparaissaient. Ils comptent donc dans la distance. Mais compter
+        // sans le dire serait l'autre moitié du même défaut : l'athlète a le
+        // droit de savoir que ses kilomètres reposent en partie sur des
+        // points à quarante mètres près.
+        if trace.keptWithPoorAccuracy > 0 {
+            let count = trace.keptWithPoorAccuracy
+            reasons.append(
+                LocalizedText(
+                    fr: "\(count) points gardés malgré un signal faible : la distance est comptée, à quelques dizaines de mètres près.",
+                    en: "\(count) points kept despite a weak signal: the distance counts, to within a few dozen metres.",
+                    es: "\(count) puntos conservados pese a una señal débil: la distancia cuenta, con unas decenas de metros de margen."
+                )
+            )
+        }
+
         if trace.rejectedForSpeed > 0 {
             let count = trace.rejectedForSpeed
             reasons.append(

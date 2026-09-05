@@ -74,6 +74,22 @@ extension Sport {
         case .wheelchairTennis: .tennis
         case .boccia: .other
 
+        // Un trajet n'ouvre jamais de session — `opensWorkoutSession` est
+        // faux — donc ce type ne sert qu'à satisfaire l'exhaustivité du
+        // switch. « Autre » est la réponse la moins fausse pour quelque
+        // chose qui n'est pas un entraînement.
+        // Apple n'a pas de type pour les sports mécaniques. « Autre » est
+        // la réponse honnête, et elle suffit : c'est le chrono et le cardio
+        // qui portent la mesure de ces sports-là, et la session les collecte
+        // quel que soit le type. Le jet-ski et la motoneige ont des types de
+        // famille — eau, neige — qui valent mieux qu'« autre ».
+        case .motocross, .enduro, .motoTrial, .roadMotorcycling, .karting,
+             .circuitRacing, .rally, .quad: .other
+        case .jetSki: .waterSports
+        case .snowmobile: .snowSports
+
+        case .driving: .other
+
         case .climbing: .climbing
         case .golf: .golf
         case .tennis, .padel: .tennis

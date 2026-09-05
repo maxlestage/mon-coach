@@ -82,9 +82,19 @@ public enum ActivityStats {
         case family(SportFamily)
         case sport(Sport)
 
+        /// Un trajet en voiture n'est dans aucun total « tous sports ».
+        ///
+        /// C'est ici que l'exclusion se fait, et à un seul endroit : les sept
+        /// calculs de statistiques passent tous par ce filtre. L'écrire sept
+        /// fois aurait garanti qu'un des sept l'oublie, et ce serait celui-là
+        /// qui annoncerait la semaine la plus chargée de l'année.
+        ///
+        /// Demander explicitement les déplacements — la famille ou le sport —
+        /// les rend, en revanche. On ne cache pas la donnée : on refuse
+        /// seulement de l'additionner à du sport.
         public func matches(_ activity: ActivityLog) -> Bool {
             switch self {
-            case .everything: true
+            case .everything: activity.sport.countsAsTraining
             case .family(let family): activity.sport.family == family
             case .sport(let sport): activity.sport == sport
             }

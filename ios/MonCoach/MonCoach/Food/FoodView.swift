@@ -409,37 +409,55 @@ struct MealCard: View {
         return "\(meal.slot.label[language]) · \(recipe.minutes) min · \(macros)"
     }
 
+    /// Les services réellement présents dans ce repas.
+    private var served: Set<MealCourse> { Set(meal.items.map(\.course)) }
+
     var body: some View {
         Card(title: title, subtitle: subtitle) {
             VStack(alignment: .leading, spacing: 8) {
-                ForEach(meal.items) { item in
-                    if let food = item.food {
-                        // Chaque aliment s'ouvre : c'est devant l'assiette
-                        // qu'on se rend compte qu'on n'aime pas quelque
-                        // chose, pas dans un écran de réglages.
-                        Button {
-                            questioned = food
-                        } label: {
-                            HStack(alignment: .top, spacing: 10) {
-                                Text("\(Int(item.grams)) g")
-                                    .font(.system(size: 13, weight: .semibold, design: .rounded))
-                                    .foregroundStyle(Theme.accent)
-                                    .frame(width: 56, alignment: .leading)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(food.name[language])
-                                        .font(Theme.bodyFont)
-                                        .foregroundStyle(Theme.primaryText)
-                                    if food.tier != .base {
-                                        Text(food.tier.label[language])
-                                            .font(.system(size: 11, weight: .medium))
-                                            .foregroundStyle(Theme.warning)
+                // Les services dans l'ordre où on les mange, chacun annoncé
+                // quand le repas en compte plus d'un.
+                //
+                // Écrire « Plat » au-dessus des trois lignes d'un
+                // petit-déjeuner serait une étiquette pour rien, et une
+                // étiquette pour rien apprend à ne plus lire les autres.
+                ForEach(MealCourse.allCases.filter { served.contains($0) }) { course in
+                    if served.count > 1 {
+                        Text(course.label[language])
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(Theme.secondaryText)
+                            .textCase(.uppercase)
+                            .padding(.top, course == MealCourse.allCases.first { served.contains($0) } ? 0 : 4)
+                    }
+                    ForEach(meal.items.filter { $0.course == course }) { item in
+                        if let food = item.food {
+                            // Chaque aliment s'ouvre : c'est devant l'assiette
+                            // qu'on se rend compte qu'on n'aime pas quelque
+                            // chose, pas dans un écran de réglages.
+                            Button {
+                                questioned = food
+                            } label: {
+                                HStack(alignment: .top, spacing: 10) {
+                                    Text("\(Int(item.grams)) g")
+                                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                                        .foregroundStyle(Theme.accent)
+                                        .frame(width: 56, alignment: .leading)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(food.name[language])
+                                            .font(Theme.bodyFont)
+                                            .foregroundStyle(Theme.primaryText)
+                                        if food.tier != .base {
+                                            Text(food.tier.label[language])
+                                                .font(.system(size: 11, weight: .medium))
+                                                .foregroundStyle(Theme.warning)
+                                        }
                                     }
+                                    Spacer()
                                 }
-                                Spacer()
+                                .contentShape(Rectangle())
                             }
-                            .contentShape(Rectangle())
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
                     }
                 }
                 // Les aromates, sous les grammes et sans grammes : ils
