@@ -14,6 +14,7 @@ public enum SportFamily: String, Codable, CaseIterable, Sendable, Identifiable, 
     case snow
     case indoor
     case adaptive
+    case motorsport
     case travel
     case other
 
@@ -42,6 +43,9 @@ public enum SportFamily: String, Codable, CaseIterable, Sendable, Identifiable, 
         // terme que le reste du monde emploie.
         case .adaptive: LocalizedText(
             fr: "Sports adaptés", en: "Adaptive sports", es: "Deportes adaptados"
+        )
+        case .motorsport: LocalizedText(
+            fr: "Sports mécaniques", en: "Motorsport", es: "Deportes de motor"
         )
         // Une famille qui dit franchement que ce n'est pas du sport.
         //
@@ -185,6 +189,31 @@ public enum Sport: String, Codable, CaseIterable, Sendable, Identifiable, Hashab
     case wheelchairTennis
     case boccia
 
+    // MARK: Sports mécaniques
+    //
+    // Un moteur fait avancer l'engin ; il ne tient pas le guidon.
+    //
+    // La distinction avec la conduite n'est pas une nuance : c'est ce qui
+    // décide si l'activité compte. Un trajet en voiture ne coûte rien —
+    // on est assis, le corps ne fournit pas. Quarante minutes de motocross
+    // sont un effort entier : le pilote tient l'engin aux bras et aux
+    // jambes, encaisse les bosses, et sa fréquence cardiaque ne redescend
+    // pas. Les deux se ressemblent de loin et n'ont rien à voir de près.
+    //
+    // Ils partagent en revanche le mode motorisé, parce que le filtrage de
+    // la trace ne s'intéresse qu'à la vitesse : un rallye et une autoroute
+    // dépassent tous deux le plafond du vélo.
+    case motocross
+    case enduro
+    case motoTrial
+    case roadMotorcycling
+    case karting
+    case circuitRacing
+    case rally
+    case quad
+    case jetSki
+    case snowmobile
+
     // MARK: Déplacements
     //
     // La conduite n'est pas un sport, et tout ce fichier est bâti pour des
@@ -290,6 +319,19 @@ public enum Sport: String, Codable, CaseIterable, Sendable, Identifiable, Hashab
         )
         case .boccia: LocalizedText(fr: "Boccia", en: "Boccia", es: "Boccia")
 
+        case .motocross: LocalizedText(fr: "Motocross", en: "Motocross", es: "Motocross")
+        case .enduro: LocalizedText(fr: "Enduro", en: "Enduro", es: "Enduro")
+        case .motoTrial: LocalizedText(fr: "Trial", en: "Trials", es: "Trial")
+        case .roadMotorcycling: LocalizedText(fr: "Moto", en: "Motorcycling", es: "Moto")
+        case .karting: LocalizedText(fr: "Karting", en: "Karting", es: "Karting")
+        case .circuitRacing: LocalizedText(
+            fr: "Auto sur circuit", en: "Circuit racing", es: "Auto en circuito"
+        )
+        case .rally: LocalizedText(fr: "Rallye", en: "Rally", es: "Rally")
+        case .quad: LocalizedText(fr: "Quad", en: "Quad biking", es: "Quad")
+        case .jetSki: LocalizedText(fr: "Jet-ski", en: "Jet ski", es: "Moto acuática")
+        case .snowmobile: LocalizedText(fr: "Motoneige", en: "Snowmobile", es: "Motonieve")
+
         case .driving: LocalizedText(fr: "Conduite", en: "Driving", es: "Conducción")
 
         case .climbing: LocalizedText(fr: "Escalade", en: "Climbing", es: "Escalada")
@@ -370,6 +412,16 @@ public enum Sport: String, Codable, CaseIterable, Sendable, Identifiable, Hashab
         // qu'un rond gris qui ne dit rien.
         case .boccia: "figure.bowling"
 
+        // Le catalogue de symboles d'Apple ne connaît pas le motocross.
+        // Plusieurs sports partagent donc la même moto, comme le vélo, le
+        // gravel et le vélo électrique partagent déjà la même bicyclette :
+        // une icône approchante vaut mieux qu'un rond gris.
+        case .motocross, .enduro, .motoTrial, .roadMotorcycling, .quad: "motorcycle.fill"
+        case .karting, .rally: "steeringwheel"
+        case .circuitRacing: "flag.checkered"
+        case .jetSki: "water.waves"
+        case .snowmobile: "snowflake"
+
         case .driving: "car.fill"
 
         case .climbing: "figure.climbing"
@@ -406,6 +458,9 @@ public enum Sport: String, Codable, CaseIterable, Sendable, Identifiable, Hashab
              .adaptiveTricycle, .adaptiveSwim, .seatedStrength, .seatedMobility,
              .wheelchairBasketball, .wheelchairTennis, .boccia:
             .adaptive
+        case .motocross, .enduro, .motoTrial, .roadMotorcycling, .karting,
+             .circuitRacing, .rally, .quad, .jetSki, .snowmobile:
+            .motorsport
         case .driving:
             .travel
         case .climbing, .golf, .tennis, .padel, .badminton, .football,
@@ -439,7 +494,9 @@ public enum Sport: String, Codable, CaseIterable, Sendable, Identifiable, Hashab
         case .adaptiveWalk: .walking
         case .wheelchairPush: .walking
         case .wheelchairRacing, .handcycling, .adaptiveTricycle: .rolling
-        case .driving: .motorised
+        case .driving, .motocross, .enduro, .motoTrial, .roadMotorcycling,
+             .karting, .circuitRacing, .rally, .quad, .jetSki, .snowmobile:
+            .motorised
         default: .stationary
         }
     }
@@ -463,7 +520,24 @@ public enum Sport: String, Codable, CaseIterable, Sendable, Identifiable, Hashab
     /// endroits agrègent les activités, et celui qu'on oublierait serait
     /// exactement celui qui annoncerait « 5 séances cette semaine » dont
     /// deux étaient des allers-retours au travail.
-    public var countsAsTraining: Bool { mode != .motorised }
+    /// Elle ne se déduit pas du mode de déplacement, et c'est une leçon.
+    ///
+    /// Elle l'a fait un temps : « motorisé » voulait dire « ne compte pas »,
+    /// ce qui était vrai tant que la conduite était seule dans ce mode. Les
+    /// sports mécaniques l'ont démentie — ils partagent le même filtrage de
+    /// trace, parce qu'un rallye et une autoroute dépassent tous deux le
+    /// plafond du vélo, et pourtant l'un est un effort entier et l'autre
+    /// non.
+    ///
+    /// La façon dont un engin se déplace et la question de savoir si le
+    /// corps fournit sont deux choses différentes. Les confondre revenait à
+    /// dire qu'un pilote de motocross ne fait rien parce qu'il a un moteur.
+    public var countsAsTraining: Bool {
+        switch self {
+        case .driving: false
+        default: true
+        }
+    }
 
     /// L'activité ouvre-t-elle une session d'entraînement HealthKit ?
     ///
@@ -709,6 +783,27 @@ public enum Sport: String, Codable, CaseIterable, Sendable, Identifiable, Hashab
         // qui creuse un déficit et qu'il faut remanger. Deux heures de
         // route affichées à 350 kcal feraient manger un repas pour un
         // entraînement qui n'a pas eu lieu.
+        // Les sports mécaniques, et l'écart entre l'idée reçue et la mesure.
+        //
+        // « Il est assis, il ne fait rien » est faux pour la plupart d'entre
+        // eux : un pilote de motocross tient l'engin aux bras et aux jambes
+        // quarante minutes durant, encaisse les bosses, et sa fréquence
+        // cardiaque ne redescend pas. Le karting fatigue les avant-bras et
+        // la nuque plus qu'on ne le croit.
+        //
+        // Cela dit, le Compendium est mince ici — ses entrées datent et
+        // couvrent mal la pratique de compétition. Les valeurs sont donc
+        // prises basses, comme pour les sports adaptés : sous-estimer une
+        // dépense fait manquer quelques calories, la surestimer fait croire
+        // à un déficit qui n'existe pas. Pour ces sports plus que pour les
+        // autres, c'est la ceinture cardio qui donne la vraie mesure.
+        case .motocross, .enduro: 7.0
+        case .motoTrial: 6.0
+        case .karting, .jetSki: 5.0
+        case .circuitRacing, .rally, .quad: 4.5
+        case .roadMotorcycling: 4.0
+        case .snowmobile: 3.5
+
         case .driving: 0
 
         case .climbing: 7.0

@@ -172,12 +172,35 @@ struct MealPlannerTests {
         }
     }
 
-    @Test("Les déjeuners et dîners contiennent des légumes")
-    func mainMealsHaveVegetables() {
+    /// L'assiette porte toujours ses deux légumes. Le repas en compte
+    /// désormais un troisième — l'entrée de crudités — et c'est pour cela
+    /// que l'assertion vise le plat plutôt que le repas entier : la garantie
+    /// était, et reste, que le plat principal a deux légumes différents.
+    /// L'entrée s'ajoute par-dessus, elle ne s'y substitue pas.
+    @Test("Le plat des déjeuners et dîners contient deux légumes")
+    func mainCoursesHaveTwoVegetables() {
         let day = MealPlanner.day(target: Self.target(.hypertrophy))
         for meal in day.meals where meal.slot == .lunch || meal.slot == .dinner {
-            let vegetables = meal.items.filter { $0.food?.role == .vegetable }
+            let vegetables = meal.items
+                .filter { $0.course == .main && $0.food?.role == .vegetable }
             #expect(vegetables.count == 2, Comment(rawValue: meal.slot.rawValue))
+        }
+    }
+
+    /// Le repas principal a trois services, et chacun est là.
+    @Test("Un déjeuner et un dîner ont une entrée, un plat et un dessert")
+    func mainMealsAreServedInThreeCourses() {
+        let day = MealPlanner.day(target: Self.target(.hypertrophy))
+        for meal in day.meals where meal.slot == .lunch || meal.slot == .dinner {
+            let courses = Set(meal.items.map(\.course))
+            #expect(courses.contains(.starter), Comment(rawValue: meal.slot.rawValue))
+            #expect(courses.contains(.main), Comment(rawValue: meal.slot.rawValue))
+            #expect(courses.contains(.dessert), Comment(rawValue: meal.slot.rawValue))
+        }
+        // Le petit-déjeuner et la collation n'en ont pas : personne ne sert
+        // une entrée avant un yaourt.
+        for meal in day.meals where meal.slot == .breakfast || meal.slot == .snack {
+            #expect(meal.items.allSatisfy { $0.course == .main })
         }
     }
 
