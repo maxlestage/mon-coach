@@ -6,8 +6,21 @@ import Foundation
 /// du calcul, et le calcul se teste. Les textes traversent déjà rendus, la
 /// Live Activity n'ayant pas accès au magasin ni à la langue choisie.
 public struct RunActivitySnapshot: Codable, Sendable, Hashable {
-    /// Type de la sortie, déjà traduit.
+    /// Ce que l'écran verrouillé annonce : le sport, ou l'intention de la
+    /// séance quand elle en a une.
+    ///
+    /// « Endurance » a du sens pour une course prévue au plan — c'est ce
+    /// qu'on est parti faire. Pour un vélo ou une randonnée, l'intention
+    /// vaut « facile » faute de mieux, et l'afficher revenait à dire
+    /// « Endurance » au-dessus d'une sortie à VTT.
     public var typeLabel: String
+    /// Le symbole du sport choisi.
+    ///
+    /// Il voyage dans l'état plutôt que d'être déduit dans l'extension :
+    /// celle-ci n'a pas le catalogue des sports, et surtout elle ne saurait
+    /// pas lequel a été choisi. Une pastille figée sur le coureur annonçait
+    /// une course à pied à quiconque partait à vélo.
+    public var symbolName: String
     /// Distance parcourue, formatée dans l'unité de l'athlète.
     public var distance: String
     /// Allure récente, formatée.
@@ -45,6 +58,7 @@ public struct RunActivitySnapshot: Codable, Sendable, Hashable {
 
     public init(
         typeLabel: String,
+        symbolName: String = "figure.run",
         distance: String,
         pace: String,
         elevationGain: Int,
@@ -57,6 +71,7 @@ public struct RunActivitySnapshot: Codable, Sendable, Hashable {
         trace: TraceMiniature = .empty
     ) {
         self.typeLabel = typeLabel
+        self.symbolName = symbolName
         self.distance = distance
         self.pace = pace
         self.elevationGain = elevationGain
@@ -67,6 +82,24 @@ public struct RunActivitySnapshot: Codable, Sendable, Hashable {
         self.heartRateBpm = heartRateBpm
         self.heartRateZone = heartRateZone
         self.trace = trace
+    }
+}
+
+extension RunActivitySnapshot {
+
+    /// Ce que l'écran verrouillé titre, pour ce sport et cette intention.
+    ///
+    /// Une fonction plutôt qu'une ligne dans `activitySnapshot`, et la
+    /// raison n'est pas l'élégance : `activitySnapshot` vit derrière
+    /// `#if canImport(CoreLocation)` et n'est jamais compilée sur Linux,
+    /// donc jamais testée. La règle, elle, l'est ici.
+    ///
+    /// « Endurance » a du sens pour une course prévue au plan — c'est ce
+    /// qu'on est parti faire. Pour un vélo ou une randonnée, l'intention
+    /// vaut « facile » faute de mieux, et l'afficher revenait à annoncer
+    /// « Endurance » au-dessus d'une sortie à VTT.
+    public static func title(sport: Sport, type: RunType, language: Language) -> String {
+        sport.feedsRunningPlan ? type.label[language] : sport.label[language]
     }
 }
 
@@ -88,7 +121,8 @@ extension LocationTracker {
         maximumBpm: Double? = nil
     ) -> RunActivitySnapshot {
         RunActivitySnapshot(
-            typeLabel: type.label[language],
+            typeLabel: RunActivitySnapshot.title(sport: sport, type: type, language: language),
+            symbolName: sport.symbolName,
             distance: Format.distance(meters: meters, unit: unit, language: language),
             pace: Format.pace(secondsPerKm: recentPaceSecondsPerKm, unit: unit),
             elevationGain: Int(elevationGain.rounded()),

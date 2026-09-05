@@ -181,13 +181,13 @@ struct RunLiveActivity: Widget {
                     }
                 }
             } compactLeading: {
-                Image(systemName: "figure.run")
+                Image(systemName: context.state.symbolName)
                     .foregroundStyle(.green)
             } compactTrailing: {
                 Text(context.state.distance)
                     .font(.system(size: 13, weight: .semibold, design: .rounded))
             } minimal: {
-                Image(systemName: "figure.run")
+                Image(systemName: context.state.symbolName)
                     .foregroundStyle(.green)
             }
             .keylineTint(.green)
@@ -219,7 +219,7 @@ struct RunLockScreenView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Label(state.typeLabel, systemImage: "figure.run")
+                Label(state.typeLabel, systemImage: state.symbolName)
                     .font(.system(size: 13, weight: .semibold, design: .rounded))
                     .foregroundStyle(.green)
                 Spacer()
