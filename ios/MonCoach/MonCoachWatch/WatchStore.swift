@@ -238,7 +238,14 @@ final class WatchStore {
         // se déclare indisponible et rend la main. La sortie part donc
         // dans tous les cas, au GPS et au chrono.
         Task {
-            await workout.start(sport: sport)
+            // Un trajet n'ouvre pas de session d'entraînement : elle
+            // écrirait dans Santé et fermerait les anneaux pour deux heures
+            // d'autoroute. La contrepartie est que la montre suspendra
+            // l'application dès que le poignet baisse — un trajet se trace
+            // depuis le téléphone, et l'écran le dit.
+            if sport.opensWorkoutSession {
+                await workout.start(sport: sport)
+            }
             tracker.start(sport: sport, type: type)
         }
     }

@@ -78,6 +78,10 @@ enum ActivitySport: String, AppEnum, CaseIterable {
     case wheelchairTennis
     case boccia
 
+    // La conduite : demander « démarre un trajet » à Siri au volant est
+    // exactement le geste que l'assistant vocal doit servir.
+    case driving
+
     case climbing
     case golf
     case tennis
@@ -156,6 +160,8 @@ enum ActivitySport: String, AppEnum, CaseIterable {
         .wheelchairBasketball: DisplayRepresentation(title: "Basket fauteuil"),
         .wheelchairTennis: DisplayRepresentation(title: "Tennis fauteuil"),
         .boccia: DisplayRepresentation(title: "Boccia"),
+
+        .driving: DisplayRepresentation(title: "Conduite"),
     ]
 
     /// Le sport du moteur. Les deux listes partagent leurs identifiants

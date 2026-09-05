@@ -47,7 +47,11 @@ public enum ActivityJournal {
         maximumBpm: Double? = nil
     ) -> PeriodTotals {
         var result = PeriodTotals.zero
-        for activity in activities {
+        // Les trajets ne comptent pas comme des séances. Sans cette ligne,
+        // deux allers-retours au travail feraient une semaine à cinq
+        // activités et cent kilomètres, et le coach en tirerait une charge
+        // qu'aucune jambe n'a portée.
+        for activity in activities where activity.sport.countsAsTraining {
             result.activityCount += 1
             result.meters += activity.meters
             result.movingSeconds += activity.duration
@@ -74,12 +78,16 @@ public enum ActivityJournal {
         calendar: Calendar = .current,
         maximumBpm: Double? = nil
     ) -> [JournalWeek] {
-        guard let earliest = activities.map(\.startedAt).min() else { return [] }
+        // La première semaine du journal est celle de la première séance, et
+        // non celle du premier trajet : un aller-retour fait six mois avant
+        // de commencer à s'entraîner ouvrirait vingt-six semaines vides.
+        let training = activities.filter { $0.sport.countsAsTraining }
+        guard let earliest = training.map(\.startedAt).min() else { return [] }
         guard var cursor = startOfWeek(of: earliest, calendar: calendar) else { return [] }
         let last = startOfWeek(of: today, calendar: calendar) ?? today
 
         var byWeek: [Date: [ActivityLog]] = [:]
-        for activity in activities {
+        for activity in activities where activity.sport.countsAsTraining {
             if let week = startOfWeek(of: activity.startedAt, calendar: calendar) {
                 byWeek[week, default: []].append(activity)
             }

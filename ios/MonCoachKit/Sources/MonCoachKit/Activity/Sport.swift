@@ -14,6 +14,7 @@ public enum SportFamily: String, Codable, CaseIterable, Sendable, Identifiable, 
     case snow
     case indoor
     case adaptive
+    case travel
     case other
 
     public var id: String { rawValue }
@@ -41,6 +42,14 @@ public enum SportFamily: String, Codable, CaseIterable, Sendable, Identifiable, 
         // terme que le reste du monde emploie.
         case .adaptive: LocalizedText(
             fr: "Sports adaptés", en: "Adaptive sports", es: "Deportes adaptados"
+        )
+        // Une famille qui dit franchement que ce n'est pas du sport.
+        //
+        // La ranger dans « Autres sports » aurait suffi techniquement, et
+        // aurait menti dans le mot le plus visible de l'écran. Un trajet en
+        // voiture n'est pas un sport : il se trace, il ne se compte pas.
+        case .travel: LocalizedText(
+            fr: "Déplacements", en: "Getting around", es: "Desplazamientos"
         )
         case .other: LocalizedText(fr: "Autres sports", en: "Other sports", es: "Otros deportes")
         }
@@ -71,6 +80,10 @@ public enum SportMode: String, Codable, Sendable, Hashable {
     case gliding
     /// Ce qui ne va nulle part : un tapis, un rameur, un tapis de sol.
     case stationary
+    /// Ce qui est motorisé : ça se déplace vite, et le corps ne fournit
+    /// rien. Le mode existe pour que le reste du moteur puisse le savoir
+    /// sans avoir à connaître la liste des sports concernés.
+    case motorised
 }
 
 /// Le sport d'une activité enregistrée.
@@ -172,6 +185,20 @@ public enum Sport: String, Codable, CaseIterable, Sendable, Identifiable, Hashab
     case wheelchairTennis
     case boccia
 
+    // MARK: Déplacements
+    //
+    // La conduite n'est pas un sport, et tout ce fichier est bâti pour des
+    // sports. Elle entre quand même dans l'énumération, parce que c'est le
+    // seul endroit d'où l'application sait tracer un déplacement — et
+    // qu'un trajet noté « vélo » faute de mieux fabrique quarante kilomètres
+    // de sport qui n'ont pas été faits.
+    //
+    // Ce qui la distingue est explicite partout où ça compte : elle ne coûte
+    // aucune calorie, n'entre pas dans la charge d'entraînement, ne nourrit
+    // pas le plan de course, et n'ouvre pas de session d'entraînement — donc
+    // rien n'est écrit dans Santé et les anneaux ne bougent pas.
+    case driving
+
     // MARK: Autres
     case climbing
     case golf
@@ -263,6 +290,8 @@ public enum Sport: String, Codable, CaseIterable, Sendable, Identifiable, Hashab
         )
         case .boccia: LocalizedText(fr: "Boccia", en: "Boccia", es: "Boccia")
 
+        case .driving: LocalizedText(fr: "Conduite", en: "Driving", es: "Conducción")
+
         case .climbing: LocalizedText(fr: "Escalade", en: "Climbing", es: "Escalada")
         case .golf: LocalizedText(fr: "Golf", en: "Golf", es: "Golf")
         case .tennis: LocalizedText(fr: "Tennis", en: "Tennis", es: "Tenis")
@@ -341,6 +370,8 @@ public enum Sport: String, Codable, CaseIterable, Sendable, Identifiable, Hashab
         // qu'un rond gris qui ne dit rien.
         case .boccia: "figure.bowling"
 
+        case .driving: "car.fill"
+
         case .climbing: "figure.climbing"
         case .golf: "figure.golf"
         case .tennis: "figure.tennis"
@@ -375,6 +406,8 @@ public enum Sport: String, Codable, CaseIterable, Sendable, Identifiable, Hashab
              .adaptiveTricycle, .adaptiveSwim, .seatedStrength, .seatedMobility,
              .wheelchairBasketball, .wheelchairTennis, .boccia:
             .adaptive
+        case .driving:
+            .travel
         case .climbing, .golf, .tennis, .padel, .badminton, .football,
              .basketball, .boxing, .martialArts, .dance, .equestrian:
             .other
@@ -406,6 +439,7 @@ public enum Sport: String, Codable, CaseIterable, Sendable, Identifiable, Hashab
         case .adaptiveWalk: .walking
         case .wheelchairPush: .walking
         case .wheelchairRacing, .handcycling, .adaptiveTricycle: .rolling
+        case .driving: .motorised
         default: .stationary
         }
     }
@@ -417,6 +451,31 @@ public enum Sport: String, Codable, CaseIterable, Sendable, Identifiable, Hashab
     /// déplace pas s'enregistre au chronomètre et au cardio, et c'est
     /// suffisant — c'est exactement ce que fait une montre de sport.
     public var tracksLocation: Bool { mode != .stationary }
+
+    /// L'activité compte-t-elle comme de l'entraînement ?
+    ///
+    /// La question ne se posait pas tant que le catalogue ne contenait que
+    /// des sports. Elle se pose dès qu'il contient un trajet : une heure de
+    /// voiture ne doit ni brûler de calories, ni peser sur la charge, ni
+    /// compter comme une séance de la semaine.
+    ///
+    /// C'est une propriété et non un `if` dans chaque calcul : quatre
+    /// endroits agrègent les activités, et celui qu'on oublierait serait
+    /// exactement celui qui annoncerait « 5 séances cette semaine » dont
+    /// deux étaient des allers-retours au travail.
+    public var countsAsTraining: Bool { mode != .motorised }
+
+    /// L'activité ouvre-t-elle une session d'entraînement HealthKit ?
+    ///
+    /// Non pour un trajet, et c'est le point : une session d'entraînement
+    /// écrit dans Santé et ferme les anneaux. Deux heures d'autoroute
+    /// enregistrées comme entraînement fausseraient la journée d'activité de
+    /// l'athlète bien au-delà de cette application.
+    ///
+    /// La contrepartie est réelle et vaut d'être dite : sans session, la
+    /// montre suspend l'application quelques secondes après que le poignet
+    /// baisse. Un trajet se trace donc depuis le téléphone.
+    public var opensWorkoutSession: Bool { countsAsTraining }
 
     /// Vrai quand l'activité alimente le plan de course.
     ///
@@ -438,7 +497,9 @@ public enum Sport: String, Codable, CaseIterable, Sendable, Identifiable, Hashab
     public var readout: SpeedReadout {
         switch mode {
         case .running, .trailRunning, .walking: .pacePerKilometre
-        case .rolling, .floating, .gliding: .speed
+        // Une vitesse, comme pour tout ce qui roule : personne n'a jamais
+        // annoncé un trajet en minutes par kilomètre.
+        case .rolling, .floating, .gliding, .motorised: .speed
         // Un yoga n'a pas d'allure, et afficher « —:—/km » pendant une heure
         // n'apprend rien à personne.
         case .stationary: .none
@@ -477,6 +538,27 @@ public enum Sport: String, Codable, CaseIterable, Sendable, Identifiable, Hashab
                 minSegmentMeters: 2,
                 elevationWindow: 7,
                 elevationThreshold: 2
+            )
+        case .motorised:
+            // Rien à voir avec un filtre de sport, et c'est voulu.
+            //
+            // 60 m/s, soit 216 km/h : au-delà, c'est un saut de GPS. Le seuil
+            // du vélo — 108 km/h — jetterait toute portion d'autoroute, et
+            // le trajet arriverait amputé de ses lignes droites.
+            //
+            // Le déplacement minimal monte à cinq mètres : à 130 km/h un
+            // point par seconde couvre trente-six mètres, et affiner en
+            // dessous ne fait qu'entasser du bruit. Le dénivelé enfin est
+            // volontairement sourd : personne ne veut savoir combien une
+            // voiture a « grimpé », et un seuil fin en fabriquerait des
+            // centaines de mètres à chaque viaduc.
+            TraceFilter(
+                maxHorizontalAccuracy: 50,
+                maxSpeed: 60,
+                pauseSpeed: 1.5,
+                minSegmentMeters: 5,
+                elevationWindow: 9,
+                elevationThreshold: 10
             )
         case .walking:
             // Deux seuils descendent ensemble, et il faut les deux.
@@ -539,6 +621,10 @@ public enum Sport: String, Codable, CaseIterable, Sendable, Identifiable, Hashab
         case .rolling: 1.5
         case .walking, .floating, .gliding: 0.2
         case .stationary: 0
+        // Une moyenne sous 5 km/h sur un trajet en voiture veut dire que le
+        // GPS n'a pas suivi, ou qu'on a passé l'heure dans un bouchon. Dans
+        // les deux cas ça mérite d'être dit, et pas corrigé en douce.
+        case .motorised: 1.4
         }
     }
 
@@ -614,6 +700,16 @@ public enum Sport: String, Codable, CaseIterable, Sendable, Identifiable, Hashab
         case .wheelchairBasketball: 6.5
         case .wheelchairTennis: 6.0
         case .boccia: 2.5
+
+        // Zéro, et ce n'est pas une valeur manquante.
+        //
+        // Le Compendium donne 2,5 pour la conduite — le coût d'être assis,
+        // éveillé, les mains occupées. C'est vrai et sans intérêt ici : ce
+        // que compte cette application, c'est la dépense d'un effort, celle
+        // qui creuse un déficit et qu'il faut remanger. Deux heures de
+        // route affichées à 350 kcal feraient manger un repas pour un
+        // entraînement qui n'a pas eu lieu.
+        case .driving: 0
 
         case .climbing: 7.0
         case .golf: 4.3

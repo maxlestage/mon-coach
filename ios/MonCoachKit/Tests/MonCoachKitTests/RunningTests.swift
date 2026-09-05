@@ -137,16 +137,47 @@ struct RunAnalysisTests {
         #expect(trace.retention == 1)
     }
 
-    @Test("Les points imprécis sont écartés et comptés")
-    func inaccuratePointsRejected() {
+    /// La précision se lit sur deux seuils, et ce test dit lesquels.
+    ///
+    /// Ce test exigeait auparavant qu'un point à 80 m soit jeté. C'était le
+    /// défaut : en ville ou sous les arbres, le téléphone annonce couramment
+    /// trente à cinquante mètres sur des points parfaitement corrects, et des
+    /// tronçons entiers de sortie réelle disparaissaient — la distance de ces
+    /// minutes-là tombait à zéro.
+    ///
+    /// Un point à 80 m dit approximativement où l'on était : il est gardé et
+    /// signalé. Un point sans fix, ou au-delà de cent mètres, ne dit plus
+    /// rien : il part.
+    @Test("Un point imprécis est gardé et signalé ; un point muet est écarté")
+    func poorPointsAreKeptAndFlagged() {
         var points = TraceFactory.straightNorth(meters: 1_000, speed: 10.0 / 3)
-        points[10].horizontalAccuracy = 80
+        points[10].horizontalAccuracy = 80      // médiocre, mais utilisable
         points[11].horizontalAccuracy = -1      // « pas de fix », pas « parfait »
+        points[12].horizontalAccuracy = 250     // au-delà du tolérable
         let trace = TraceAnalysis.clean(points)
+
         #expect(trace.rejectedForAccuracy == 2)
+        #expect(trace.keptWithPoorAccuracy == 1)
         #expect(trace.samples.count == points.count - 2)
+        #expect(trace.samples.contains { $0.hasPoorAccuracy })
         // La distance reste juste : le segment enjambe simplement les trous.
         #expect(abs(trace.meters - 1_000) < 5)
+    }
+
+    /// Le gain réel de la tolérance, mesuré : une sortie entière sous un
+    /// signal médiocre était effacée, elle est maintenant mesurée.
+    @Test("Une sortie entière au signal médiocre n'est plus perdue")
+    func aWholeRunUnderPoorSignalSurvives() {
+        var points = TraceFactory.straightNorth(meters: 3_000, speed: 10.0 / 3)
+        for index in points.indices { points[index].horizontalAccuracy = 45 }
+        let trace = TraceAnalysis.clean(points)
+
+        #expect(abs(trace.meters - 3_000) < 5)
+        #expect(trace.keptWithPoorAccuracy == points.count)
+        #expect(trace.rejectedForAccuracy == 0)
+        // Et l'application le dit, au lieu de rendre trois kilomètres au
+        // mètre près comme si de rien n'était.
+        #expect(trace.leansOnPoorSignal)
     }
 
     @Test("Un saut impossible est écarté sans casser la suite de la trace")

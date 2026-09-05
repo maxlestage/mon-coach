@@ -23,7 +23,20 @@ struct SportCatalogTests {
             #expect(!sport.symbolName.isEmpty, Comment(rawValue: sport.rawValue))
             // Le Compendium ne descend pas sous 1,5 MET (assis, immobile) et
             // ne dépasse pas 16 pour ce qu'un amateur pratique une heure.
-            #expect((2.0...16.0).contains(sport.baseMET), Comment(rawValue: "\(sport.rawValue) : \(sport.baseMET) MET"))
+            //
+            // Ce qui n'est pas de l'entraînement est hors de cette échelle,
+            // et doit valoir exactement zéro : un trajet en voiture ne se
+            // situe pas quelque part sur l'échelle de l'effort, il n'y est
+            // pas du tout. Une valeur oubliée à 2,5 y ferait rentrer deux
+            // heures de route par la porte de derrière.
+            if sport.countsAsTraining {
+                #expect(
+                    (2.0...16.0).contains(sport.baseMET),
+                    Comment(rawValue: "\(sport.rawValue) : \(sport.baseMET) MET")
+                )
+            } else {
+                #expect(sport.baseMET == 0, Comment(rawValue: sport.rawValue))
+            }
             #expect((1.0...9.0).contains(sport.defaultIntensity), Comment(rawValue: sport.rawValue))
             #expect(sport.filter.maxSpeed > 0, Comment(rawValue: sport.rawValue))
         }

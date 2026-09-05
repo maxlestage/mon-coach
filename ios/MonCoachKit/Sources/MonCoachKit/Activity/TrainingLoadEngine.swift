@@ -54,6 +54,14 @@ public enum TrainingLoadEngine {
     /// Les trois estiment la même chose et se mélangent donc dans une seule
     /// courbe : une sortie au capteur et une sortie au ressenti s'additionnent.
     public static func effort(for activity: ActivityLog, maximumBpm: Double) -> Double {
+        // Un trajet ne pèse rien, quoi qu'un capteur ait mesuré pendant.
+        //
+        // La garde vient en premier parce que le cardio, lui, a bien battu
+        // pendant deux heures de route : sans elle, une ceinture laissée sur
+        // la poitrine ferait d'un embouteillage la sortie la plus coûteuse
+        // de la semaine, et le coach allégerait la séance du lendemain.
+        guard activity.sport.countsAsTraining else { return 0 }
+
         if !activity.heartRate.isEmpty {
             let perZone = HeartRateAnalysis.secondsPerZone(
                 samples: activity.heartRate,

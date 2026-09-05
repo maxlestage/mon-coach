@@ -151,6 +151,18 @@ public enum TraceMath {
             // kayak ou d'escalade : c'est le temps passé qui le porte. Les
             // MET du Compendium sont tabulés pour exactement ça.
             return metabolic(sport: sport, movingSeconds: movingSeconds, weightKg: weightKg)
+        case .motorised:
+            // Rien. C'est le moteur qui a fait le travail.
+            //
+            // Ce zéro est le cœur du mode conduite, et c'est pour l'obtenir
+            // que ce cas existe : passer par les MET aurait donné 350 kcal
+            // pour deux heures de route, et ces 350 kcal seraient revenues
+            // dans la journée alimentaire sous forme d'un repas à manger
+            // pour un effort qui n'a pas eu lieu.
+            //
+            // Le trajet garde ses kilomètres, son temps et sa trace. Il perd
+            // ce qu'il n'a jamais coûté.
+            return 0
         }
     }
 

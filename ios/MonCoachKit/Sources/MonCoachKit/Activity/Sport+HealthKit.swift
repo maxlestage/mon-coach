@@ -74,6 +74,12 @@ extension Sport {
         case .wheelchairTennis: .tennis
         case .boccia: .other
 
+        // Un trajet n'ouvre jamais de session — `opensWorkoutSession` est
+        // faux — donc ce type ne sert qu'à satisfaire l'exhaustivité du
+        // switch. « Autre » est la réponse la moins fausse pour quelque
+        // chose qui n'est pas un entraînement.
+        case .driving: .other
+
         case .climbing: .climbing
         case .golf: .golf
         case .tennis, .padel: .tennis
