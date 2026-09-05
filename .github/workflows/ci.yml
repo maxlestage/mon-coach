@@ -190,6 +190,14 @@ jobs:
           # Ici plutôt que dans le job Swift : celui-ci tourne dans l'image
           # swift:6.2, dont la présence de python3 n'est pas garantie.
           python3 tools/checks/sports_healthkit.py
+      - name: CoreLocation est réglé pour chaque mode de déplacement
+        run: |
+          # Même angle mort que la table Santé, et le même coût. Le suivi GPS
+          # vit derrière `#if canImport(CoreLocation)` : il n'est jamais
+          # compilé sur Linux, et un mode ajouté sans son réglage ne se voit
+          # qu'au job macOS deux minutes plus tard — c'est exactement ce qui
+          # est arrivé en ajoutant le mode motorisé.
+          python3 tools/checks/sports_modes.py
       - name: Siri connaît les mêmes sports que le catalogue
         run: |
           # App Intents refuse de lire un enum venu d'une bibliothèque, et

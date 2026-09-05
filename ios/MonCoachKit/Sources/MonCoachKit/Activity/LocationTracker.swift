@@ -90,6 +90,18 @@ public final class LocationTracker: NSObject {
         case .walking, .floating:
             manager.activityType = .fitness
             manager.distanceFilter = kCLDistanceFilterNone
+        case .motorised:
+            // `automotiveNavigation` change vraiment le comportement de
+            // CoreLocation : il aligne les points sur le réseau routier et
+            // suspend les relevés à l'arrêt. C'est ce qu'on veut d'un
+            // trajet, et ce qu'on ne voudrait surtout pas d'une sortie —
+            // une trace de course recalée sur la chaussée serait fausse.
+            //
+            // Vingt mètres de pas : à 130 km/h un point par seconde couvre
+            // trente-six mètres de toute façon, et demander mieux ne
+            // rapporte que de la batterie en moins.
+            manager.activityType = .automotiveNavigation
+            manager.distanceFilter = 20
         case .stationary:
             // Aucun suivi n'est démarré pour ces sports-là ; ce réglage ne
             // sert que si l'appelant se trompe, et il doit alors coûter le
