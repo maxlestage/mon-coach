@@ -97,6 +97,22 @@ public struct UserProfile: Codable, Sendable, Equatable, Identifiable {
     /// justement pour cela que le moteur mesure au lieu de supposer.
     public var cycleLength: Int
 
+    // MARK: Situation
+    /// Ce qui a été déclaré dans la section handicap, ou rien.
+    ///
+    /// Optionnel, et il le restera : un profil enregistré avant que la
+    /// section existe se relit sans migration, et un profil sans
+    /// déclaration se comporte exactement comme avant.
+    public var adaptive: AdaptiveNeeds?
+
+    /// Ce que le corps ne peut pas fournir. Vide tant que rien n'est déclaré.
+    public var unavailableDemands: Set<BodyDemand> {
+        adaptive?.unavailableDemands ?? []
+    }
+
+    /// Vrai quand une situation est déclarée et change quelque chose.
+    public var hasAdaptiveNeeds: Bool { adaptive?.isActive == true }
+
     // MARK: Preferences
     public var unit: UnitSystem
     /// Chosen display language. Nil means "follow the system", which is what
@@ -134,6 +150,7 @@ public struct UserProfile: Codable, Sendable, Equatable, Identifiable {
         mapTiles: Bool? = nil,
         lastPeriodStart: Date? = nil,
         cycleLength: Int = CycleEngine.defaultLength,
+        adaptive: AdaptiveNeeds? = nil,
         unit: UnitSystem = .metric,
         language: Language? = nil
     ) {
@@ -167,6 +184,7 @@ public struct UserProfile: Codable, Sendable, Equatable, Identifiable {
         self.mapTiles = mapTiles
         self.lastPeriodStart = lastPeriodStart
         self.cycleLength = cycleLength
+        self.adaptive = adaptive
         self.unit = unit
         self.language = language
     }

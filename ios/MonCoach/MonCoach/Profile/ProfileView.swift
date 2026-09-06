@@ -88,17 +88,18 @@ struct ProfileView: View {
                     derivedCard(program).appears(1)
                     trainingCard(profile).appears(2)
                     constraintsCard(profile).appears(3)
-                    preferencesCard(profile).appears(4)
-                    remindersCard.appears(5)
-                    healthCard.appears(6)
-                    cycleCard.appears(7)
-                    runningCard(profile).appears(8)
-                    benefitsCard.appears(9)
-                    subscriptionCard.appears(10)
-                    refusedFoodsCard.appears(11)
-                    gearCard.appears(12)
-                    dataCard.appears(13)
-                    creditFooter.appears(14)
+                    adaptiveCard(profile).appears(4)
+                    preferencesCard(profile).appears(5)
+                    remindersCard.appears(6)
+                    healthCard.appears(7)
+                    cycleCard.appears(8)
+                    runningCard(profile).appears(9)
+                    benefitsCard.appears(10)
+                    subscriptionCard.appears(11)
+                    refusedFoodsCard.appears(12)
+                    gearCard.appears(13)
+                    dataCard.appears(14)
+                    creditFooter.appears(15)
                 } else {
                     Card(title: LocalizedText(fr: "Profil vide", en: "Empty profile", es: "Perfil vacío")[language]) { EmptyView() }.appears(0)
                 }
@@ -209,6 +210,59 @@ struct ProfileView: View {
                 }
             }
         }
+    }
+
+    /// La porte de la section handicap.
+    ///
+    /// Toujours visible, y compris quand rien n'est déclaré, et c'est le
+    /// point entier : une fonction qu'il faut deviner pour la découvrir
+    /// n'existe pas. La ranger derrière une condition — « n'apparaît que si
+    /// tu as déclaré quelque chose » — aurait demandé de déclarer une
+    /// situation dans un écran qu'on ne peut atteindre qu'en ayant déjà
+    /// déclaré une situation.
+    private func adaptiveCard(_ profile: UserProfile) -> some View {
+        NavigationLink {
+            AdaptiveView()
+        } label: {
+            Card(title: LocalizedText(fr: "Handicap", en: "Disability", es: "Discapacidad")[language]) {
+                if let needs = profile.adaptive, needs.isActive {
+                    FlowLayout(spacing: 6) {
+                        ForEach(AdaptiveSituation.allCases.filter { needs.situations.contains($0) }) {
+                            Pill(text: $0.label[language])
+                        }
+                        if needs.usesWheelchair {
+                            Pill(text: LocalizedText(fr: "Fauteuil", en: "Wheelchair", es: "Silla de ruedas")[language])
+                        }
+                    }
+                    HStack {
+                        CoachText(
+                            LocalizedText(
+                                fr: "Le programme en tient compte.",
+                                en: "The programme takes it into account.",
+                                es: "El programa lo tiene en cuenta."
+                            ),
+                            font: Theme.captionFont
+                        )
+                        Spacer()
+                        Image(systemName: "chevron.right").foregroundStyle(Theme.secondaryText)
+                    }
+                } else {
+                    HStack {
+                        CoachText(
+                            LocalizedText(
+                                fr: "Déclare une situation et le coach ne proposera que des mouvements que ton corps peut exécuter, avec les sports qui vont avec.",
+                                en: "Declare a situation and the coach will only offer movements your body can perform, with the sports that go with them.",
+                                es: "Declara una situación y el entrenador solo propondrá movimientos que tu cuerpo pueda ejecutar, con los deportes correspondientes."
+                            ),
+                            font: Theme.captionFont
+                        )
+                        Spacer(minLength: 8)
+                        Image(systemName: "chevron.right").foregroundStyle(Theme.secondaryText)
+                    }
+                }
+            }
+        }
+        .buttonStyle(.plain)
     }
 
     /// L'état de l'abonnement, et la porte pour le prendre ou le gérer.

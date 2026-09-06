@@ -21,19 +21,53 @@ public enum ExerciseCatalog {
         // du coach de salle va les chercher.
         + gymOnly
 
+    /// Les mouvements réservés aux profils qui ont déclaré une situation.
+    ///
+    /// Hors de `all` volontairement : voir `AdaptiveExercises`.
+    public static let adaptive: [Exercise] = AdaptiveExercises.all
+
     private static let byID: [String: Exercise] = Dictionary(
-        uniqueKeysWithValues: all.map { ($0.id, $0) }
+        uniqueKeysWithValues: (all + adaptive).map { ($0.id, $0) }
     )
 
+    /// Retrouve un mouvement par son identifiant, adaptés compris : un
+    /// historique enregistré doit rester lisible même si le profil a changé
+    /// depuis.
     public static func exercise(id: String) -> Exercise? { byID[id] }
 
     /// Every movement the athlete can perform without aggravating a flagged area.
+    ///
+    /// Deux filtres distincts, et l'ordre n'a pas d'importance parce qu'ils
+    /// ne disent pas la même chose : `conflicts` écarte ce qui ferait mal,
+    /// `isPossible` écarte ce qui ne peut pas être exécuté.
     public static func available(for profile: UserProfile) -> [Exercise] {
-        all.filter {
+        let needs = profile.adaptive ?? AdaptiveNeeds()
+        let unavailable = needs.unavailableDemands
+        let pool = needs.isActive ? all + adaptive : all
+        return pool.filter {
             $0.isAvailable(with: profile.equipment)
                 && !$0.conflicts(with: profile.limitations)
                 && !profile.dislikedExerciseIDs.contains($0.id)
+                && $0.isPossible(without: unavailable)
         }
+    }
+
+    /// Les muscles pour lesquels ce profil a au moins un mouvement.
+    ///
+    /// Dérivé plutôt que déclaré : une seconde liste de muscles entraînables
+    /// aurait fini par mentir dès qu'un exercice change de matériel. Ici, la
+    /// réponse vient du catalogue lui-même, et elle est vraie par
+    /// construction.
+    ///
+    /// Sert d'abord au planificateur — une journée « jambes » sans un seul
+    /// mouvement de jambe disponible est une séance vide, et ce cas
+    /// existait déjà avant les situations déclarées : deux élastiques et un
+    /// genou douloureux suffisaient à le produire.
+    public static func trainableMuscles(for profile: UserProfile) -> Set<MuscleGroup> {
+        let pool = available(for: profile)
+        return Set(MuscleGroup.allCases.filter { muscle in
+            pool.contains { $0.volumeCredit(for: muscle) >= 1.0 }
+        })
     }
 
     public static func exercises(training muscle: MuscleGroup) -> [Exercise] {
@@ -60,7 +94,8 @@ public enum ExerciseCatalog {
             stimulusRating: 5,
             viableRepRange: 3...12,
             loadFactor: 1.0,
-            baseRestSeconds: 180
+            baseRestSeconds: 180,
+            demands: [.standing, .bothLegs, .bothArms, .gripBothHands, .balance]
         ),
         Exercise(
             id: "front-squat",
@@ -79,7 +114,8 @@ public enum ExerciseCatalog {
             stimulusRating: 4,
             viableRepRange: 3...10,
             loadFactor: 0.8,
-            baseRestSeconds: 180
+            baseRestSeconds: 180,
+            demands: [.standing, .bothLegs, .bothArms, .gripBothHands, .balance]
         ),
         Exercise(
             id: "goblet-squat",
@@ -98,7 +134,8 @@ public enum ExerciseCatalog {
             stimulusRating: 4,
             viableRepRange: 6...15,
             loadFactor: 0.35,
-            baseRestSeconds: 120
+            baseRestSeconds: 120,
+            demands: [.standing, .bothLegs, .bothArms, .gripBothHands, .balance]
         ),
         Exercise(
             id: "hack-squat",
@@ -117,7 +154,8 @@ public enum ExerciseCatalog {
             stimulusRating: 5,
             viableRepRange: 6...15,
             loadFactor: 1.2,
-            baseRestSeconds: 150
+            baseRestSeconds: 150,
+            demands: [.standing, .bothLegs]
         ),
         Exercise(
             id: "leg-press",
@@ -136,7 +174,8 @@ public enum ExerciseCatalog {
             stimulusRating: 4,
             viableRepRange: 8...20,
             loadFactor: 1.8,
-            baseRestSeconds: 150
+            baseRestSeconds: 150,
+            demands: [.bothLegs]
         ),
         Exercise(
             id: "bulgarian-split-squat",
@@ -156,7 +195,8 @@ public enum ExerciseCatalog {
             viableRepRange: 6...15,
             loadFactor: 0.25,
             baseRestSeconds: 120,
-            isUnilateral: true
+            isUnilateral: true,
+            demands: [.standing, .oneLeg, .balance]
         ),
         Exercise(
             id: "bodyweight-squat",
@@ -175,7 +215,8 @@ public enum ExerciseCatalog {
             stimulusRating: 2,
             viableRepRange: 12...30,
             loadFactor: 0.0,
-            baseRestSeconds: 90
+            baseRestSeconds: 90,
+            demands: [.standing, .bothLegs, .balance]
         ),
         Exercise(
             id: "walking-lunge",
@@ -195,7 +236,8 @@ public enum ExerciseCatalog {
             viableRepRange: 8...16,
             loadFactor: 0.25,
             baseRestSeconds: 120,
-            isUnilateral: true
+            isUnilateral: true,
+            demands: [.standing, .oneLeg, .balance]
         )
     ]
 
@@ -219,7 +261,8 @@ public enum ExerciseCatalog {
             stimulusRating: 5,
             viableRepRange: 3...8,
             loadFactor: 1.0,
-            baseRestSeconds: 210
+            baseRestSeconds: 210,
+            demands: [.standing, .bothLegs, .bothArms, .gripBothHands, .balance]
         ),
         Exercise(
             id: "romanian-deadlift",
@@ -238,7 +281,8 @@ public enum ExerciseCatalog {
             stimulusRating: 5,
             viableRepRange: 6...12,
             loadFactor: 0.7,
-            baseRestSeconds: 150
+            baseRestSeconds: 150,
+            demands: [.standing, .bothLegs, .bothArms, .gripBothHands, .balance]
         ),
         Exercise(
             id: "dumbbell-rdl",
@@ -257,7 +301,8 @@ public enum ExerciseCatalog {
             stimulusRating: 4,
             viableRepRange: 8...15,
             loadFactor: 0.30,
-            baseRestSeconds: 120
+            baseRestSeconds: 120,
+            demands: [.standing, .bothLegs, .balance]
         ),
         Exercise(
             id: "hip-thrust",
@@ -276,7 +321,8 @@ public enum ExerciseCatalog {
             stimulusRating: 5,
             viableRepRange: 8...15,
             loadFactor: 0.9,
-            baseRestSeconds: 150
+            baseRestSeconds: 150,
+            demands: [.bothLegs, .floorTransfer]
         ),
         Exercise(
             id: "glute-bridge",
@@ -295,7 +341,8 @@ public enum ExerciseCatalog {
             stimulusRating: 2,
             viableRepRange: 12...25,
             loadFactor: 0.0,
-            baseRestSeconds: 75
+            baseRestSeconds: 75,
+            demands: [.bothLegs, .floorTransfer]
         ),
         Exercise(
             id: "back-extension",
@@ -314,7 +361,8 @@ public enum ExerciseCatalog {
             stimulusRating: 3,
             viableRepRange: 10...20,
             loadFactor: 0.2,
-            baseRestSeconds: 90
+            baseRestSeconds: 90,
+            demands: [.bothLegs]
         ),
         Exercise(
             id: "kettlebell-swing",
@@ -333,7 +381,8 @@ public enum ExerciseCatalog {
             stimulusRating: 3,
             viableRepRange: 12...25,
             loadFactor: 0.2,
-            baseRestSeconds: 90
+            baseRestSeconds: 90,
+            demands: [.standing, .bothLegs, .bothArms, .gripBothHands, .balance]
         )
     ]
 
@@ -357,7 +406,8 @@ public enum ExerciseCatalog {
             stimulusRating: 5,
             viableRepRange: 3...12,
             loadFactor: 1.0,
-            baseRestSeconds: 180
+            baseRestSeconds: 180,
+            demands: [.bothArms, .gripBothHands]
         ),
         Exercise(
             id: "incline-bench-press",
@@ -376,7 +426,8 @@ public enum ExerciseCatalog {
             stimulusRating: 5,
             viableRepRange: 5...12,
             loadFactor: 0.85,
-            baseRestSeconds: 150
+            baseRestSeconds: 150,
+            demands: [.bothArms, .gripBothHands]
         ),
         Exercise(
             id: "dumbbell-bench-press",
@@ -395,7 +446,8 @@ public enum ExerciseCatalog {
             stimulusRating: 5,
             viableRepRange: 6...15,
             loadFactor: 0.40,
-            baseRestSeconds: 150
+            baseRestSeconds: 150,
+            demands: [.bothArms]
         ),
         Exercise(
             id: "incline-dumbbell-press",
@@ -414,7 +466,8 @@ public enum ExerciseCatalog {
             stimulusRating: 5,
             viableRepRange: 6...15,
             loadFactor: 0.35,
-            baseRestSeconds: 150
+            baseRestSeconds: 150,
+            demands: [.bothArms]
         ),
         Exercise(
             id: "machine-chest-press",
@@ -433,7 +486,8 @@ public enum ExerciseCatalog {
             stimulusRating: 4,
             viableRepRange: 8...15,
             loadFactor: 0.9,
-            baseRestSeconds: 120
+            baseRestSeconds: 120,
+            demands: [.bothArms]
         ),
         Exercise(
             id: "push-up",
@@ -452,7 +506,8 @@ public enum ExerciseCatalog {
             stimulusRating: 3,
             viableRepRange: 8...30,
             loadFactor: 0.0,
-            baseRestSeconds: 90
+            baseRestSeconds: 90,
+            demands: [.bothArms, .floorTransfer]
         ),
         Exercise(
             id: "dip",
@@ -471,7 +526,8 @@ public enum ExerciseCatalog {
             stimulusRating: 5,
             viableRepRange: 5...15,
             loadFactor: 0.0,
-            baseRestSeconds: 150
+            baseRestSeconds: 150,
+            demands: [.bothArms]
         ),
         Exercise(
             id: "cable-fly",
@@ -490,7 +546,8 @@ public enum ExerciseCatalog {
             stimulusRating: 4,
             viableRepRange: 10...20,
             loadFactor: 0.25,
-            baseRestSeconds: 90
+            baseRestSeconds: 90,
+            demands: [.bothArms]
         )
     ]
 
@@ -514,7 +571,8 @@ public enum ExerciseCatalog {
             stimulusRating: 5,
             viableRepRange: 4...10,
             loadFactor: 1.0,
-            baseRestSeconds: 180
+            baseRestSeconds: 180,
+            demands: [.standing, .bothArms, .gripBothHands]
         ),
         Exercise(
             id: "seated-dumbbell-press",
@@ -533,7 +591,8 @@ public enum ExerciseCatalog {
             stimulusRating: 4,
             viableRepRange: 6...15,
             loadFactor: 0.32,
-            baseRestSeconds: 150
+            baseRestSeconds: 150,
+            demands: [.bothArms]
         ),
         Exercise(
             id: "machine-shoulder-press",
@@ -552,7 +611,8 @@ public enum ExerciseCatalog {
             stimulusRating: 4,
             viableRepRange: 8...15,
             loadFactor: 0.6,
-            baseRestSeconds: 120
+            baseRestSeconds: 120,
+            demands: [.bothArms]
         ),
         Exercise(
             id: "pike-push-up",
@@ -571,7 +631,8 @@ public enum ExerciseCatalog {
             stimulusRating: 3,
             viableRepRange: 6...20,
             loadFactor: 0.0,
-            baseRestSeconds: 90
+            baseRestSeconds: 90,
+            demands: [.bothArms, .floorTransfer]
         )
     ]
 
@@ -595,7 +656,8 @@ public enum ExerciseCatalog {
             stimulusRating: 5,
             viableRepRange: 5...12,
             loadFactor: 1.0,
-            baseRestSeconds: 150
+            baseRestSeconds: 150,
+            demands: [.standing, .bothLegs, .bothArms, .gripBothHands]
         ),
         Exercise(
             id: "chest-supported-row",
@@ -614,7 +676,8 @@ public enum ExerciseCatalog {
             stimulusRating: 5,
             viableRepRange: 8...15,
             loadFactor: 0.35,
-            baseRestSeconds: 120
+            baseRestSeconds: 120,
+            demands: [.bothArms]
         ),
         Exercise(
             id: "seated-cable-row",
@@ -633,7 +696,8 @@ public enum ExerciseCatalog {
             stimulusRating: 4,
             viableRepRange: 8...15,
             loadFactor: 0.8,
-            baseRestSeconds: 120
+            baseRestSeconds: 120,
+            demands: [.bothArms, .gripBothHands]
         ),
         Exercise(
             id: "one-arm-dumbbell-row",
@@ -653,7 +717,8 @@ public enum ExerciseCatalog {
             viableRepRange: 8...15,
             loadFactor: 0.35,
             baseRestSeconds: 120,
-            isUnilateral: true
+            isUnilateral: true,
+            demands: [.oneArm]
         ),
         Exercise(
             id: "inverted-row",
@@ -672,7 +737,8 @@ public enum ExerciseCatalog {
             stimulusRating: 3,
             viableRepRange: 8...20,
             loadFactor: 0.0,
-            baseRestSeconds: 90
+            baseRestSeconds: 90,
+            demands: [.bothLegs, .bothArms, .gripBothHands]
         ),
         Exercise(
             id: "band-row",
@@ -691,7 +757,8 @@ public enum ExerciseCatalog {
             stimulusRating: 2,
             viableRepRange: 12...25,
             loadFactor: 0.0,
-            baseRestSeconds: 75
+            baseRestSeconds: 75,
+            demands: [.bothArms]
         )
     ]
 
@@ -715,7 +782,8 @@ public enum ExerciseCatalog {
             stimulusRating: 5,
             viableRepRange: 4...15,
             loadFactor: 0.0,
-            baseRestSeconds: 150
+            baseRestSeconds: 150,
+            demands: [.bothArms, .gripBothHands]
         ),
         Exercise(
             id: "chin-up",
@@ -734,7 +802,8 @@ public enum ExerciseCatalog {
             stimulusRating: 5,
             viableRepRange: 4...15,
             loadFactor: 0.0,
-            baseRestSeconds: 150
+            baseRestSeconds: 150,
+            demands: [.bothArms, .gripBothHands]
         ),
         Exercise(
             id: "lat-pulldown",
@@ -753,7 +822,8 @@ public enum ExerciseCatalog {
             stimulusRating: 4,
             viableRepRange: 8...15,
             loadFactor: 0.8,
-            baseRestSeconds: 120
+            baseRestSeconds: 120,
+            demands: [.bothArms, .gripBothHands]
         ),
         Exercise(
             id: "straight-arm-pulldown",
@@ -772,7 +842,8 @@ public enum ExerciseCatalog {
             stimulusRating: 3,
             viableRepRange: 10...20,
             loadFactor: 0.3,
-            baseRestSeconds: 90
+            baseRestSeconds: 90,
+            demands: [.bothArms, .gripBothHands]
         )
     ]
 
@@ -796,7 +867,8 @@ public enum ExerciseCatalog {
             stimulusRating: 4,
             viableRepRange: 8...15,
             loadFactor: 0.35,
-            baseRestSeconds: 90
+            baseRestSeconds: 90,
+            demands: [.bothArms, .gripBothHands]
         ),
         Exercise(
             id: "incline-dumbbell-curl",
@@ -815,7 +887,8 @@ public enum ExerciseCatalog {
             stimulusRating: 5,
             viableRepRange: 8...15,
             loadFactor: 0.14,
-            baseRestSeconds: 90
+            baseRestSeconds: 90,
+            demands: [.oneArm]
         ),
         Exercise(
             id: "hammer-curl",
@@ -834,7 +907,8 @@ public enum ExerciseCatalog {
             stimulusRating: 4,
             viableRepRange: 8...15,
             loadFactor: 0.16,
-            baseRestSeconds: 90
+            baseRestSeconds: 90,
+            demands: [.oneArm]
         ),
         Exercise(
             id: "cable-curl",
@@ -853,7 +927,8 @@ public enum ExerciseCatalog {
             stimulusRating: 4,
             viableRepRange: 10...20,
             loadFactor: 0.3,
-            baseRestSeconds: 75
+            baseRestSeconds: 75,
+            demands: [.oneArm]
         ),
         Exercise(
             id: "overhead-cable-extension",
@@ -872,7 +947,8 @@ public enum ExerciseCatalog {
             stimulusRating: 5,
             viableRepRange: 10...20,
             loadFactor: 0.3,
-            baseRestSeconds: 75
+            baseRestSeconds: 75,
+            demands: [.bothArms, .gripBothHands]
         ),
         Exercise(
             id: "skull-crusher",
@@ -891,7 +967,8 @@ public enum ExerciseCatalog {
             stimulusRating: 4,
             viableRepRange: 8...15,
             loadFactor: 0.3,
-            baseRestSeconds: 90
+            baseRestSeconds: 90,
+            demands: [.bothArms, .gripBothHands]
         ),
         Exercise(
             id: "triceps-pushdown",
@@ -910,7 +987,8 @@ public enum ExerciseCatalog {
             stimulusRating: 4,
             viableRepRange: 10...20,
             loadFactor: 0.35,
-            baseRestSeconds: 75
+            baseRestSeconds: 75,
+            demands: [.bothArms, .gripBothHands]
         ),
         Exercise(
             id: "close-grip-push-up",
@@ -929,7 +1007,8 @@ public enum ExerciseCatalog {
             stimulusRating: 3,
             viableRepRange: 8...25,
             loadFactor: 0.0,
-            baseRestSeconds: 90
+            baseRestSeconds: 90,
+            demands: [.bothArms, .floorTransfer]
         ),
         Exercise(
             id: "wrist-curl",
@@ -948,7 +1027,8 @@ public enum ExerciseCatalog {
             stimulusRating: 2,
             viableRepRange: 12...25,
             loadFactor: 0.1,
-            baseRestSeconds: 60
+            baseRestSeconds: 60,
+            demands: [.oneArm]
         )
     ]
 
@@ -972,7 +1052,8 @@ public enum ExerciseCatalog {
             stimulusRating: 5,
             viableRepRange: 10...20,
             loadFactor: 0.08,
-            baseRestSeconds: 75
+            baseRestSeconds: 75,
+            demands: [.oneArm]
         ),
         Exercise(
             id: "cable-lateral-raise",
@@ -992,7 +1073,8 @@ public enum ExerciseCatalog {
             viableRepRange: 12...20,
             loadFactor: 0.12,
             baseRestSeconds: 75,
-            isUnilateral: true
+            isUnilateral: true,
+            demands: [.oneArm]
         ),
         Exercise(
             id: "face-pull",
@@ -1011,7 +1093,8 @@ public enum ExerciseCatalog {
             stimulusRating: 5,
             viableRepRange: 12...20,
             loadFactor: 0.25,
-            baseRestSeconds: 75
+            baseRestSeconds: 75,
+            demands: [.bothArms]
         ),
         Exercise(
             id: "reverse-fly",
@@ -1030,7 +1113,8 @@ public enum ExerciseCatalog {
             stimulusRating: 4,
             viableRepRange: 12...20,
             loadFactor: 0.08,
-            baseRestSeconds: 75
+            baseRestSeconds: 75,
+            demands: [.bothArms]
         ),
         Exercise(
             id: "band-pull-apart",
@@ -1049,7 +1133,8 @@ public enum ExerciseCatalog {
             stimulusRating: 3,
             viableRepRange: 15...30,
             loadFactor: 0.0,
-            baseRestSeconds: 60
+            baseRestSeconds: 60,
+            demands: [.bothArms, .gripBothHands]
         ),
         Exercise(
             id: "shrug",
@@ -1068,7 +1153,8 @@ public enum ExerciseCatalog {
             stimulusRating: 3,
             viableRepRange: 10...20,
             loadFactor: 0.4,
-            baseRestSeconds: 75
+            baseRestSeconds: 75,
+            demands: [.standing, .oneArm]
         )
     ]
 
@@ -1092,7 +1178,8 @@ public enum ExerciseCatalog {
             stimulusRating: 5,
             viableRepRange: 8...20,
             loadFactor: 0.4,
-            baseRestSeconds: 90
+            baseRestSeconds: 90,
+            demands: [.bothLegs]
         ),
         Exercise(
             id: "leg-extension",
@@ -1111,7 +1198,8 @@ public enum ExerciseCatalog {
             stimulusRating: 4,
             viableRepRange: 10...20,
             loadFactor: 0.5,
-            baseRestSeconds: 90
+            baseRestSeconds: 90,
+            demands: [.bothLegs]
         ),
         Exercise(
             id: "nordic-curl",
@@ -1130,7 +1218,8 @@ public enum ExerciseCatalog {
             stimulusRating: 5,
             viableRepRange: 4...10,
             loadFactor: 0.0,
-            baseRestSeconds: 120
+            baseRestSeconds: 120,
+            demands: [.bothLegs, .floorTransfer]
         ),
         Exercise(
             id: "hip-abduction",
@@ -1149,7 +1238,8 @@ public enum ExerciseCatalog {
             stimulusRating: 3,
             viableRepRange: 12...25,
             loadFactor: 0.5,
-            baseRestSeconds: 75
+            baseRestSeconds: 75,
+            demands: [.bothLegs]
         ),
         Exercise(
             id: "standing-calf-raise",
@@ -1168,7 +1258,8 @@ public enum ExerciseCatalog {
             stimulusRating: 4,
             viableRepRange: 10...20,
             loadFactor: 0.8,
-            baseRestSeconds: 75
+            baseRestSeconds: 75,
+            demands: [.standing, .bothLegs]
         ),
         Exercise(
             id: "bodyweight-calf-raise",
@@ -1187,7 +1278,8 @@ public enum ExerciseCatalog {
             stimulusRating: 2,
             viableRepRange: 15...30,
             loadFactor: 0.0,
-            baseRestSeconds: 60
+            baseRestSeconds: 60,
+            demands: [.standing, .bothLegs, .balance]
         )
     ]
 
@@ -1211,7 +1303,8 @@ public enum ExerciseCatalog {
             stimulusRating: 5,
             viableRepRange: 8...20,
             loadFactor: 0.0,
-            baseRestSeconds: 75
+            baseRestSeconds: 75,
+            demands: [.bothArms, .gripBothHands]
         ),
         Exercise(
             id: "cable-crunch",
@@ -1230,7 +1323,8 @@ public enum ExerciseCatalog {
             stimulusRating: 4,
             viableRepRange: 10...20,
             loadFactor: 0.4,
-            baseRestSeconds: 75
+            baseRestSeconds: 75,
+            demands: [.floorTransfer]
         ),
         Exercise(
             id: "plank",
@@ -1249,7 +1343,8 @@ public enum ExerciseCatalog {
             stimulusRating: 3,
             viableRepRange: 20...60,
             loadFactor: 0.0,
-            baseRestSeconds: 60
+            baseRestSeconds: 60,
+            demands: [.bothArms, .floorTransfer]
         ),
         Exercise(
             id: "dead-bug",
@@ -1268,7 +1363,8 @@ public enum ExerciseCatalog {
             stimulusRating: 3,
             viableRepRange: 10...20,
             loadFactor: 0.0,
-            baseRestSeconds: 60
+            baseRestSeconds: 60,
+            demands: [.floorTransfer]
         ),
         Exercise(
             id: "farmer-carry",
@@ -1287,7 +1383,8 @@ public enum ExerciseCatalog {
             stimulusRating: 4,
             viableRepRange: 20...60,
             loadFactor: 0.5,
-            baseRestSeconds: 90
+            baseRestSeconds: 90,
+            demands: [.standing, .bothLegs, .bothArms, .balance]
         )
     ]
 }

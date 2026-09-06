@@ -10,6 +10,23 @@ public struct VolumePrescription: Sendable, Equatable {
 
     public func sets(for muscle: MuscleGroup) -> Int { weeklySets[muscle] ?? 0 }
 
+    /// Le même budget, privé des muscles qu'aucun mouvement disponible ne
+    /// travaille.
+    ///
+    /// Les séries retirées ne sont pas redistribuées ailleurs. Elles
+    /// pourraient l'être, et ce serait faux : le budget de chaque muscle est
+    /// déjà calé sur ce qu'il récupère, et lui verser les séries d'un autre
+    /// le pousserait au-delà pour la seule raison qu'il restait de la place
+    /// dans un tableau. Le volume hebdomadaire baisse, et c'est la réponse
+    /// juste.
+    public func limited(to trainable: Set<MuscleGroup>) -> VolumePrescription {
+        VolumePrescription(
+            weeklySets: weeklySets.filter { trainable.contains($0.key) },
+            recoveryFactor: recoveryFactor,
+            rationale: rationale
+        )
+    }
+
     public var total: Int { weeklySets.values.reduce(0, +) }
 }
 
