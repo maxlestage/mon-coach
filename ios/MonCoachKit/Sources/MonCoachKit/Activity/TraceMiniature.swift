@@ -131,7 +131,7 @@ extension TraceMiniature {
         // On simplifie dans le plan d'origine, avant de normaliser : la
         // tolérance a ainsi un sens géographique, et deux sorties de tailles
         // différentes sont traitées pareil une fois ramenées au cadre.
-        let kept = fitting(plane, budget: budget, diagonal: hypot(width, height))
+        let kept = fitting(plane, budget: budget, diagonal: hypot(width, height)).map { plane[$0] }
 
         // Le côté le plus long occupe tout le cadre, le plus court est
         // centré : c'est ce qui garde au parcours sa forme au lieu de
@@ -151,6 +151,48 @@ extension TraceMiniature {
             packed.append(byte(y))
         }
         return TraceMiniature(packed: packed)
+    }
+
+    /// Les mêmes points, réduits à un budget, sans perdre les virages.
+    ///
+    /// Rendue publique parce qu'un deuxième écran en avait besoin et s'en
+    /// était écrit une version naïve : la carte des parcours gardait un
+    /// point sur n. Un point sur n coupe les virages au hasard — un lacet
+    /// serré disparaît pendant qu'une ligne droite garde vingt points
+    /// inutiles — et c'est précisément ce qui fait dire d'une carte qu'elle
+    /// n'est pas très précise.
+    ///
+    /// Même réduction que la vignette de l'écran verrouillé, sur les points
+    /// d'origine plutôt que sur un dessin normalisé : l'appelant garde des
+    /// coordonnées, donc peut les projeter comme il veut.
+    public static func drawable(_ points: [GPSPoint], budget: Int) -> [GPSPoint] {
+        guard points.count > budget, budget >= 2 else { return points }
+
+        let meanLatitude = points.reduce(0.0) { $0 + $1.latitude } / Double(points.count)
+        let squeeze = cos(meanLatitude * .pi / 180)
+        let plane = points.map { Plane(x: $0.longitude * squeeze, y: $0.latitude) }
+
+        let width = (plane.lazy.map(\.x).max() ?? 0) - (plane.lazy.map(\.x).min() ?? 0)
+        let height = (plane.lazy.map(\.y).max() ?? 0) - (plane.lazy.map(\.y).min() ?? 0)
+
+        return fitting(plane, budget: budget, diagonal: hypot(width, height)).map { points[$0] }
+    }
+
+    /// L'étendue d'une trace, en mètres — le plus grand côté de sa boîte.
+    ///
+    /// Sert à écarter du dessin ce qui n'est pas un parcours : une activité
+    /// dont tous les points tiennent dans vingt mètres ne trace rien, elle
+    /// pose un point. Et si ce point est ailleurs, il élargit le cadre et
+    /// écrase tous les vrais parcours contre un bord.
+    public static func spanMeters(_ points: [GPSPoint]) -> Double {
+        guard points.count >= 2 else { return 0 }
+        let meanLatitude = points.reduce(0.0) { $0 + $1.latitude } / Double(points.count)
+        let squeeze = cos(meanLatitude * .pi / 180)
+        let xs = points.map { $0.longitude * squeeze }
+        let ys = points.map(\.latitude)
+        let width = (xs.max() ?? 0) - (xs.min() ?? 0)
+        let height = (ys.max() ?? 0) - (ys.min() ?? 0)
+        return max(width, height) * metersPerDegree
     }
 
     private struct Plane {
@@ -176,12 +218,12 @@ extension TraceMiniature {
     /// On resserre donc ensuite entre la dernière tolérance trop fine et la
     /// première assez grossière, pour retenir la plus fine qui tienne — un
     /// lacet sur deux plutôt qu'aucun.
-    private static func fitting(_ plane: [Plane], budget: Int, diagonal: Double) -> [Plane] {
-        guard plane.count > budget else { return plane }
+    private static func fitting(_ plane: [Plane], budget: Int, diagonal: Double) -> [Int] {
+        guard plane.count > budget else { return Array(plane.indices) }
 
         var tooFine = 0.0
         var coarse = diagonal / 2000
-        var fitted: [Plane]?
+        var fitted: [Int]?
         for _ in 0..<24 {
             let kept = simplified(plane, epsilon: coarse)
             if kept.count <= budget {
@@ -197,7 +239,7 @@ extension TraceMiniature {
             // doublements est pathologique, mais elle ne doit pas pour
             // autant faire sortir du budget. On prend alors un point sur n.
             let step = Int((Double(plane.count) / Double(budget)).rounded(.up))
-            return plane.enumerated().compactMap { $0.offset % step == 0 ? $0.element : nil }
+            return plane.indices.filter { $0 % step == 0 }
         }
 
         var low = tooFine
@@ -227,8 +269,8 @@ extension TraceMiniature {
     /// Une trace d'une heure fait quelques milliers de points, et une trace
     /// en escalier ferait descendre la récursion aussi profond qu'elle est
     /// longue — une pile qui déborde tuerait l'application pendant la sortie.
-    private static func simplified(_ points: [Plane], epsilon: Double) -> [Plane] {
-        guard points.count > 2 else { return points }
+    private static func simplified(_ points: [Plane], epsilon: Double) -> [Int] {
+        guard points.count > 2 else { return Array(points.indices) }
         var keep = [Bool](repeating: false, count: points.count)
         keep[0] = true
         keep[points.count - 1] = true
@@ -250,7 +292,7 @@ extension TraceMiniature {
             pending.append((first, chosen))
             pending.append((chosen, last))
         }
-        return zip(points, keep).compactMap { $1 ? $0 : nil }
+        return keep.indices.filter { keep[$0] }
     }
 
     /// La distance d'un point au **segment**, et non à la droite infinie

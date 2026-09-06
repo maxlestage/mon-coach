@@ -212,7 +212,14 @@ struct JournalView: View {
     // MARK: - Carte de chaleur
 
     private var heatmapCard: some View {
-        let traced = store.history.activities.filter { !$0.points.isEmpty }
+        // Les trajets en voiture ont leur propre onglet et leur propre
+        // carte. Les mêler ici mettait vingt-trois kilomètres d'autoroute à
+        // la même échelle qu'une sortie de cinq : la sortie devenait un
+        // gribouillis dans un coin, et la carte ne répondait plus à la
+        // question qu'on lui pose.
+        let traced = store.history.activities.filter {
+            !$0.points.isEmpty && $0.sport.countsAsTraining
+        }
         let frequent = frequentRoutes
         return Group {
             if !traced.isEmpty {
@@ -460,17 +467,28 @@ struct RoutesCanvas: View {
     var highlights: [[GPSPoint]] = []
 
     /// Assez de points pour que chaque virage existe, assez peu pour que
-    /// vingt sorties se dessinent sans faire chauffer l'écran. Le dernier
-    /// point est toujours gardé : un parcours qui s'arrête avant la fin
-    /// est exactement ce qu'on répare ici.
+    /// vingt sorties se dessinent sans faire chauffer l'écran.
     private static let maxPointsPerRoute = 400
+
+    /// En dessous de quoi une activité n'est pas un parcours.
+    ///
+    /// Cinquante mètres : une activité dont tous les points tiennent dedans
+    /// ne dessine rien, elle pose un point. Et si ce point est ailleurs, il
+    /// élargit le cadre et écrase tous les vrais parcours contre un bord —
+    /// c'est ce qui rendait cette carte illisible.
+    private static let minimumSpanMeters: Double = 50
 
     var body: some View {
         Canvas { context, size in
             context.fill(Path(CGRect(origin: .zero, size: size)), with: .color(Theme.surfaceRaised))
 
-            let routes = activities.map { Self.thinned($0.points) }
-            let featured = highlights.map { Self.thinned($0) }
+            // Le cadre se calcule sur les seules traces dessinées. Il se
+            // calculait sur tous les points, y compris ceux d'une activité
+            // réduite à un point posé ailleurs : elle n'apparaissait que
+            // comme une pastille, et écrasait tous les vrais parcours dans
+            // un coin de la carte.
+            let routes = Self.drawable(activities.map { Self.thinned($0.points) })
+            let featured = Self.drawable(highlights.map { Self.thinned($0) })
             let all = routes.flatMap { $0 } + featured.flatMap { $0 }
             guard let minLat = all.map(\.latitude).min(),
                   let maxLat = all.map(\.latitude).max(),
@@ -530,15 +548,21 @@ struct RoutesCanvas: View {
         }
     }
 
-    /// Réduit une trace sans jamais perdre ses extrémités.
+    /// Réduit une trace en gardant sa forme.
+    ///
+    /// Un point sur n, ce qu'il y avait ici, coupe les virages au hasard :
+    /// un lacet serré disparaît pendant qu'une ligne droite garde vingt
+    /// points inutiles. La réduction du kit décide par l'écart au segment —
+    /// les angles survivent, les portions droites se réduisent à leurs deux
+    /// extrémités. C'est la même que celle de l'écran verrouillé, et elle
+    /// est mesurée par un test.
     static func thinned(_ points: [GPSPoint]) -> [GPSPoint] {
-        guard points.count > maxPointsPerRoute else { return points }
-        let stride = points.count / maxPointsPerRoute + 1
-        var kept = points.indices.filter { $0 % stride == 0 }.map { points[$0] }
-        if let last = points.last, kept.last != last {
-            kept.append(last)
-        }
-        return kept
+        TraceMiniature.drawable(points, budget: maxPointsPerRoute)
+    }
+
+    /// Les traces qui valent d'être dessinées, et qui seules décident du cadre.
+    static func drawable(_ routes: [[GPSPoint]]) -> [[GPSPoint]] {
+        routes.filter { $0.count >= 2 && TraceMiniature.spanMeters($0) >= minimumSpanMeters }
     }
 
     /// Un chemin qui passe par les points en arrondissant les angles.
