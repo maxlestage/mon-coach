@@ -771,6 +771,36 @@ struct ProfileView: View {
                             .labelsHidden()
                             .tint(Theme.accent)
                     }
+                    // La longueur, sans laquelle la date ne sert pas à
+                    // grand-chose. Le moteur situe l'ovulation quatorze jours
+                    // avant la fin du cycle : à vingt-huit jours par défaut,
+                    // un cycle de trente-deux voyait son ovulation placée
+                    // quatre jours trop tôt, et rien ne permettait de le dire.
+                    Stepper(value: cycleLengthBinding, in: CycleEngine.shortestLength...CycleEngine.longestLength) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(
+                                LocalizedText(
+                                    fr: "Cycle de \(store.profile?.cycleLength ?? CycleEngine.defaultLength) jours",
+                                    en: "\(store.profile?.cycleLength ?? CycleEngine.defaultLength)-day cycle",
+                                    es: "Ciclo de \(store.profile?.cycleLength ?? CycleEngine.defaultLength) días"
+                                )[language]
+                            )
+                            .font(Theme.bodyFont)
+                            .foregroundStyle(Theme.primaryText)
+                            Text(
+                                LocalizedText(
+                                    fr: "Du premier jour des règles au premier jour des suivantes. Vingt-huit est une moyenne, pas une norme : la tienne compte plus.",
+                                    en: "From the first day of one period to the first day of the next. Twenty-eight is an average, not a norm: yours matters more.",
+                                    es: "Del primer día de una regla al primer día de la siguiente. Veintiocho es una media, no una norma: la tuya importa más."
+                                )[language]
+                            )
+                            .font(Theme.captionFont)
+                            .foregroundStyle(Theme.secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    .tint(Theme.accent)
+
                     GhostButton(
                         title: LocalizedText(fr: "Lire depuis Santé", en: "Read from Health", es: "Leer desde Salud")[language],
                         systemImage: "heart.text.square"
@@ -790,6 +820,13 @@ struct ProfileView: View {
                 // vouloir dire que l'application ne le garde pas.
                 store.setLastPeriodStart(wanted ? Date() : nil)
             }
+        )
+    }
+
+    private var cycleLengthBinding: Binding<Int> {
+        Binding(
+            get: { store.profile?.cycleLength ?? CycleEngine.defaultLength },
+            set: { store.setCycleLength($0) }
         )
     }
 

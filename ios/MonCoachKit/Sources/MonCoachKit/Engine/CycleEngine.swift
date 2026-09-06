@@ -65,6 +65,15 @@ public enum CycleEngine {
     /// La durée par défaut, quand l'athlète n'a rien précisé.
     public static let defaultLength = 28
 
+    /// Les bornes physiologiques du cycle, en jours.
+    ///
+    /// Publiques parce qu'un écran qui demande la longueur doit proposer la
+    /// même plage que celle où le calcul reste valable — sinon il accepte
+    /// une valeur que le moteur ramènera silencieusement à autre chose, et
+    /// l'athlète voit un chiffre qui n'est pas celui qu'elle a saisi.
+    public static let shortestLength = 21
+    public static let longestLength = 45
+
     /// La phase lutéale dure à peu près quatorze jours quelle que soit la
     /// longueur du cycle : c'est la phase folliculaire qui s'allonge ou se
     /// raccourcit. On situe donc l'ovulation en comptant depuis la fin, pas
@@ -83,13 +92,13 @@ public enum CycleEngine {
             to: calendar.startOfDay(for: date)
         ).day ?? 0
         guard days >= 0 else { return 1 }
-        let span = max(21, min(45, length))
+        let span = length.clamped(to: shortestLength...longestLength)
         return days % span + 1
     }
 
     /// La phase, pour un jour donné.
     public static func phase(dayOfCycle day: Int, length: Int = defaultLength) -> CyclePhase {
-        let span = max(21, min(45, length))
+        let span = length.clamped(to: shortestLength...longestLength)
         let ovulation = max(8, span - lutealDays)
 
         if day <= 5 { return .menstrual }

@@ -225,6 +225,24 @@ public final class CoachStore {
         save()
     }
 
+    /// Note la longueur du cycle, en jours.
+    ///
+    /// Il manquait, et son absence rendait le reste faux. Le moteur situe
+    /// l'ovulation en comptant quatorze jours depuis la fin du cycle — c'est
+    /// la bonne façon de faire, et c'est aussi ce qui rend la longueur
+    /// indispensable : à vingt-huit jours par défaut, un cycle de trente-deux
+    /// voyait son ovulation placée quatre jours trop tôt, définitivement,
+    /// sans que rien ne permette de le corriger.
+    ///
+    /// Ne reconstruit pas le mésocycle, comme la date : une correction de
+    /// cycle n'a aucune raison de coûter un bloc d'entraînement.
+    public func setCycleLength(_ days: Int) {
+        guard var profile else { return }
+        profile.cycleLength = days.clamped(to: CycleEngine.shortestLength...CycleEngine.longestLength)
+        self.profile = profile
+        save()
+    }
+
     /// Comment reprendre, si l'athlète revient d'un arrêt.
     ///
     /// Nil quand il n'y a rien à signaler — c'est le cas le plus fréquent, et

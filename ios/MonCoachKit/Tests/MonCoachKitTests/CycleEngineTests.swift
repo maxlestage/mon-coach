@@ -169,3 +169,124 @@ struct CycleEngineTests {
         }
     }
 }
+
+private func cycleStorage() -> StateStorage {
+    StateStorage(url: URL.temporaryDirectory.appending(path: "cycle-\(UUID().uuidString).json"))
+}
+
+/// Renseigner son cycle, de l'inscription jusqu'au moteur.
+///
+/// Le défaut que cette suite ferme n'était pas un manque d'écran : la
+/// longueur du cycle était lue par le moteur et ne pouvait être saisie nulle
+/// part. Tout le monde restait à vingt-huit jours, et comme l'ovulation se
+/// compte quatorze jours avant la fin, un cycle de trente-deux voyait la
+/// sienne placée quatre jours trop tôt, tous les mois, sans recours.
+@MainActor
+@Suite("Renseigner son cycle")
+struct CycleInputTests {
+
+    @Test("La longueur déclarée déplace vraiment l'ovulation")
+    func lengthMovesOvulation() {
+        // À vingt-quatre jours, le quatorzième est déjà passé après
+        // l'ovulation ; à vingt-huit il est dessus ; à trente-deux elle
+        // n'est pas encore arrivée.
+        #expect(CycleEngine.phase(dayOfCycle: 14, length: 24) == .luteal)
+        #expect(CycleEngine.phase(dayOfCycle: 14, length: 28) == .ovulatory)
+        #expect(CycleEngine.phase(dayOfCycle: 14, length: 32) == .follicular)
+    }
+
+    @Test("Le magasin enregistre la longueur et la garde dans les bornes")
+    func theStoreKeepsTheLength() {
+        let store = CoachStore(storage: cycleStorage())
+        store.completeOnboarding(with: Fixtures.intermediate())
+
+        store.setCycleLength(32)
+        #expect(store.profile?.cycleLength == 32)
+
+        // Une valeur impossible est ramenée dans la plage plutôt que stockée
+        // telle quelle : l'écran propose la bonne plage, mais un profil relu
+        // d'ailleurs peut porter n'importe quoi.
+        store.setCycleLength(3)
+        #expect(store.profile?.cycleLength == CycleEngine.shortestLength)
+        store.setCycleLength(400)
+        #expect(store.profile?.cycleLength == CycleEngine.longestLength)
+    }
+
+    /// Corriger sa longueur ne doit pas coûter un bloc d'entraînement.
+    @Test("Renseigner son cycle ne reconstruit pas le programme")
+    func settingTheCycleKeepsThePlan() {
+        let store = CoachStore(storage: cycleStorage())
+        store.completeOnboarding(with: Fixtures.intermediate())
+
+        func shape() -> [[String]] {
+            guard let week = store.plan?.weeks.first else { return [] }
+            return week.sessions.map { session in session.exercises.map { $0.exerciseID } }
+        }
+        let before = shape()
+
+        store.setLastPeriodStart(Fixtures.date(2026, 9, 1))
+        store.setCycleLength(31)
+
+        #expect(shape() == before)
+        #expect(store.cyclePattern(on: Fixtures.date(2026, 9, 10)) != nil)
+    }
+
+    /// Le chemin complet : ce que l'inscription recueille doit arriver
+    /// jusqu'au moteur. Sans ce test, la réponse donnée au formulaire se
+    /// perdait entre le brouillon et le profil, et il fallait la redonner
+    /// dans un écran qu'on ne visite qu'en cherchant déjà quelque chose.
+    @Test("Ce qui est renseigné à l'inscription arrive jusqu'au moteur")
+    func theAnswerSurvivesOnboarding() {
+        var draft = ProfileDraft()
+        draft.firstName = "Lisa"
+        draft.sex = .female
+        draft.heightCm = 168
+        draft.weightKg = 61
+        draft.lastPeriodStart = Fixtures.date(2026, 9, 1)
+        draft.cycleLength = 31
+
+        let profile = draft.makeProfile()
+        #expect(profile.lastPeriodStart == Fixtures.date(2026, 9, 1))
+        #expect(profile.cycleLength == 31)
+
+        let store = CoachStore(storage: cycleStorage())
+        store.completeOnboarding(with: profile)
+        let pattern = store.cyclePattern(on: Fixtures.date(2026, 9, 18))
+        #expect(pattern?.dayOfCycle == 18)
+        // Ovulation au dix-septième jour pour un cycle de trente et un : le
+        // dix-huitième est le lendemain, donc encore ovulatoire.
+        #expect(pattern?.phase == .ovulatory)
+    }
+
+    /// Décocher doit effacer, pas masquer. Une donnée intime qu'on croit
+    /// retirée et qui reste enregistrée est le pire des deux mondes.
+    @Test("Retirer son cycle efface la date")
+    func clearingRemovesTheDate() {
+        let store = CoachStore(storage: cycleStorage())
+        store.completeOnboarding(with: Fixtures.intermediate())
+        store.setLastPeriodStart(Fixtures.date(2026, 9, 1))
+        #expect(store.cyclePattern(on: Fixtures.date(2026, 9, 10)) != nil)
+
+        store.setLastPeriodStart(nil)
+        #expect(store.profile?.lastPeriodStart == Date?.none)
+        #expect(store.cyclePattern(on: Fixtures.date(2026, 9, 10)) == nil)
+    }
+
+    /// Le bug corrigé plus tôt, gardé ici parce que c'est cette suite qui
+    /// perdrait le plus à le voir revenir : le formulaire ne demande pas le
+    /// cycle, et reconstruisait donc un profil sans lui.
+    @Test("Corriger son poids n'efface pas le cycle renseigné")
+    func editingKeepsTheCycle() {
+        var profile = Fixtures.intermediate()
+        profile.lastPeriodStart = Fixtures.date(2026, 8, 20)
+        profile.cycleLength = 33
+
+        var draft = ProfileDraft(profile: profile)
+        draft.weightKg = 80
+        let updated = draft.makeProfile()
+
+        #expect(updated.weightKg == 80)
+        #expect(updated.lastPeriodStart == Fixtures.date(2026, 8, 20))
+        #expect(updated.cycleLength == 33)
+    }
+}
