@@ -464,7 +464,119 @@ struct OnboardingView: View {
                 }
             }
             adaptiveStep
+            // Posée seulement quand elle a un sens. Une carte « cycle »
+            // affichée à tout le monde apprend surtout à faire défiler sans
+            // lire, et celle-ci a besoin d'être lue.
+            if draft.sex == .female { cycleStep }
         }
+    }
+
+    /// Le cycle, demandé à l'inscription plutôt que laissé dans le profil.
+    ///
+    /// Il y était déjà réglable, et personne ne le réglait : un écran qu'on
+    /// ne visite qu'en cherchant déjà quelque chose ne se découvre pas. La
+    /// question est facultative et se décoche d'un geste, mais elle est
+    /// posée.
+    ///
+    /// La longueur compte autant que la date, et c'est ce qui manquait
+    /// vraiment : le moteur place l'ovulation quatorze jours avant la fin du
+    /// cycle — la bonne méthode, et celle qui rend la longueur
+    /// indispensable. À vingt-huit jours par défaut, un cycle de trente-deux
+    /// voyait son ovulation placée quatre jours trop tôt, sans recours.
+    private var cycleStep: some View {
+        Card(
+            title: LocalizedText(
+                fr: "Ton cycle", en: "Your cycle", es: "Tu ciclo"
+            )[language],
+            subtitle: LocalizedText(
+                fr: "Facultatif. Sert à situer tes journées et à lire tes bilans de forme par phase — jamais à modifier tes charges.",
+                en: "Optional. Used to place your days and to read your readiness checks by phase — never to change your loads.",
+                es: "Opcional. Sirve para situar tus días y leer tus chequeos de forma por fase, nunca para cambiar tus cargas."
+            )[language]
+        ) {
+            Toggle(isOn: tracksCycle) {
+                Text(
+                    LocalizedText(
+                        fr: "Renseigner mon cycle",
+                        en: "Enter my cycle",
+                        es: "Indicar mi ciclo"
+                    )[language]
+                )
+                .font(Theme.bodyFont)
+                .foregroundStyle(Theme.primaryText)
+            }
+            .toggleStyle(.switch)
+            .tint(Theme.accent)
+
+            if draft.lastPeriodStart != nil {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(
+                        LocalizedText(
+                            fr: "Premier jour des dernières règles",
+                            en: "First day of your last period",
+                            es: "Primer día de tu última regla"
+                        )[language]
+                    )
+                    .font(Theme.captionFont)
+                    .foregroundStyle(Theme.secondaryText)
+                    DatePicker("", selection: periodStart, displayedComponents: .date)
+                        .labelsHidden()
+                        .tint(Theme.accent)
+                }
+
+                Stepper(value: $draft.cycleLength, in: CycleEngine.shortestLength...CycleEngine.longestLength) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(
+                            LocalizedText(
+                                fr: "Cycle de \(draft.cycleLength) jours",
+                                en: "\(draft.cycleLength)-day cycle",
+                                es: "Ciclo de \(draft.cycleLength) días"
+                            )[language]
+                        )
+                        .font(Theme.bodyFont)
+                        .foregroundStyle(Theme.primaryText)
+                        Text(
+                            LocalizedText(
+                                fr: "Du premier jour des règles au premier jour des suivantes. Vingt-huit est une moyenne : si la tienne est ailleurs, c'est elle qui compte.",
+                                en: "From the first day of one period to the first day of the next. Twenty-eight is an average: if yours sits elsewhere, yours is what counts.",
+                                es: "Del primer día de una regla al primer día de la siguiente. Veintiocho es una media: si la tuya es otra, es la que cuenta."
+                            )[language]
+                        )
+                        .font(Theme.captionFont)
+                        .foregroundStyle(Theme.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .tint(Theme.accent)
+            }
+
+            Text(
+                LocalizedText(
+                    fr: "Modifiable ou effaçable à tout moment dans ton profil. Comme le reste, ça ne quitte pas ce téléphone.",
+                    en: "Editable or erasable any time in your profile. Like the rest, it never leaves this phone.",
+                    es: "Modificable o borrable cuando quieras en tu perfil. Como el resto, no sale de este teléfono."
+                )[language]
+            )
+            .font(Theme.captionFont)
+            .foregroundStyle(Theme.secondaryText)
+            .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var tracksCycle: Binding<Bool> {
+        Binding(
+            get: { draft.lastPeriodStart != nil },
+            // Décocher efface la date : ne pas renseigner son cycle doit
+            // vouloir dire que l'application ne le garde pas.
+            set: { draft.lastPeriodStart = $0 ? Date() : nil }
+        )
+    }
+
+    private var periodStart: Binding<Date> {
+        Binding(
+            get: { draft.lastPeriodStart ?? Date() },
+            set: { draft.lastPeriodStart = $0 }
+        )
     }
 
     /// La question posée une fois, au moment où elle change quelque chose.

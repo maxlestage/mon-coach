@@ -41,6 +41,16 @@ public struct ProfileDraft: Sendable {
     /// simple correction de poids effacerait la situation.
     public var adaptive: AdaptiveNeeds?
 
+    /// Le premier jour des dernières règles, quand il est renseigné.
+    ///
+    /// Le brouillon le porte parce que l'inscription le demande désormais :
+    /// sans cela, la réponse donnée à l'inscription se perdait entre le
+    /// formulaire et le profil, et il fallait la redonner dans un écran
+    /// qu'on ne visite qu'en cherchant déjà quelque chose.
+    public var lastPeriodStart: Date?
+    /// La longueur du cycle, en jours.
+    public var cycleLength: Int = CycleEngine.defaultLength
+
     public var activityLevel: ActivityLevel = .light
     public var sleepHours: Double = 7.5
     public var stressLevel: Int = 3
@@ -112,8 +122,8 @@ public struct ProfileDraft: Sendable {
             // à chaque passage : corriger son poids remettait la longueur
             // de cycle à la valeur par défaut et effaçait la date des
             // dernières règles, donc la phase, donc l'adaptation de charge.
-            lastPeriodStart: original?.lastPeriodStart,
-            cycleLength: original?.cycleLength ?? CycleEngine.defaultLength,
+            lastPeriodStart: lastPeriodStart ?? original?.lastPeriodStart,
+            cycleLength: cycleLength,
             adaptive: adaptive ?? original?.adaptive,
             unit: unit,
             language: original?.language
@@ -151,6 +161,8 @@ public struct ProfileDraft: Sendable {
         dietPreference = profile.dietPreference
         oneRepMax = profile.knownOneRepMax
         adaptive = profile.adaptive
+        lastPeriodStart = profile.lastPeriodStart
+        cycleLength = profile.cycleLength
         original = profile
     }
 }
