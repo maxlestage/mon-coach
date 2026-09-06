@@ -11,7 +11,7 @@ const copy = {
     freeFeatures: [
       "Ensuite et pour toujours : le questionnaire, ton profil et ton bloc en cours jusqu'à sa dernière séance",
       "Quatorze jours avec absolument tout, sans carte bancaire",
-      "Le mode guidé sur les quatre-vingt-douze mouvements du catalogue",
+      "Le mode guidé sur les cent cinquante-quatre mouvements du catalogue",
       "Check-in du jour et séance ajustée à ta forme",
       "Cibles caloriques et macros, expliquées",
       "Enregistrement des séances, des sorties et des pesées, sans limite",
@@ -43,7 +43,7 @@ const copy = {
     freeFeatures: [
       "Then and forever: the questionnaire, your profile and your current block down to its last session",
       "Fourteen days with absolutely everything, no credit card",
-      "Guided mode on all ninety-two movements in the catalogue",
+      "Guided mode on all one hundred and fifty-four movements in the catalogue",
       "Daily check-in and a session adjusted to your readiness",
       "Calorie and macro targets, explained",
       "Logging sessions, runs and weigh-ins, without limit",
@@ -75,7 +75,7 @@ const copy = {
     freeFeatures: [
       "Después y para siempre: el cuestionario, tu perfil y tu bloque actual hasta su última sesión",
       "Catorce días con absolutamente todo, sin tarjeta",
-      "El modo guiado en los noventa y dos movimientos del catálogo",
+      "El modo guiado en los ciento cincuenta y cuatro movimientos del catálogo",
       "Check-in del día y sesión ajustada a tu forma",
       "Objetivos de calorías y macros, explicados",
       "Registro de sesiones, rodajes y pesajes, sin límite",

@@ -12,7 +12,7 @@ const copy = {
     lede: "Une épaule douloureuse et un côté qui ne répond plus ne sont pas le même problème. Le premier est un exercice à remplacer, le second un mouvement impossible. Tant que le moteur ne distinguait pas les deux, il prescrivait des squats barre à quelqu'un qui ne se lève pas.",
 
     demandsTitle: "Ce que chaque mouvement déclare maintenant",
-    demandsLede: "Les quatre-vingt-douze mouvements du catalogue disent ce qu'ils exigent du corps. « Un bras » et « les deux bras » sont deux exigences distinctes, et c'est la distinction qui porte tout le reste : sans elle, une presse à une jambe n'exigeait rien et se retrouvait proposée à quelqu'un dont aucune jambe ne répond.",
+    demandsLede: "Les cent cinquante-quatre mouvements du catalogue disent ce qu'ils exigent du corps. « Un bras » et « les deux bras » sont deux exigences distinctes, et c'est la distinction qui porte tout le reste : sans elle, une presse à une jambe n'exigeait rien et se retrouvait proposée à quelqu'un dont aucune jambe ne répond.",
     demands: [
       "Tenir debout",
       "Une jambe",
@@ -62,7 +62,7 @@ const copy = {
     lede: "A painful shoulder and a side that no longer responds are not the same problem. The first is an exercise to replace, the second a movement that is impossible. As long as the engine could not tell them apart, it prescribed barbell squats to someone who does not stand.",
 
     demandsTitle: "What every movement now declares",
-    demandsLede: "All ninety-two movements in the catalogue state what they demand of the body. “One arm” and “both arms” are two distinct demands, and that distinction carries everything else: without it a single-leg press demanded nothing and ended up offered to someone whose legs do not respond.",
+    demandsLede: "All one hundred and fifty-four movements in the catalogue state what they demand of the body. “One arm” and “both arms” are two distinct demands, and that distinction carries everything else: without it a single-leg press demanded nothing and ended up offered to someone whose legs do not respond.",
     demands: [
       "Standing",
       "One leg",
@@ -112,7 +112,7 @@ const copy = {
     lede: "Un hombro dolorido y un lado que ya no responde no son el mismo problema. El primero es un ejercicio que sustituir, el segundo un movimiento imposible. Mientras el motor no distinguió ambos, prescribía sentadillas con barra a quien no se levanta.",
 
     demandsTitle: "Lo que declara ahora cada movimiento",
-    demandsLede: "Los noventa y dos movimientos del catálogo dicen lo que exigen del cuerpo. «Un brazo» y «ambos brazos» son dos exigencias distintas, y esa distinción sostiene todo lo demás: sin ella, una prensa a una pierna no exigía nada y acababa propuesta a alguien cuyas piernas no responden.",
+    demandsLede: "Los ciento cincuenta y cuatro movimientos del catálogo dicen lo que exigen del cuerpo. «Un brazo» y «ambos brazos» son dos exigencias distintas, y esa distinción sostiene todo lo demás: sin ella, una prensa a una pierna no exigía nada y acababa propuesta a alguien cuyas piernas no responden.",
     demands: [
       "Estar de pie",
       "Una pierna",
