@@ -1086,6 +1086,18 @@ struct ProfileView: View {
                 .foregroundStyle(Theme.secondaryText)
                 .frame(maxWidth: .infinity)
                 .multilineTextAlignment(.center)
+            // Le numéro de version, et il n'est pas décoratif.
+            //
+            // Sans lui, « la nouveauté n'est pas là » et « elle y est » sont
+            // deux affirmations invérifiables : ni le testeur ni celui qui a
+            // écrit le code ne peuvent dire quelle version tourne sur
+            // l'appareil. Une ligne ici transforme une discussion en fait.
+            Text(Build.stamp)
+                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                .foregroundStyle(Theme.secondaryText.opacity(0.8))
+                .frame(maxWidth: .infinity)
+                .multilineTextAlignment(.center)
+                .textSelection(.enabled)
             // Les notices des composants embarqués. Les licences BSD et ODbL
             // exigent que la notice accompagne la distribution — un binaire
             // n'a pas de fichier LICENSE à côté de lui, alors elle vit ici.
