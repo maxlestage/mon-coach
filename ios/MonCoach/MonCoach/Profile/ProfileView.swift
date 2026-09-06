@@ -1005,6 +1005,46 @@ struct ProfileView: View {
                         .font(Theme.captionFont)
                         .foregroundStyle(Theme.secondaryText)
                     }
+
+                    // La date de course. Elle était lue par le planificateur
+                    // et ne pouvait être saisie nulle part : sans elle, le
+                    // bloc ne se termine jamais sur la course et la semaine
+                    // d'affûtage n'existe pas — celle qui rend le jour J
+                    // possible.
+                    //
+                    // Proposée seulement quand l'objectif est une course :
+                    // demander une date à qui vise l'endurance générale
+                    // n'aurait aucun sens, et le moteur l'ignorerait.
+                    if running.goal.raceDistanceMeters != nil {
+                        Divider().overlay(Theme.separator)
+
+                        Toggle(isOn: hasRaceDate) {
+                            Text(
+                                LocalizedText(
+                                    fr: "J'ai une date de course",
+                                    en: "I have a race date",
+                                    es: "Tengo fecha de carrera"
+                                )[language]
+                            )
+                            .font(Theme.captionFont)
+                            .foregroundStyle(Theme.primaryText)
+                        }
+                        .tint(Theme.accent)
+
+                        if running.raceDate != nil {
+                            DatePicker("", selection: raceDateBinding, in: Date()..., displayedComponents: .date)
+                                .labelsHidden()
+                                .tint(Theme.accent)
+                            CoachText(
+                                LocalizedText(
+                                    fr: "Le bloc se termine sur cette date, et la dernière semaine devient un affûtage : moins de volume, l'intensité gardée. C'est ce qui fait arriver frais sans avoir rien perdu.",
+                                    en: "The block now ends on that date, and the last week becomes a taper: less volume, intensity kept. That is what gets you there fresh without losing anything.",
+                                    es: "El bloque termina en esa fecha y la última semana pasa a ser un afinamiento: menos volumen, intensidad mantenida. Es lo que te hace llegar fresco sin perder nada."
+                                ),
+                                font: Theme.captionFont
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -1110,6 +1150,39 @@ struct ProfileView: View {
             set: { newValue in
                 guard var profile = store.profile, var running = profile.running else { return }
                 running.runsPerWeek = newValue
+                profile.running = running
+                store.updateProfile(profile)
+            }
+        )
+    }
+
+    private var hasRaceDate: Binding<Bool> {
+        Binding(
+            get: { store.profile?.running?.raceDate != nil },
+            set: { wanted in
+                guard var profile = store.profile, var running = profile.running else { return }
+                // Douze semaines par défaut : la durée d'un bloc de
+                // préparation ordinaire, et une date qu'on corrige plutôt
+                // qu'une date qu'on invente.
+                running.raceDate = wanted
+                    ? Calendar.current.date(byAdding: .weekOfYear, value: 12, to: Date())
+                    : nil
+                profile.running = running
+                store.updateProfile(profile)
+            }
+        )
+    }
+
+    private var raceDateBinding: Binding<Date> {
+        Binding(
+            get: {
+                store.profile?.running?.raceDate
+                    ?? Calendar.current.date(byAdding: .weekOfYear, value: 12, to: Date())
+                    ?? Date()
+            },
+            set: { newValue in
+                guard var profile = store.profile, var running = profile.running else { return }
+                running.raceDate = newValue
                 profile.running = running
                 store.updateProfile(profile)
             }

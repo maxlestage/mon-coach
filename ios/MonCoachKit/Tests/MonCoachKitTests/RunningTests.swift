@@ -728,4 +728,68 @@ struct RunningIntegrationTests {
         let sprint = ActivityLog(startedAt: Fixtures.start, type: .intervals, meters: 800, duration: 150, elevationGain: 0)
         #expect(TrainingHistory(activities: [sprint]).demonstratedThresholdPace() == nil)
     }
+
+    // MARK: - La date de course
+
+    /// Le même défaut que la longueur de cycle, dans la course : `raceDate`
+    /// était lu par le planificateur et ne pouvait être saisi nulle part.
+    ///
+    /// Ce qui se perdait n'est pas cosmétique. Sans date, le bloc ne se
+    /// termine jamais sur la course, et surtout la semaine d'affûtage
+    /// n'existe pas — `taper` la conditionne à `raceDate != nil`. Quelqu'un
+    /// qui prépare un semi arrivait au jour J sans le seul allègement qui le
+    /// rend possible.
+    @Test("Une date de course termine le bloc dessus et crée l'affûtage")
+    func aRaceDateEndsTheBlockAndTapers() throws {
+        var running = RunningProfile(goal: .halfMarathon, runsPerWeek: 4, currentWeeklyMeters: 30_000)
+        let profile = Fixtures.intermediate()
+
+        // `RunningWeek` ne porte pas d'indicateur d'affûtage : il se lit au
+        // volume qui tombe et au texte de la semaine. C'est ce qui se voit à
+        // l'écran, donc c'est ce qu'il faut vérifier.
+        func tapers(_ week: RunningWeek) -> Bool {
+            week.focus[.french].hasPrefix("Affûtage")
+        }
+
+        let open = RunPlanner.block(profile: profile, running: running, today: Fixtures.start,
+                                    calendar: Fixtures.calendar)
+        #expect(!open.weeks.contains(where: tapers), "sans date, aucun affûtage")
+
+        running.raceDate = Fixtures.calendar.date(
+            byAdding: .weekOfYear, value: 10, to: Fixtures.start
+        )
+        let prepared = RunPlanner.block(profile: profile, running: running, today: Fixtures.start,
+                                        calendar: Fixtures.calendar)
+
+        #expect(prepared.weeks.count == 10, "le bloc s'arrête sur la course")
+        let last = try #require(prepared.weeks.last)
+        #expect(tapers(last))
+        #expect(!prepared.weeks.dropLast().contains(where: tapers), "une seule semaine d'affûtage")
+
+        // Et l'affûtage doit se voir dans la charge, pas seulement dans le
+        // texte : une semaine annoncée légère et chargée pareil ne sert à rien.
+        let peak = prepared.weeks.map(\.targetMeters).max() ?? 0
+        #expect(last.targetMeters < peak * 0.7)
+    }
+
+    /// La projection de temps de course n'apparaissait jamais : elle est
+    /// conditionnée à la date. Une note de coach écrite, traduite en trois
+    /// langues, et morte faute d'un champ saisissable.
+    @Test("La projection de temps n'apparaît qu'avec une date")
+    func theProjectionNeedsADate() {
+        var running = RunningProfile(goal: .tenK, runsPerWeek: 4, currentWeeklyMeters: 30_000)
+        running.thresholdPaceSecondsPerKm = 270
+        let profile = Fixtures.intermediate()
+
+        let silent = RunPlanner.block(profile: profile, running: running, today: Fixtures.start,
+                                      calendar: Fixtures.calendar)
+        #expect(!silent.notes.contains { $0[.french].contains("avant la course") })
+
+        running.raceDate = Fixtures.calendar.date(
+            byAdding: .weekOfYear, value: 8, to: Fixtures.start
+        )
+        let spoken = RunPlanner.block(profile: profile, running: running, today: Fixtures.start,
+                                      calendar: Fixtures.calendar)
+        #expect(spoken.notes.contains { $0[.french].contains("avant la course") })
+    }
 }
