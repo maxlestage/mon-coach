@@ -89,6 +89,42 @@ public enum SplitPlanner {
         }
     }
 
+    /// La même structure, amputée des muscles pour lesquels ce profil n'a
+    /// aucun mouvement disponible.
+    ///
+    /// Une journée « jambes » sans un seul exercice de jambe ne produit pas
+    /// une séance légère : elle produit une séance vide, que le sélecteur
+    /// traverse sans rien poser. Plutôt que de la laisser, on la retire et
+    /// on répartit les jours sur ce qui reste — quatre séances de haut du
+    /// corps valent mieux que deux séances et deux trous.
+    ///
+    /// Quand rien ne manque, la structure d'origine est rendue telle quelle,
+    /// au titre près : c'est ce qui garantit qu'un profil sans situation
+    /// déclarée obtient exactement le programme qu'il obtenait avant.
+    public static func days(
+        for split: SplitTemplate,
+        daysPerWeek: Int,
+        trainable: Set<MuscleGroup>
+    ) -> [DayTemplate] {
+        let full = days(for: split, daysPerWeek: daysPerWeek)
+        guard !full.allSatisfy({ $0.muscles.allSatisfy(trainable.contains) }) else { return full }
+
+        // Une seule fois chaque journée distincte : `days` a déjà cyclé et
+        // suffixé les modèles, et re-suffixer un suffixe donne « Legs B B ».
+        // La première occurrence est celle du premier passage, donc celle
+        // qui n'a pas de suffixe.
+        var seen: Set<[MuscleGroup]> = []
+        var survivors: [DayTemplate] = []
+        for day in full {
+            let kept = day.muscles.filter(trainable.contains)
+            guard !kept.isEmpty, !seen.contains(kept) else { continue }
+            seen.insert(kept)
+            survivors.append(DayTemplate(title: day.title, muscles: kept))
+        }
+        guard !survivors.isEmpty else { return [] }
+        return cycle(survivors, count: daysPerWeek)
+    }
+
     private static let pushDay = DayTemplate(
         title: LocalizedText(fr: "Push", en: "Push", es: "Empuje"),
         muscles: [.chest, .shoulders, .triceps]

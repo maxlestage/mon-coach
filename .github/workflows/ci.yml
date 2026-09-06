@@ -198,6 +198,13 @@ jobs:
           # qu'au job macOS deux minutes plus tard — c'est exactement ce qui
           # est arrivé en ajoutant le mode motorisé.
           python3 tools/checks/sports_modes.py
+      - name: Chaque mouvement dit ce qu'il exige du corps
+        run: |
+          # `demands` a une valeur par défaut vide, et il le faut. Le prix
+          # exact : un exercice ajouté sans y penser déclare « je n'exige
+          # rien » et reste proposé à quelqu'un qui ne peut pas l'exécuter.
+          # Ce défaut ne rougit aucun job — il déçoit une personne une fois.
+          python3 tools/checks/exercise_demands.py
       - name: Siri connaît les mêmes sports que le catalogue
         run: |
           # App Intents refuse de lire un enum venu d'une bibliothèque, et

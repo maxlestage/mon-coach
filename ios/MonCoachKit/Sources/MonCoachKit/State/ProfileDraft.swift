@@ -33,6 +33,14 @@ public struct ProfileDraft: Sendable {
 
     public var limitations: Set<Limitation> = []
 
+    /// Ce qui a été déclaré dans la section handicap.
+    ///
+    /// Le formulaire principal ne le demande pas — la section a son propre
+    /// écran — mais le brouillon le porte quand même : sans lui,
+    /// `makeProfile` reconstruirait un profil sans déclaration, et une
+    /// simple correction de poids effacerait la situation.
+    public var adaptive: AdaptiveNeeds?
+
     public var activityLevel: ActivityLevel = .light
     public var sleepHours: Double = 7.5
     public var stressLevel: Int = 3
@@ -100,6 +108,13 @@ public struct ProfileDraft: Sendable {
             dislikedFoodIDs: original?.dislikedFoodIDs,
             running: original?.running,
             mapTiles: original?.mapTiles,
+            // Le cycle ne se demande pas dans ce formulaire, et se perdait
+            // à chaque passage : corriger son poids remettait la longueur
+            // de cycle à la valeur par défaut et effaçait la date des
+            // dernières règles, donc la phase, donc l'adaptation de charge.
+            lastPeriodStart: original?.lastPeriodStart,
+            cycleLength: original?.cycleLength ?? CycleEngine.defaultLength,
+            adaptive: adaptive ?? original?.adaptive,
             unit: unit,
             language: original?.language
         )
@@ -135,6 +150,7 @@ public struct ProfileDraft: Sendable {
         stressLevel = profile.stressLevel
         dietPreference = profile.dietPreference
         oneRepMax = profile.knownOneRepMax
+        adaptive = profile.adaptive
         original = profile
     }
 }

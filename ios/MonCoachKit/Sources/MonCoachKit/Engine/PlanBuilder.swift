@@ -21,11 +21,30 @@ public enum PlanBuilder {
         startingOn startDate: Date = Date(),
         calendar: Calendar = .current
     ) -> Mesocycle {
-        let volume = VolumeEngine.prescription(for: profile)
         let split = SplitPlanner.split(for: profile)
-        let dayTemplates = SplitPlanner.days(for: split, daysPerWeek: profile.daysPerWeek)
-        let dailyBudget = SplitPlanner.distribute(volume: volume, across: dayTemplates)
         let available = ExerciseCatalog.available(for: profile)
+
+        // Le budget et la structure sont ramenés à ce que ce corps peut
+        // travailler, et seulement lorsqu'une situation est déclarée.
+        //
+        // Le même trou existe sans déclaration — deux élastiques et un genou
+        // douloureux suffisent à produire une journée « jambes » vide — et il
+        // n'est pas comblé ici : le faire réécrirait le mésocycle en cours de
+        // tous ceux qui en ont un, pour un manque qui se répare en achetant
+        // un haltère. Une situation déclarée, elle, ne se répare pas ; le
+        // programme doit en tenir compte dès la première séance.
+        var volume = VolumeEngine.prescription(for: profile)
+        var dayTemplates = SplitPlanner.days(for: split, daysPerWeek: profile.daysPerWeek)
+        let trainable = profile.hasAdaptiveNeeds
+            ? ExerciseCatalog.trainableMuscles(for: profile)
+            : Set(MuscleGroup.allCases)
+        if profile.hasAdaptiveNeeds {
+            volume = volume.limited(to: trainable)
+            dayTemplates = SplitPlanner.days(
+                for: split, daysPerWeek: profile.daysPerWeek, trainable: trainable
+            )
+        }
+        let dailyBudget = SplitPlanner.distribute(volume: volume, across: dayTemplates)
         let totalWeeks = weekCount(for: profile)
 
         // The movements are chosen once and kept for the whole block. Swapping
@@ -78,6 +97,10 @@ public enum PlanBuilder {
             )
         }
 
+        if let needs = profile.adaptive, needs.isActive {
+            rationale.append(adaptiveRationale(needs: needs, trainable: trainable))
+        }
+
         return Mesocycle(
             startDate: calendar.startOfDay(for: startDate),
             goal: profile.goal,
@@ -85,6 +108,59 @@ public enum PlanBuilder {
             weeks: weeks,
             weeklyVolumeTarget: volume.weeklySets,
             rationale: rationale
+        )
+    }
+
+    /// Ce que la situation déclarée a changé au programme, dit à l'athlète.
+    ///
+    /// Deux phrases séparées parce qu'elles répondent à deux questions
+    /// différentes, et que la seconde est la seule qui compte vraiment quand
+    /// elle s'applique : quels muscles le catalogue ne sait pas servir. La
+    /// taire aurait laissé quelqu'un chercher pendant des semaines pourquoi
+    /// ses ischio-jambiers n'apparaissent jamais.
+    static func adaptiveRationale(
+        needs: AdaptiveNeeds,
+        trainable: Set<MuscleGroup>
+    ) -> LocalizedText {
+        let untrainable = MuscleGroup.allCases.filter { !trainable.contains($0) }
+
+        func sentence(_ language: Language) -> String {
+            let declared = AdaptiveSituation.allCases
+                .filter { needs.situations.contains($0) }
+                .map { $0.label[language] }
+                .joined(separator: ", ")
+
+            var text: String
+            switch language {
+            case .french:
+                text = declared.isEmpty
+                    ? "Programme construit pour un entraînement assis."
+                    : "Programme construit pour ta situation (\(declared)) : seuls les mouvements que ton corps peut exécuter sont proposés, et les séances se répartissent sur ce qui reste."
+            case .english:
+                text = declared.isEmpty
+                    ? "Programme built for seated training."
+                    : "Programme built for your situation (\(declared)): only movements your body can perform are offered, and the sessions spread over what remains."
+            case .spanish:
+                text = declared.isEmpty
+                    ? "Programa construido para entrenar sentado."
+                    : "Programa construido para tu situación (\(declared)): solo se proponen movimientos que tu cuerpo puede ejecutar, y las sesiones se reparten sobre lo que queda."
+            }
+
+            guard !untrainable.isEmpty else { return text }
+            let names = untrainable.map { $0.label[language] }.joined(separator: ", ")
+            switch language {
+            case .french:
+                text += " Le catalogue n'a aucun mouvement pour \(names) dans cette configuration : ces muscles sortent du calcul plutôt que d'apparaître à zéro."
+            case .english:
+                text += " The catalogue has no movement for \(names) in this configuration: those muscles leave the budget rather than showing up at zero."
+            case .spanish:
+                text += " El catálogo no tiene ningún movimiento para \(names) en esta configuración: esos músculos salen del cálculo en lugar de aparecer a cero."
+            }
+            return text
+        }
+
+        return LocalizedText(
+            fr: sentence(.french), en: sentence(.english), es: sentence(.spanish)
         )
     }
 

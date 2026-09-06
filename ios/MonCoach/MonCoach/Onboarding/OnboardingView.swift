@@ -463,7 +463,80 @@ struct OnboardingView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
+            adaptiveStep
         }
+    }
+
+    /// La question posée une fois, au moment où elle change quelque chose.
+    ///
+    /// Elle est ici et pas ailleurs parce que la découverte se joue là : la
+    /// section vit ensuite dans le profil, et un profil ne se visite que
+    /// quand on cherche déjà quelque chose. Quelqu'un d'hémiplégique qui
+    /// installe l'application doit se voir poser la question, pas la
+    /// chercher.
+    ///
+    /// Une carte de plus dans une étape existante, et non une douzième
+    /// étape : ce qui se déclare ici ne concerne pas tout le monde, et
+    /// imposer un écran entier à tout le monde pour cela l'aurait fait
+    /// passer en courant.
+    ///
+    /// Séparé des zones sensibles juste au-dessus, et c'est le point : une
+    /// épaule douloureuse est un exercice à remplacer, un côté qui ne
+    /// répond plus est un mouvement impossible. Les mélanger aurait produit
+    /// exactement la confusion que le reste du code évite.
+    private var adaptiveStep: some View {
+        Card(
+            title: LocalizedText(
+                fr: "Une situation de handicap ?",
+                en: "A disability to take into account?",
+                es: "¿Alguna situación de discapacidad?"
+            )[language],
+            subtitle: LocalizedText(
+                fr: "Facultatif. Si tu coches quelque chose, le coach ne proposera que des mouvements que ton corps peut exécuter, et mettra devant les sports qui vont avec. Modifiable à tout moment dans ton profil.",
+                en: "Optional. If you tick something, the coach will only offer movements your body can perform, and put the sports that go with them first. Changeable any time in your profile.",
+                es: "Opcional. Si marcas algo, el entrenador solo propondrá movimientos que tu cuerpo pueda ejecutar y pondrá delante los deportes correspondientes. Modificable cuando quieras en tu perfil."
+            )[language]
+        ) {
+            FlowSelection(
+                items: AdaptiveSituation.allCases,
+                label: { $0.label[language] },
+                isSelected: { draft.adaptive?.situations.contains($0) == true },
+                toggle: { item in
+                    var needs = draft.adaptive ?? AdaptiveNeeds()
+                    if needs.situations.contains(item) {
+                        needs.situations.remove(item)
+                    } else {
+                        needs.situations.insert(item)
+                    }
+                    draft.adaptive = needs.isActive ? needs : nil
+                }
+            )
+
+            Toggle(isOn: wheelchair) {
+                Text(
+                    LocalizedText(
+                        fr: "Je me déplace en fauteuil",
+                        en: "I use a wheelchair",
+                        es: "Me desplazo en silla de ruedas"
+                    )[language]
+                )
+                .font(Theme.bodyFont)
+                .foregroundStyle(Theme.primaryText)
+            }
+            .toggleStyle(.switch)
+            .tint(Theme.accent)
+        }
+    }
+
+    private var wheelchair: Binding<Bool> {
+        Binding(
+            get: { draft.adaptive?.usesWheelchair == true },
+            set: { on in
+                var needs = draft.adaptive ?? AdaptiveNeeds()
+                needs.usesWheelchair = on
+                draft.adaptive = needs.isActive ? needs : nil
+            }
+        )
     }
 
     private var lifestyleStep: some View {

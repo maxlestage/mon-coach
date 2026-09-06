@@ -31,6 +31,13 @@ public struct Exercise: Codable, Sendable, Equatable, Identifiable, Hashable {
     public let baseRestSeconds: Int
     /// Whether the load is per-side (dumbbells) — affects how weight is logged.
     public let isUnilateral: Bool
+    /// Ce que le mouvement exige du corps pour être seulement possible.
+    ///
+    /// Distinct de `stressedAreas`, qui dit ce qu'il charge trop. Une
+    /// articulation douloureuse écarte un exercice qu'on pourrait faire ;
+    /// une exigence non satisfaite écarte un exercice qu'on ne peut pas
+    /// faire. Les deux filtres se cumulent, et aucun ne remplace l'autre.
+    public let demands: Set<BodyDemand>
 
     public init(
         id: String,
@@ -46,7 +53,8 @@ public struct Exercise: Codable, Sendable, Equatable, Identifiable, Hashable {
         viableRepRange: ClosedRange<Int>,
         loadFactor: Double,
         baseRestSeconds: Int,
-        isUnilateral: Bool = false
+        isUnilateral: Bool = false,
+        demands: Set<BodyDemand> = []
     ) {
         self.id = id
         self.name = name
@@ -62,6 +70,7 @@ public struct Exercise: Codable, Sendable, Equatable, Identifiable, Hashable {
         self.loadFactor = loadFactor
         self.baseRestSeconds = baseRestSeconds
         self.isUnilateral = isUnilateral
+        self.demands = demands
     }
 
     /// Whether the athlete owns everything this movement needs.
@@ -72,6 +81,11 @@ public struct Exercise: Codable, Sendable, Equatable, Identifiable, Hashable {
     /// Whether any flagged limitation overlaps what this movement stresses.
     public func conflicts(with limitations: Set<Limitation>) -> Bool {
         !stressedAreas.isDisjoint(with: limitations)
+    }
+
+    /// Vrai quand le corps peut fournir tout ce que le mouvement réclame.
+    public func isPossible(without unavailable: Set<BodyDemand>) -> Bool {
+        demands.isDisjoint(with: unavailable)
     }
 
     /// Every muscle that receives meaningful work, primary first.

@@ -40,7 +40,8 @@ extension ExerciseCatalog {
             stimulusRating: 5,
             viableRepRange: 6...15,
             loadFactor: 1.4,
-            baseRestSeconds: 150
+            baseRestSeconds: 150,
+            demands: [.standing, .bothLegs]
         ),
         Exercise(
             id: "belt-squat",
@@ -59,7 +60,8 @@ extension ExerciseCatalog {
             stimulusRating: 4,
             viableRepRange: 8...15,
             loadFactor: 1.3,
-            baseRestSeconds: 150
+            baseRestSeconds: 150,
+            demands: [.standing, .bothLegs]
         ),
         Exercise(
             id: "smith-squat",
@@ -78,7 +80,8 @@ extension ExerciseCatalog {
             stimulusRating: 4,
             viableRepRange: 5...12,
             loadFactor: 0.95,
-            baseRestSeconds: 150
+            baseRestSeconds: 150,
+            demands: [.standing, .bothLegs, .bothArms, .gripBothHands]
         ),
         Exercise(
             id: "smith-split-squat",
@@ -98,7 +101,8 @@ extension ExerciseCatalog {
             viableRepRange: 8...15,
             loadFactor: 0.5,
             baseRestSeconds: 120,
-            isUnilateral: true
+            isUnilateral: true,
+            demands: [.standing, .oneLeg, .bothArms, .gripBothHands]
         ),
         Exercise(
             id: "single-leg-press",
@@ -118,7 +122,8 @@ extension ExerciseCatalog {
             viableRepRange: 10...20,
             loadFactor: 0.9,
             baseRestSeconds: 120,
-            isUnilateral: true
+            isUnilateral: true,
+            demands: [.oneLeg]
         ),
         Exercise(
             id: "machine-hip-thrust",
@@ -137,7 +142,8 @@ extension ExerciseCatalog {
             stimulusRating: 4,
             viableRepRange: 8...15,
             loadFactor: 1.2,
-            baseRestSeconds: 120
+            baseRestSeconds: 120,
+            demands: [.bothLegs]
         ),
         Exercise(
             id: "cable-kickback",
@@ -157,7 +163,8 @@ extension ExerciseCatalog {
             viableRepRange: 12...20,
             loadFactor: 0.15,
             baseRestSeconds: 60,
-            isUnilateral: true
+            isUnilateral: true,
+            demands: [.standing, .oneLeg]
         ),
         Exercise(
             id: "seated-calf-raise",
@@ -176,7 +183,8 @@ extension ExerciseCatalog {
             stimulusRating: 3,
             viableRepRange: 10...20,
             loadFactor: 0.5,
-            baseRestSeconds: 60
+            baseRestSeconds: 60,
+            demands: [.bothLegs]
         ),
         Exercise(
             id: "hip-adduction",
@@ -195,7 +203,8 @@ extension ExerciseCatalog {
             stimulusRating: 3,
             viableRepRange: 12...25,
             loadFactor: 0.5,
-            baseRestSeconds: 75
+            baseRestSeconds: 75,
+            demands: [.bothLegs]
         ),
     ]
 
@@ -223,7 +232,8 @@ extension ExerciseCatalog {
             stimulusRating: 5,
             viableRepRange: 8...15,
             loadFactor: 1.0,
-            baseRestSeconds: 120
+            baseRestSeconds: 120,
+            demands: [.bothArms]
         ),
         Exercise(
             id: "t-bar-row",
@@ -242,7 +252,8 @@ extension ExerciseCatalog {
             stimulusRating: 5,
             viableRepRange: 6...12,
             loadFactor: 1.0,
-            baseRestSeconds: 150
+            baseRestSeconds: 150,
+            demands: [.standing, .bothLegs, .bothArms, .gripBothHands]
         ),
         Exercise(
             id: "assisted-pull-up",
@@ -261,7 +272,8 @@ extension ExerciseCatalog {
             stimulusRating: 4,
             viableRepRange: 6...12,
             loadFactor: 0.8,
-            baseRestSeconds: 120
+            baseRestSeconds: 120,
+            demands: [.bothArms, .gripBothHands]
         ),
         Exercise(
             id: "machine-pullover",
@@ -280,7 +292,8 @@ extension ExerciseCatalog {
             stimulusRating: 4,
             viableRepRange: 10...15,
             loadFactor: 0.7,
-            baseRestSeconds: 90
+            baseRestSeconds: 90,
+            demands: [.bothArms]
         ),
         Exercise(
             id: "single-arm-lat-pulldown",
@@ -304,7 +317,8 @@ extension ExerciseCatalog {
             viableRepRange: 8...15,
             loadFactor: 0.4,
             baseRestSeconds: 90,
-            isUnilateral: true
+            isUnilateral: true,
+            demands: [.oneArm]
         ),
         Exercise(
             id: "single-arm-cable-row",
@@ -328,7 +342,8 @@ extension ExerciseCatalog {
             viableRepRange: 8...15,
             loadFactor: 0.45,
             baseRestSeconds: 90,
-            isUnilateral: true
+            isUnilateral: true,
+            demands: [.oneArm]
         ),
         Exercise(
             id: "smith-row",
@@ -347,7 +362,8 @@ extension ExerciseCatalog {
             stimulusRating: 4,
             viableRepRange: 8...12,
             loadFactor: 0.75,
-            baseRestSeconds: 120
+            baseRestSeconds: 120,
+            demands: [.standing, .bothLegs, .bothArms, .gripBothHands]
         ),
     ]
 
@@ -375,7 +391,8 @@ extension ExerciseCatalog {
             stimulusRating: 4,
             viableRepRange: 8...15,
             loadFactor: 0.9,
-            baseRestSeconds: 120
+            baseRestSeconds: 120,
+            demands: [.bothArms]
         ),
         Exercise(
             id: "pec-deck",
@@ -394,7 +411,8 @@ extension ExerciseCatalog {
             stimulusRating: 3,
             viableRepRange: 10...20,
             loadFactor: 0.6,
-            baseRestSeconds: 75
+            baseRestSeconds: 75,
+            demands: [.bothArms]
         ),
         Exercise(
             id: "low-cable-crossover",
@@ -417,7 +435,8 @@ extension ExerciseCatalog {
             stimulusRating: 4,
             viableRepRange: 10...20,
             loadFactor: 0.3,
-            baseRestSeconds: 75
+            baseRestSeconds: 75,
+            demands: [.standing, .bothArms]
         ),
         Exercise(
             id: "smith-incline-press",
@@ -440,7 +459,8 @@ extension ExerciseCatalog {
             stimulusRating: 4,
             viableRepRange: 6...12,
             loadFactor: 0.75,
-            baseRestSeconds: 150
+            baseRestSeconds: 150,
+            demands: [.bothArms, .gripBothHands]
         ),
         Exercise(
             id: "smith-overhead-press",
@@ -463,7 +483,8 @@ extension ExerciseCatalog {
             stimulusRating: 4,
             viableRepRange: 6...12,
             loadFactor: 0.55,
-            baseRestSeconds: 150
+            baseRestSeconds: 150,
+            demands: [.bothArms, .gripBothHands]
         ),
         Exercise(
             id: "machine-lateral-raise",
@@ -486,7 +507,8 @@ extension ExerciseCatalog {
             stimulusRating: 4,
             viableRepRange: 10...20,
             loadFactor: 0.35,
-            baseRestSeconds: 60
+            baseRestSeconds: 60,
+            demands: [.bothArms]
         ),
         Exercise(
             id: "reverse-pec-deck",
@@ -509,7 +531,8 @@ extension ExerciseCatalog {
             stimulusRating: 4,
             viableRepRange: 12...20,
             loadFactor: 0.3,
-            baseRestSeconds: 60
+            baseRestSeconds: 60,
+            demands: [.bothArms]
         ),
         Exercise(
             id: "assisted-dip",
@@ -528,7 +551,8 @@ extension ExerciseCatalog {
             stimulusRating: 4,
             viableRepRange: 6...12,
             loadFactor: 0.8,
-            baseRestSeconds: 120
+            baseRestSeconds: 120,
+            demands: [.bothArms]
         ),
     ]
 
@@ -556,7 +580,8 @@ extension ExerciseCatalog {
             stimulusRating: 4,
             viableRepRange: 8...15,
             loadFactor: 0.35,
-            baseRestSeconds: 75
+            baseRestSeconds: 75,
+            demands: [.oneArm]
         ),
         Exercise(
             id: "cable-hammer-curl",
@@ -579,7 +604,8 @@ extension ExerciseCatalog {
             stimulusRating: 3,
             viableRepRange: 10...15,
             loadFactor: 0.3,
-            baseRestSeconds: 60
+            baseRestSeconds: 60,
+            demands: [.oneArm]
         ),
         Exercise(
             id: "machine-triceps-extension",
@@ -602,7 +628,8 @@ extension ExerciseCatalog {
             stimulusRating: 4,
             viableRepRange: 8...15,
             loadFactor: 0.4,
-            baseRestSeconds: 75
+            baseRestSeconds: 75,
+            demands: [.bothArms]
         ),
     ]
 
@@ -626,7 +653,8 @@ extension ExerciseCatalog {
             stimulusRating: 3,
             viableRepRange: 10...20,
             loadFactor: 0.5,
-            baseRestSeconds: 60
+            baseRestSeconds: 60,
+            demands: []
         ),
         Exercise(
             id: "cable-woodchop",
@@ -650,7 +678,8 @@ extension ExerciseCatalog {
             viableRepRange: 10...15,
             loadFactor: 0.25,
             baseRestSeconds: 60,
-            isUnilateral: true
+            isUnilateral: true,
+            demands: [.standing, .balance, .oneArm]
         ),
     ]
 }

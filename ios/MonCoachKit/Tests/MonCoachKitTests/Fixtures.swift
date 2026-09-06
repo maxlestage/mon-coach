@@ -20,7 +20,8 @@ enum Fixtures {
         daysPerWeek: Int = 4,
         sessionMinutes: Int = 70,
         equipment: Set<Equipment> = Equipment.fullGym,
-        limitations: Set<Limitation> = []
+        limitations: Set<Limitation> = [],
+        adaptive: AdaptiveNeeds? = nil
     ) -> UserProfile {
         UserProfile(
             firstName: "Max",
@@ -38,7 +39,8 @@ enum Fixtures {
             activityLevel: .light,
             averageSleepHours: 7.5,
             stressLevel: 3,
-            knownOneRepMax: ["back-squat": 120, "bench-press": 90, "conventional-deadlift": 150]
+            knownOneRepMax: ["back-squat": 120, "bench-press": 90, "conventional-deadlift": 150],
+            adaptive: adaptive
         )
     }
 
