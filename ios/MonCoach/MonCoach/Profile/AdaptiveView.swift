@@ -38,10 +38,11 @@ struct AdaptiveView: View {
                 }
                 if needs.isActive {
                     effectsCard.appears(3)
-                    sportsCard.appears(4)
+                    if !needs.overridable.isEmpty { overrideCard.appears(4) }
+                    sportsCard.appears(5)
                 }
-                reserveCard.appears(5)
-                if hasChanges { applyCard.appears(6) }
+                reserveCard.appears(6)
+                if hasChanges { applyCard.appears(7) }
             }
             .padding(20)
         }
@@ -200,6 +201,20 @@ struct AdaptiveView: View {
                     }
                 }
 
+                // Les descriptions ci-dessus décrivent le réglage par
+                // défaut. Une réautorisation les contredit en partie, et le
+                // taire laisserait deux cartes se contredire à l'écran.
+                if !needs.allowedAnyway.isEmpty {
+                    CoachText(
+                        LocalizedText(
+                            fr: "Tu as réautorisé plus bas ce que ton corps sait faire malgré tout : ces descriptions valent pour le réglage par défaut, ton programme suit ce que tu as coché.",
+                            en: "Below you re-enabled what your body can do anyway: these descriptions are the default setting, your programme follows what you ticked.",
+                            es: "Más abajo has vuelto a permitir lo que tu cuerpo sabe hacer igualmente: estas descripciones son el ajuste por defecto, tu programa sigue lo que has marcado."
+                        ),
+                        font: Theme.captionFont
+                    )
+                }
+
                 if needs.filtersNothing {
                     CoachText(
                         LocalizedText(
@@ -232,6 +247,125 @@ struct AdaptiveView: View {
                 }
             }
         }
+    }
+
+    // MARK: - Ce que l'athlète rend au catalogue
+
+    /// Le dernier mot revient à celui qui s'entraîne.
+    ///
+    /// Le filtrage est un défaut, pas un verdict. Deux hémiplégies ne se
+    /// ressemblent pas : l'une ne lève pas le bras, l'autre le lève moins
+    /// fort, et la seconde a de très bonnes raisons de vouloir travailler
+    /// les deux côtés — c'est même souvent ce qu'on lui demande de faire.
+    /// Une application qui décide seule que c'est impossible se trompe de
+    /// rôle.
+    ///
+    /// Les trois exigences qui disent « les deux côtés fournissent » sont
+    /// derrière un seul interrupteur : les séparer obligerait à répondre
+    /// trois fois à une seule question.
+    private var overrideCard: some View {
+        Card(
+            title: LocalizedText(
+                fr: "Ce que tu peux quand même faire",
+                en: "What you can do anyway",
+                es: "Lo que puedes hacer de todos modos"
+            )[language],
+            subtitle: LocalizedText(
+                fr: "Ce qui est retiré plus haut l'est par défaut. Si ton corps fait mieux que ça, dis-le : les mouvements reviennent dans ton programme.",
+                en: "What is removed above is removed by default. If your body does better than that, say so: the movements come back into your programme.",
+                es: "Lo que se retira arriba se retira por defecto. Si tu cuerpo hace más que eso, dilo: los movimientos vuelven a tu programa."
+            )[language]
+        ) {
+            if !pairedRemoved.isEmpty {
+                Toggle(isOn: bothSides) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(
+                            LocalizedText(
+                                fr: "Je m'entraîne quand même des deux côtés",
+                                en: "Train both sides anyway",
+                                es: "Entrenar de todos modos los dos lados"
+                            )[language]
+                        )
+                        .font(Theme.bodyFont)
+                        .foregroundStyle(Theme.primaryText)
+                        Text(
+                            LocalizedText(
+                                fr: "La barre, le développé à deux bras et les mouvements à deux jambes reviennent, en plus de ceux à un seul côté.",
+                                en: "The barbell, two-armed presses and two-legged movements come back, on top of the single-side ones.",
+                                es: "La barra, los press a dos brazos y los movimientos a dos piernas vuelven, además de los de un solo lado."
+                            )[language]
+                        )
+                        .font(Theme.captionFont)
+                        .foregroundStyle(Theme.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .toggleStyle(.switch)
+                .tint(Theme.accent)
+            }
+
+            // Les exigences restantes, une par une : tenir debout et
+            // descendre au sol sont deux questions différentes, et personne
+            // ne répond « oui » aux deux pour la même raison.
+            ForEach(otherRemoved) { demand in
+                Divider().overlay(Theme.separator)
+                Toggle(isOn: allowing(demand)) {
+                    Text(demand.label[language])
+                        .font(Theme.bodyFont)
+                        .foregroundStyle(Theme.primaryText)
+                }
+                .toggleStyle(.switch)
+                .tint(Theme.accent)
+            }
+
+            if !needs.allowedAnyway.isEmpty {
+                Divider().overlay(Theme.separator)
+                // La seule mise en garde, dite une fois. Les charges se
+                // calculent sur ce que la série a réellement pesé : sur un
+                // mouvement à deux côtés dont un fournit moins, c'est le
+                // côté faible qui décide, et la progression s'y cale.
+                CoachText(
+                    LocalizedText(
+                        fr: "Sur un mouvement à deux côtés, la charge se règle sur le côté le plus faible — c'est lui qui finit la série. Commence bas, monte lentement, et si un côté compense l'autre sans que tu le décides, repasse au travail à un seul côté.",
+                        en: "On a two-sided movement, the load is set by the weaker side — it is the one that finishes the set. Start low, add slowly, and if one side takes over the other without you deciding it, go back to single-side work.",
+                        es: "En un movimiento a dos lados, la carga la marca el lado más débil: es el que termina la serie. Empieza bajo, sube despacio, y si un lado compensa al otro sin que lo decidas, vuelve al trabajo a un solo lado."
+                    ),
+                    font: Theme.captionFont,
+                    color: Theme.warning
+                )
+            }
+        }
+    }
+
+    private var pairedRemoved: Set<BodyDemand> {
+        AdaptiveNeeds.pairedDemands.intersection(needs.overridable)
+    }
+
+    private var otherRemoved: [BodyDemand] {
+        needs.overridable.filter { !AdaptiveNeeds.pairedDemands.contains($0) }
+    }
+
+    private var bothSides: Binding<Bool> {
+        Binding(
+            get: { needs.trainsBothSides },
+            set: { on in
+                if on {
+                    needs.allowedAnyway.formUnion(pairedRemoved)
+                } else {
+                    needs.allowedAnyway.subtract(AdaptiveNeeds.pairedDemands)
+                }
+            }
+        )
+    }
+
+    private func allowing(_ demand: BodyDemand) -> Binding<Bool> {
+        Binding(
+            get: { needs.allowedAnyway.contains(demand) },
+            set: { on in
+                if on { needs.allowedAnyway.insert(demand) }
+                else { needs.allowedAnyway.remove(demand) }
+            }
+        )
     }
 
     // MARK: - Les sports
@@ -378,6 +512,10 @@ struct AdaptiveView: View {
                     if !needs.situations.contains(where: \.hasSide) {
                         needs.affectedSide = nil
                     }
+                    // Une réautorisation qui ne correspond plus à rien de
+                    // retiré n'a plus de sens : la garder ferait revenir une
+                    // réponse à une question qui n'est plus posée.
+                    needs.allowedAnyway.formIntersection(needs.closedDemands)
                 }
             }
         )

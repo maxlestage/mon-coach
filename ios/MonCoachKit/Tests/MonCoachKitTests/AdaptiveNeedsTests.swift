@@ -230,6 +230,103 @@ struct AdaptiveNeedsTests {
         }
     }
 
+    // MARK: - Ce que l'athlète rend au catalogue
+
+    /// Le filtrage est un défaut, pas un verdict : deux hémiplégies ne se
+    /// ressemblent pas, et celle qui lève le bras moins fort a de bonnes
+    /// raisons de vouloir continuer à travailler les deux côtés.
+    ///
+    /// Ce test attendait d'abord le squat barre, et il avait tort : un squat
+    /// exige aussi l'équilibre sous charge, que l'hémiplégie retire pour une
+    /// raison qui n'a rien à voir avec la symétrie. Les deux questions sont
+    /// posées séparément dans l'écran, et c'est juste — répondre « je
+    /// travaille des deux côtés » ne répond pas « je tiens en équilibre sous
+    /// une barre ».
+    @Test("Réautoriser les deux côtés fait revenir le développé couché")
+    func bothSidesComesBack() {
+        var needs = AdaptiveNeeds(situations: [.hemiplegia], affectedSide: .right)
+        let filtered = Set(
+            ExerciseCatalog.available(for: Fixtures.intermediate(adaptive: needs)).map(\.id)
+        )
+        #expect(!filtered.contains("bench-press"))
+        #expect(!filtered.contains("back-squat"))
+
+        needs.allowedAnyway = AdaptiveNeeds.pairedDemands
+        #expect(needs.trainsBothSides)
+        let opened = Set(
+            ExerciseCatalog.available(for: Fixtures.intermediate(adaptive: needs)).map(\.id)
+        )
+        #expect(opened.contains("bench-press"))
+        #expect(opened.contains("barbell-curl"))
+        #expect(opened.contains("leg-press"))
+        // Le squat attend la seconde réponse : il demande l'équilibre.
+        #expect(!opened.contains("back-squat"))
+
+        // Et rien n'est perdu au passage : le travail à un seul côté reste
+        // disponible, c'est un ajout et non un basculement.
+        #expect(opened.isSuperset(of: filtered))
+
+        needs.allowedAnyway.insert(.balance)
+        let everything = Set(
+            ExerciseCatalog.available(for: Fixtures.intermediate(adaptive: needs)).map(\.id)
+        )
+        #expect(everything.contains("back-squat"))
+    }
+
+    /// Réautoriser une exigence n'en rouvre aucune autre. Rendre « les deux
+    /// bras » ne doit pas rendre la prise à deux mains, qui n'a pas été
+    /// cochée.
+    @Test("Une réautorisation ne rend que ce qui est coché")
+    func overrideIsExact() {
+        var needs = AdaptiveNeeds(situations: [.hemiplegia], affectedSide: .right)
+        needs.allowedAnyway = [.bothArms]
+        #expect(!needs.unavailableDemands.contains(.bothArms))
+        #expect(needs.unavailableDemands.contains(.gripBothHands))
+        #expect(needs.unavailableDemands.contains(.bothLegs))
+        #expect(!needs.trainsBothSides)
+    }
+
+    @Test("Ce qui n'est pas retiré ne se propose pas à réautoriser")
+    func nothingToOverrideWhenNothingRemoved() {
+        let sensory = AdaptiveNeeds(situations: [.hearingImpairment])
+        #expect(sensory.overridable.isEmpty)
+
+        let seated = AdaptiveNeeds(situations: [.paraplegia])
+        #expect(seated.overridable.contains(.standing))
+        #expect(!seated.overridable.contains(.oneArm))
+    }
+
+    /// Tout réautoriser revient à ne rien filtrer — et l'écran doit alors
+    /// le dire, au lieu de laisser croire à un tri silencieux.
+    @Test("Tout réautoriser rend le programme complet")
+    func fullOverrideRestoresEverything() {
+        var needs = AdaptiveNeeds(situations: [.tetraplegia])
+        needs.allowedAnyway = needs.closedDemands
+        #expect(needs.unavailableDemands.isEmpty)
+        #expect(needs.filtersNothing)
+
+        let restored = Set(
+            ExerciseCatalog.available(for: Fixtures.intermediate(adaptive: needs)).map(\.id)
+        )
+        let plain = Set(ExerciseCatalog.available(for: Fixtures.intermediate()).map(\.id))
+        #expect(restored.isSuperset(of: plain))
+    }
+
+    /// Le piège de compatibilité : `allowedAnyway` n'existait pas dans les
+    /// profils enregistrés par les premières versions, et un décodage
+    /// synthétisé aurait refusé la clé absente — rendant leur profil
+    /// illisible, pas « sans réautorisation ».
+    @Test("Une déclaration enregistrée avant ce réglage se relit")
+    func olderDeclarationsStillDecode() throws {
+        let json = Data(#"{"situations":["hemiplegia"],"affectedSide":"right","usesWheelchair":false}"#.utf8)
+        let decoded = try JSONDecoder().decode(AdaptiveNeeds.self, from: json)
+
+        #expect(decoded.situations == [.hemiplegia])
+        #expect(decoded.affectedSide == .right)
+        #expect(decoded.allowedAnyway.isEmpty)
+        #expect(decoded.unavailableDemands.contains(.bothArms))
+    }
+
     // MARK: - Le programme
 
     @Test("Une journée sans un seul mouvement disponible disparaît au lieu de rester vide")

@@ -45,6 +45,8 @@ const copy = {
       { title: "Les séries retirées ne vont nulle part", body: "Le budget de chaque muscle est calé sur ce qu'il récupère. Lui verser les séries d'un autre le pousserait au-delà pour la seule raison qu'il restait de la place dans un tableau. Le volume hebdomadaire baisse, et c'est la réponse juste." },
     ],
 
+    overrideTitle: "Le dernier mot te revient",
+    overrideBody: "Tout ce qui est retiré peut être rendu, depuis le même écran. Un interrupteur « je m'entraîne quand même des deux côtés » ramène la barre, le développé à deux bras et les mouvements à deux jambes — en plus du travail à un seul côté, pas à sa place. Tenir debout, aller au sol, l'équilibre sous charge se réautorisent séparément, parce que ce sont des questions différentes. Deux hémiplégies ne se ressemblent pas : l'une ne lève pas le bras, l'autre le lève moins fort, et la seconde a de très bonnes raisons de travailler les deux côtés — c'est même souvent ce qu'on lui demande de faire. Une application qui déciderait seule que c'est impossible se tromperait de rôle. Une seule mise en garde accompagne le réglage : sur un mouvement à deux côtés, la charge se règle sur le côté le plus faible, c'est lui qui finit la série.",
     nothingTitle: "Ce qui ne retire aucun exercice",
     nothingBody: "Une déficience visuelle, auditive ou mentale ne fait disparaître aucun mouvement du programme. Aucune n'empêche un geste — elles changent la façon dont il est annoncé, pas la possibilité de le faire. En écarter « par prudence » aurait été une façon polie de décider à la place de quelqu'un. L'écran le dit explicitement, plutôt que de laisser croire à un filtrage silencieux.",
 
@@ -93,6 +95,8 @@ const copy = {
       { title: "Removed sets go nowhere", body: "Each muscle's budget is set by what it recovers from. Pouring another's sets into it would push it past that for the sole reason that a table had room. Weekly volume drops, and that is the right answer." },
     ],
 
+    overrideTitle: "The last word is yours",
+    overrideBody: "Everything that is removed can be given back, from the same screen. A single switch — “train both sides anyway” — brings back the barbell, two-armed presses and two-legged movements, on top of the single-side work rather than instead of it. Standing, getting to the floor and balance under load are re-enabled separately, because they are different questions. Two hemiplegias are not alike: one does not raise the arm, the other raises it less strongly, and the second has very good reasons to train both sides — it is often exactly what they are told to do. An app that decided alone that this is impossible would be overstepping. One caveat comes with the setting: on a two-sided movement the load is set by the weaker side, it is the one that finishes the set.",
     nothingTitle: "What removes no exercise at all",
     nothingBody: "A visual, hearing or intellectual disability removes no movement from the programme. None of them prevents a gesture — they change how it is announced, not whether it can be done. Removing some out of caution would have been a polite way of deciding for someone. The screen says so explicitly, rather than implying a silent filter.",
 
@@ -141,6 +145,8 @@ const copy = {
       { title: "Las series retiradas no van a ninguna parte", body: "El presupuesto de cada músculo está ajustado a lo que recupera. Verterle las series de otro lo empujaría más allá solo porque quedaba sitio en una tabla. El volumen semanal baja, y esa es la respuesta correcta." },
     ],
 
+    overrideTitle: "La última palabra es tuya",
+    overrideBody: "Todo lo que se retira puede devolverse, desde la misma pantalla. Un interruptor — «entrenar de todos modos los dos lados» — devuelve la barra, los press a dos brazos y los movimientos a dos piernas, además del trabajo a un solo lado, no en su lugar. Estar de pie, bajar al suelo y el equilibrio bajo carga se vuelven a permitir por separado, porque son preguntas distintas. Dos hemiplejías no se parecen: una no levanta el brazo, la otra lo levanta con menos fuerza, y la segunda tiene muy buenas razones para entrenar los dos lados — a menudo es justo lo que se le pide. Una aplicación que decidiera sola que eso es imposible se equivocaría de papel. Una sola advertencia acompaña el ajuste: en un movimiento a dos lados la carga la marca el lado más débil, es el que termina la serie.",
     nothingTitle: "Lo que no retira ningún ejercicio",
     nothingBody: "Una discapacidad visual, auditiva o intelectual no hace desaparecer ningún movimiento del programa. Ninguna impide un gesto: cambian cómo se anuncia, no la posibilidad de hacerlo. Quitarlos «por prudencia» habría sido una forma educada de decidir por alguien. La pantalla lo dice explícitamente, en vez de sugerir un filtrado silencioso.",
 
@@ -202,6 +208,11 @@ export function AdaptiveSection() {
             </article>
           ))}
         </div>
+
+        <h3 className="section__subtitle">{t.overrideTitle}</h3>
+        <article className="card">
+          <p className="card__body">{t.overrideBody}</p>
+        </article>
 
         <h3 className="section__subtitle">{t.nothingTitle}</h3>
         <div className="grid grid--2">
