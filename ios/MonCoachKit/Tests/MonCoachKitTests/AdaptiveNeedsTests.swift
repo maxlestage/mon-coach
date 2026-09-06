@@ -82,20 +82,80 @@ struct AdaptiveNeedsTests {
 
     // MARK: - Le catalogue
 
-    /// Le test qui a justifié treize mouvements de plus.
+    /// Le test qui a justifié vingt-sept mouvements de plus, en deux fois.
     ///
     /// Écrit d'abord comme une vérification de routine, il a échoué sur
     /// cinq muscles à la fois : pectoraux, triceps, deltoïdes postérieurs,
     /// ischio-jambiers et mollets n'étaient servis, dans tout le catalogue
     /// commun, que par des mouvements à deux bras ou à deux jambes.
-    @Test("Un seul côté qui travaille garde de quoi entraîner tout le corps")
-    func oneSideStillTrainsEverything() {
+    ///
+    /// Puis il a menti pendant une journée entière, parce qu'il ne mesurait
+    /// qu'une salle complète. Chez quelqu'un qui s'entraîne avec deux
+    /// élastiques, l'application annonçait n'avoir rien pour onze muscles
+    /// sur quatorze — les mouvements ajoutés étaient tous à la machine ou à
+    /// la poulie. C'est un utilisateur qui l'a vu, sur une capture d'écran,
+    /// pas ce test. D'où la boucle sur les trois lots de matériel : une
+    /// vérification qui n'essaie qu'une configuration ne vérifie que
+    /// celle-là.
+    @Test(
+        "Un seul côté qui travaille garde de quoi entraîner tout le corps, avec ou sans salle",
+        arguments: [Equipment.fullGym, Equipment.homeGym, Equipment.minimal]
+    )
+    func oneSideStillTrainsEverything(kit: Set<Equipment>) {
         let needs = AdaptiveNeeds(situations: [.hemiplegia], affectedSide: .left)
-        let profile = Fixtures.intermediate(adaptive: needs)
+        let profile = Fixtures.intermediate(equipment: kit, adaptive: needs)
         let trainable = ExerciseCatalog.trainableMuscles(for: profile)
 
-        for muscle in [MuscleGroup.chest, .triceps, .rearDelts, .hamstrings, .calves, .quads, .biceps, .lats, .shoulders, .core] {
+        for muscle in MuscleGroup.allCases {
             #expect(trainable.contains(muscle), "aucun mouvement pour \(muscle.rawValue)")
+        }
+    }
+
+    /// La même exigence pour toutes les situations qui ne retirent pas les
+    /// jambes, et pour tous les lots de matériel.
+    ///
+    /// Ce que ce test accepte de laisser passer est nommé plutôt que
+    /// contourné : quand les jambes ne fournissent pas, aucun élastique n'y
+    /// changera rien, et prétendre le contraire aurait été le seul vrai
+    /// mensonge possible ici.
+    @Test("Chaque situation garde tout ce que le corps peut encore travailler")
+    func everySituationKeepsWhatTheBodyCanDo() {
+        let seated: Set<AdaptiveSituation> = [.paraplegia, .tetraplegia]
+        let legs: Set<MuscleGroup> = [.quads, .hamstrings, .glutes, .calves]
+
+        for kit in [Equipment.fullGym, Equipment.homeGym, Equipment.minimal] {
+            for situation in AdaptiveSituation.allCases {
+                let profile = Fixtures.intermediate(
+                    equipment: kit,
+                    adaptive: AdaptiveNeeds(situations: [situation], affectedSide: .right)
+                )
+                let trainable = ExerciseCatalog.trainableMuscles(for: profile)
+                let expected = seated.contains(situation)
+                    ? MuscleGroup.allCases.filter { !legs.contains($0) }
+                    : MuscleGroup.allCases
+
+                for muscle in expected {
+                    #expect(
+                        trainable.contains(muscle),
+                        "\(situation.rawValue) : rien pour \(muscle.rawValue)"
+                    )
+                }
+            }
+        }
+    }
+
+    /// Un fauteuil ne dit rien des jambes : quelqu'un qui roule avec des
+    /// jambes qui fonctionnent doit garder ses quadriceps.
+    @Test("Le fauteuil seul ne retire pas le travail des jambes")
+    func wheelchairAloneKeepsLegs() {
+        for kit in [Equipment.fullGym, Equipment.homeGym, Equipment.minimal] {
+            let profile = Fixtures.intermediate(
+                equipment: kit, adaptive: AdaptiveNeeds(usesWheelchair: true)
+            )
+            let trainable = ExerciseCatalog.trainableMuscles(for: profile)
+            for muscle in MuscleGroup.allCases {
+                #expect(trainable.contains(muscle), "rien pour \(muscle.rawValue)")
+            }
         }
     }
 

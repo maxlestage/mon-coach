@@ -36,7 +36,7 @@ const copy = {
 
     holeTitle: "Filtrer ne suffisait pas",
     holeBody: "Un test écrit comme une vérification de routine a échoué sur cinq muscles à la fois. Pour quelqu'un dont un seul côté travaille, le catalogue commun n'avait plus rien du tout pour les pectoraux, les triceps, les deltoïdes postérieurs, les ischio-jambiers ni les mollets : chacun n'y était servi que par des mouvements à deux bras ou à deux jambes. Un programme amputé de cinq muscles n'est pas un programme adapté, c'est un programme cassé.",
-    holeAnswer: "Treize mouvements existent pour ça et n'apparaissent nulle part ailleurs — développé machine à un bras, tirage élastique à un bras, extension poulie à un bras, leg curl à une jambe, mollet assis à une jambe, rotation élastique assis. Ils restent hors du catalogue commun : les y verser aurait modifié les séances de tout le monde pour un bénéfice nul à qui n'en a pas besoin.",
+    holeAnswer: "Vingt-sept mouvements existent pour ça et n'apparaissent nulle part ailleurs. La moitié seulement demande une salle. L'autre moitié tient dans un élastique et un mur — développé, tirage, curl, extension, élévation latérale, tous à un bras ; assis-debout à une jambe, pont fessier sur un canapé, mollet la main à l'appui. C'est cette moitié-là qui manquait au premier essai : mesuré avec une salle complète, le catalogue paraissait complet, et quelqu'un qui s'entraîne chez lui avec deux élastiques s'entendait répondre qu'il n'y avait rien pour onze muscles sur quatorze.",
 
     programTitle: "Le programme, pas seulement la liste",
     program: [
@@ -84,7 +84,7 @@ const copy = {
 
     holeTitle: "Filtering was not enough",
     holeBody: "A test written as a routine check failed on five muscles at once. For someone with one working side, the common catalogue had nothing at all left for the chest, triceps, rear delts, hamstrings or calves: each was served only by two-armed or two-legged movements. A programme missing five muscles is not an adapted programme, it is a broken one.",
-    holeAnswer: "Thirteen movements exist for this and appear nowhere else — single-arm machine press, single-arm band row, single-arm pushdown, single-leg curl, single-leg seated calf raise, seated band rotation. They stay out of the common catalogue: adding them there would have changed everyone's sessions for no benefit to anyone who does not need them.",
+    holeAnswer: "Twenty-seven movements exist for this and appear nowhere else. Only half of them need a gym. The other half fits in a band and a wall — press, row, curl, extension, lateral raise, all single-arm; single-leg sit-to-stand, hip thrust off a sofa, calf raise with a hand on a support. That half is what was missing at the first attempt: measured against a full gym the catalogue looked complete, and someone training at home with two bands was told there was nothing for eleven muscles out of fourteen.",
 
     programTitle: "The programme, not just the list",
     program: [
@@ -132,7 +132,7 @@ const copy = {
 
     holeTitle: "Filtrar no bastaba",
     holeBody: "Una prueba escrita como una verificación de rutina falló en cinco músculos a la vez. Para quien solo trabaja un lado, el catálogo común ya no tenía absolutamente nada para pectorales, tríceps, deltoides posteriores, isquiotibiales ni gemelos: cada uno estaba servido únicamente por movimientos a dos brazos o a dos piernas. Un programa sin cinco músculos no es un programa adaptado, es un programa roto.",
-    holeAnswer: "Trece movimientos existen para eso y no aparecen en ningún otro sitio: press de máquina a un brazo, remo con banda a un brazo, extensión en polea a un brazo, curl femoral a una pierna, gemelo sentado a una pierna, rotación con banda sentado. Quedan fuera del catálogo común: incluirlos allí habría cambiado las sesiones de todo el mundo sin beneficio para quien no los necesita.",
+    holeAnswer: "Veintisiete movimientos existen para eso y no aparecen en ningún otro sitio. Solo la mitad exige un gimnasio. La otra mitad cabe en una banda y una pared: press, remo, curl, extensión, elevación lateral, todos a un brazo; sentarse y levantarse a una pierna, puente de glúteo sobre un sofá, gemelo con la mano en un apoyo. Esa mitad es la que faltaba en el primer intento: medido contra un gimnasio completo el catálogo parecía completo, y a quien entrena en casa con dos bandas se le respondía que no había nada para once músculos de catorce.",
 
     programTitle: "El programa, no solo la lista",
     program: [

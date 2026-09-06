@@ -214,11 +214,17 @@ struct AdaptiveView: View {
                 if !untrainable.isEmpty {
                     // Dit avant que quelqu'un cherche pendant des semaines
                     // pourquoi un muscle n'apparaît jamais.
+                    // Dit sans commentaire sur la cause. La phrase
+                    // rassurante qui était ici — « ce n'est pas une limite
+                    // de ton corps » — était vraie quand il manquait du
+                    // matériel et fausse quand les jambes ne répondent pas.
+                    // Une phrase réconfortante à moitié fausse ne réconforte
+                    // personne.
                     CoachText(
                         LocalizedText(
-                            fr: "Le catalogue n'a aucun mouvement pour \(names(untrainable, .french)) dans cette configuration. Ces muscles sortent du calcul plutôt que d'apparaître à zéro — et ce n'est pas une limite de ton corps, c'est une limite de ce que l'application sait proposer.",
-                            en: "The catalogue has no movement for \(names(untrainable, .english)) in this configuration. Those muscles leave the budget rather than showing up at zero — and that is a limit of what the app can offer, not of your body.",
-                            es: "El catálogo no tiene ningún movimiento para \(names(untrainable, .spanish)) en esta configuración. Esos músculos salen del cálculo en lugar de aparecer a cero, y es un límite de lo que la aplicación sabe proponer, no de tu cuerpo."
+                            fr: "Aucun mouvement disponible pour \(names(untrainable, .french)). Ces muscles sortent du calcul plutôt que d'apparaître à zéro. Avec plus de matériel — un élastique suffit souvent — certains reviennent.",
+                            en: "No movement available for \(names(untrainable, .english)). Those muscles leave the budget rather than showing up at zero. With more equipment — a band is often enough — some come back.",
+                            es: "Ningún movimiento disponible para \(names(untrainable, .spanish)). Esos músculos salen del cálculo en lugar de aparecer a cero. Con más material — a menudo basta una banda — algunos vuelven."
                         ),
                         font: Theme.captionFont,
                         color: Theme.warning
@@ -339,11 +345,19 @@ struct AdaptiveView: View {
     /// configuration — calculés sur la déclaration en cours, pas sur celle
     /// qui est enregistrée : l'écran doit répondre à ce qu'on vient de
     /// cocher, avant d'avoir enregistré.
+    ///
+    /// Restreints à ceux que le programme travaillerait vraiment. Parcourir
+    /// les quatorze groupes musculaires produisait une liste à faire peur,
+    /// où figuraient des muscles qu'aucune séance de ce profil n'aurait
+    /// budgétés de toute façon.
     private var untrainable: [MuscleGroup] {
         guard var profile = store.profile, needs.isActive else { return [] }
         profile.adaptive = needs
         let trainable = ExerciseCatalog.trainableMuscles(for: profile)
-        return MuscleGroup.allCases.filter { !trainable.contains($0) }
+        let budgeted = VolumeEngine.prescription(for: profile).weeklySets
+        return MuscleGroup.allCases.filter {
+            (budgeted[$0] ?? 0) > 0 && !trainable.contains($0)
+        }
     }
 
     private func names(_ muscles: [MuscleGroup], _ language: Language) -> String {
