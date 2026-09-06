@@ -70,13 +70,18 @@ public enum ExerciseBriefs {
     /// deux mille lignes ne se relit pas, et qu'une fiche qu'on ne relit pas
     /// finit fausse.
     public static let all: [String: ExerciseBrief] = Dictionary(
-        uniqueKeysWithValues: (legs + push + pull + arms + core + machinesLower + machinesUpper)
+        uniqueKeysWithValues: (legs + push + pull + arms + core + machinesLower + machinesUpper + adaptive)
             .map { ($0.id, $0) }
     )
 
     /// La fiche d'un exercice. Aucun exercice du catalogue n'en est privé —
     /// un test s'en assure, et c'est le seul moyen de garantir qu'un
-    /// quatre-vingt-treizième mouvement ajouté un mardi ne partira pas nu.
+    /// mouvement ajouté un mardi ne partira pas nu.
+    ///
+    /// Le catalogue, ici, ce sont les deux listes : la commune et celle des
+    /// mouvements adaptés. Le test ne lisait que la première, et
+    /// soixante-deux mouvements sont passés à travers le verrou en restant
+    /// sans fiche — précisément ceux que personne n'a jamais vu faire.
     public static func brief(for exercise: Exercise) -> ExerciseBrief? {
         all[exercise.id]
     }

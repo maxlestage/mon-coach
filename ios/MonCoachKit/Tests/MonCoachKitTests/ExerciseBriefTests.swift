@@ -7,15 +7,23 @@ struct ExerciseBriefCoverageTests {
 
     @Test("Aucun mouvement du catalogue n'est laissé sans fiche")
     func everyExerciseHasABrief() {
-        // C'est le verrou : un quatre-vingt-treizième exercice ajouté un
-        // mardi sans fiche fait tomber ce test, et pas l'écran d'un athlète
-        // qui découvre une machine.
-        let missing = ExerciseCatalog.all
+        // C'est le verrou : un exercice ajouté un mardi sans fiche fait
+        // tomber ce test, et pas l'écran d'un athlète qui découvre une
+        // machine.
+        //
+        // Il ne lisait que `ExerciseCatalog.all`, et les mouvements adaptés
+        // vivent à part : soixante-deux sont passés à travers sans que rien
+        // ne rougisse. Le verrou était intact, il regardait ailleurs. Les
+        // deux listes, désormais — et c'est justement pour ces
+        // mouvements-là que la fiche compte le plus, puisque personne ne les
+        // a jamais vu faire.
+        let catalogue = ExerciseCatalog.all + ExerciseCatalog.adaptive
+        let missing = catalogue
             .filter { ExerciseBriefs.brief(for: $0) == nil }
             .map(\.id)
             .sorted()
         #expect(missing.isEmpty, Comment(rawValue: "sans fiche : \(missing)"))
-        #expect(ExerciseBriefs.all.count == ExerciseCatalog.all.count)
+        #expect(ExerciseBriefs.all.count == catalogue.count)
     }
 
     @Test("Aucune fiche ne décrit un exercice qui n'existe pas")
