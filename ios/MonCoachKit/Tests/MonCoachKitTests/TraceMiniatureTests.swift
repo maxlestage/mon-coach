@@ -270,4 +270,111 @@ struct TraceMiniatureTests {
         #expect(restored == miniature)
         #expect(restored.points == miniature.points)
     }
+
+    // MARK: - La réduction rendue publique
+
+    /// Ce que la carte des parcours faisait avant, et pourquoi ça se voyait.
+    ///
+    /// Garder un point sur n coupe les virages au hasard. Sur un parcours
+    /// en créneaux, c'est mesurable : la version naïve rate des angles que
+    /// la réduction par écart au segment garde tous.
+    @Test("Réduire par la forme garde les virages qu'un point sur n perd")
+    func shapeBeatsEveryNth() {
+        // Vingt créneaux serrés, séparés par de longues lignes droites.
+        var points: [GPSPoint] = []
+        var latitude = 48.85
+        for step in 0..<400 {
+            let corner = step % 20 == 0
+            latitude += corner ? 0.002 : 0.00002
+            points.append(
+                GPSPoint(timestamp: Date(timeIntervalSince1970: Double(step) * 5),
+                         latitude: latitude, longitude: 2.35 + Double(step) * 0.0002)
+            )
+        }
+
+        let budget = 60
+        let shaped = TraceMiniature.drawable(points, budget: budget)
+        let naive = points.indices.filter { $0 % (points.count / budget + 1) == 0 }.map { points[$0] }
+
+        #expect(shaped.count <= budget)
+
+        // Ce qui se mesure, c'est l'écart entre le parcours réel et la
+        // **ligne dessinée** — donc la distance de chaque point d'origine
+        // aux segments qui relient les points gardés.
+        //
+        // Le premier essai de ce test mesurait la distance au point gardé le
+        // plus proche, et le point sur n gagnait : il répartit ses points
+        // régulièrement. C'est une bonne mesure de couverture et une mauvaise
+        // mesure de fidélité — un point au milieu d'une ligne droite est loin
+        // de tout sommet et pourtant exactement sur le trait.
+        func distanceToSegment(_ point: GPSPoint, _ start: GPSPoint, _ end: GPSPoint) -> Double {
+            let dx = end.longitude - start.longitude
+            let dy = end.latitude - start.latitude
+            let lengthSquared = dx * dx + dy * dy
+            guard lengthSquared > 0 else {
+                return hypot(point.longitude - start.longitude, point.latitude - start.latitude)
+            }
+            var t = ((point.longitude - start.longitude) * dx
+                     + (point.latitude - start.latitude) * dy) / lengthSquared
+            t = min(1, max(0, t))
+            return hypot(point.longitude - (start.longitude + t * dx),
+                         point.latitude - (start.latitude + t * dy))
+        }
+
+        func drift(_ reduced: [GPSPoint]) -> Double {
+            guard reduced.count >= 2 else { return .infinity }
+            var worst = 0.0
+            for point in points {
+                var nearest = Double.infinity
+                for index in 0..<(reduced.count - 1) {
+                    nearest = min(nearest, distanceToSegment(point, reduced[index], reduced[index + 1]))
+                }
+                worst = max(worst, nearest)
+            }
+            return worst
+        }
+        #expect(drift(shaped) < drift(naive))
+    }
+
+    @Test("Les extrémités survivent toujours à la réduction")
+    func endsAreKept() {
+        let points = (0..<500).map { step in
+            GPSPoint(timestamp: Date(timeIntervalSince1970: Double(step) * 5),
+                     latitude: 48.85 + Double(step) * 0.0001,
+                     longitude: 2.35 + sin(Double(step) / 9) * 0.001)
+        }
+        let reduced = TraceMiniature.drawable(points, budget: 40)
+        #expect(reduced.first?.latitude == points.first?.latitude)
+        #expect(reduced.last?.latitude == points.last?.latitude)
+        #expect(reduced.count <= 40)
+    }
+
+    @Test("Une trace plus courte que le budget n'est pas touchée")
+    func shortTracesPassThrough() {
+        let points = (0..<10).map { step in
+            GPSPoint(timestamp: Date(timeIntervalSince1970: Double(step) * 5),
+                     latitude: 48.85 + Double(step) * 0.001, longitude: 2.35)
+        }
+        #expect(TraceMiniature.drawable(points, budget: 400).count == points.count)
+    }
+
+    /// L'étendue, qui sert à écarter du dessin ce qui n'est pas un parcours.
+    /// Un point isolé ailleurs élargit le cadre et écrase tous les vrais
+    /// parcours contre un bord — c'est ce qu'on voyait à l'écran.
+    @Test("L'étendue distingue un parcours d'un point posé")
+    func spanTellsRoutesFromDots() {
+        let now = Date()
+        let dot = [
+            GPSPoint(timestamp: now, latitude: 48.8500, longitude: 2.3500),
+            GPSPoint(timestamp: now, latitude: 48.85002, longitude: 2.35003),
+        ]
+        #expect(TraceMiniature.spanMeters(dot) < 20)
+
+        let route = [
+            GPSPoint(timestamp: now, latitude: 48.85, longitude: 2.35),
+            GPSPoint(timestamp: now, latitude: 48.88, longitude: 2.35),
+        ]
+        #expect(TraceMiniature.spanMeters(route) > 3_000)
+        #expect(TraceMiniature.spanMeters([]) == 0)
+    }
 }

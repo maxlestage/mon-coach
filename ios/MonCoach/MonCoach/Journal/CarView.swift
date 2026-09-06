@@ -37,6 +37,7 @@ struct CarView: View {
                     emptyCard
                 } else {
                     totalsCard
+                    routesCard
                     monthsCard
                     tripsCard
                 }
@@ -44,6 +45,35 @@ struct CarView: View {
             .padding(16)
         }
         .screenBackground()
+    }
+
+    // MARK: - Les trajets sur une carte
+
+    /// Les trajets ont leur carte, à leur échelle.
+    ///
+    /// Ils partageaient celle des sorties, et c'était intenable : vingt-trois
+    /// kilomètres d'autoroute et une sortie de cinq kilomètres dessinés dans
+    /// le même cadre, la sortie devenait un gribouillis dans un coin. Chacun
+    /// chez soi, chacun lisible.
+    @ViewBuilder
+    private var routesCard: some View {
+        let traced = trips.filter { !$0.points.isEmpty }
+        if !traced.isEmpty {
+            Card(
+                title: LocalizedText(
+                    fr: "Où tu roules", en: "Where you drive", es: "Por dónde conduces"
+                )[language],
+                subtitle: LocalizedText(
+                    fr: "Dessinée sur l'appareil — cette image ne part nulle part.",
+                    en: "Drawn on the device — this image goes nowhere.",
+                    es: "Dibujada en el dispositivo: esta imagen no va a ninguna parte."
+                )[language]
+            ) {
+                RoutesCanvas(activities: traced)
+                    .frame(height: 200)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+        }
     }
 
     // MARK: - Rien encore
