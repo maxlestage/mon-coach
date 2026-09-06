@@ -36,7 +36,7 @@ const copy = {
 
     holeTitle: "Filtrer ne suffisait pas",
     holeBody: "Un test écrit comme une vérification de routine a échoué sur cinq muscles à la fois. Pour quelqu'un dont un seul côté travaille, le catalogue commun n'avait plus rien du tout pour les pectoraux, les triceps, les deltoïdes postérieurs, les ischio-jambiers ni les mollets : chacun n'y était servi que par des mouvements à deux bras ou à deux jambes. Un programme amputé de cinq muscles n'est pas un programme adapté, c'est un programme cassé.",
-    holeAnswer: "Treize mouvements existent pour ça et n'apparaissent nulle part ailleurs — développé machine à un bras, tirage élastique à un bras, extension poulie à un bras, leg curl à une jambe, mollet assis à une jambe, rotation élastique assis. Ils restent hors du catalogue commun : les y verser aurait modifié les séances de tout le monde pour un bénéfice nul à qui n'en a pas besoin.",
+    holeAnswer: "Soixante-deux mouvements existent pour ça et n'apparaissent nulle part ailleurs. Machine, poulie, haltère, kettlebell, barre de traction, élastique — et le poids du corps seul, avec une table, un mur, une chaise et une serviette. La garantie tient en une phrase : ce que ton corps peut encore travailler ne dépend pas de ce que tu possèdes. Elle est vérifiée sur le poids du corps seul puis sur le poids du corps plus chaque accessoire, et elle a coûté trois passages. Le premier ne mesurait qu'une salle complète : onze muscles restaient vides à qui n'a que des élastiques. Le deuxième ne mesurait que trois lots : quelqu'un en fauteuil s'entraînant chez lui n'avait ni dos, ni dorsaux, ni gainage, parce que tous les tirages au poids du corps passaient par le sol. Une garantie qui ne s'énonce pas sur toutes les entrées ne se vérifie sur aucune.",
 
     programTitle: "Le programme, pas seulement la liste",
     program: [
@@ -45,6 +45,8 @@ const copy = {
       { title: "Les séries retirées ne vont nulle part", body: "Le budget de chaque muscle est calé sur ce qu'il récupère. Lui verser les séries d'un autre le pousserait au-delà pour la seule raison qu'il restait de la place dans un tableau. Le volume hebdomadaire baisse, et c'est la réponse juste." },
     ],
 
+    overrideTitle: "Le dernier mot te revient",
+    overrideBody: "Tout ce qui est retiré peut être rendu, depuis le même écran. Un interrupteur « je m'entraîne quand même des deux côtés » ramène la barre, le développé à deux bras et les mouvements à deux jambes — en plus du travail à un seul côté, pas à sa place. Tenir debout, aller au sol, l'équilibre sous charge se réautorisent séparément, parce que ce sont des questions différentes. Deux hémiplégies ne se ressemblent pas : l'une ne lève pas le bras, l'autre le lève moins fort, et la seconde a de très bonnes raisons de travailler les deux côtés — c'est même souvent ce qu'on lui demande de faire. Une application qui déciderait seule que c'est impossible se tromperait de rôle. Une seule mise en garde accompagne le réglage : sur un mouvement à deux côtés, la charge se règle sur le côté le plus faible, c'est lui qui finit la série.",
     nothingTitle: "Ce qui ne retire aucun exercice",
     nothingBody: "Une déficience visuelle, auditive ou mentale ne fait disparaître aucun mouvement du programme. Aucune n'empêche un geste — elles changent la façon dont il est annoncé, pas la possibilité de le faire. En écarter « par prudence » aurait été une façon polie de décider à la place de quelqu'un. L'écran le dit explicitement, plutôt que de laisser croire à un filtrage silencieux.",
 
@@ -84,7 +86,7 @@ const copy = {
 
     holeTitle: "Filtering was not enough",
     holeBody: "A test written as a routine check failed on five muscles at once. For someone with one working side, the common catalogue had nothing at all left for the chest, triceps, rear delts, hamstrings or calves: each was served only by two-armed or two-legged movements. A programme missing five muscles is not an adapted programme, it is a broken one.",
-    holeAnswer: "Thirteen movements exist for this and appear nowhere else — single-arm machine press, single-arm band row, single-arm pushdown, single-leg curl, single-leg seated calf raise, seated band rotation. They stay out of the common catalogue: adding them there would have changed everyone's sessions for no benefit to anyone who does not need them.",
+    holeAnswer: "Sixty-two movements exist for this and appear nowhere else. Machine, cable, dumbbell, kettlebell, pull-up bar, band — and bodyweight alone, with a table, a wall, a chair and a towel. The guarantee fits in one sentence: what your body can still train does not depend on what you own. It is verified on bodyweight alone, then on bodyweight plus each accessory, and it took three passes. The first measured only a full gym: eleven muscles stayed empty for anyone with just bands. The second measured only three kits: a wheelchair user training at home had no back, no lats and no core, because every bodyweight pull went through the floor. A guarantee that is not stated over every input is verified on none.",
 
     programTitle: "The programme, not just the list",
     program: [
@@ -93,6 +95,8 @@ const copy = {
       { title: "Removed sets go nowhere", body: "Each muscle's budget is set by what it recovers from. Pouring another's sets into it would push it past that for the sole reason that a table had room. Weekly volume drops, and that is the right answer." },
     ],
 
+    overrideTitle: "The last word is yours",
+    overrideBody: "Everything that is removed can be given back, from the same screen. A single switch — “train both sides anyway” — brings back the barbell, two-armed presses and two-legged movements, on top of the single-side work rather than instead of it. Standing, getting to the floor and balance under load are re-enabled separately, because they are different questions. Two hemiplegias are not alike: one does not raise the arm, the other raises it less strongly, and the second has very good reasons to train both sides — it is often exactly what they are told to do. An app that decided alone that this is impossible would be overstepping. One caveat comes with the setting: on a two-sided movement the load is set by the weaker side, it is the one that finishes the set.",
     nothingTitle: "What removes no exercise at all",
     nothingBody: "A visual, hearing or intellectual disability removes no movement from the programme. None of them prevents a gesture — they change how it is announced, not whether it can be done. Removing some out of caution would have been a polite way of deciding for someone. The screen says so explicitly, rather than implying a silent filter.",
 
@@ -132,7 +136,7 @@ const copy = {
 
     holeTitle: "Filtrar no bastaba",
     holeBody: "Una prueba escrita como una verificación de rutina falló en cinco músculos a la vez. Para quien solo trabaja un lado, el catálogo común ya no tenía absolutamente nada para pectorales, tríceps, deltoides posteriores, isquiotibiales ni gemelos: cada uno estaba servido únicamente por movimientos a dos brazos o a dos piernas. Un programa sin cinco músculos no es un programa adaptado, es un programa roto.",
-    holeAnswer: "Trece movimientos existen para eso y no aparecen en ningún otro sitio: press de máquina a un brazo, remo con banda a un brazo, extensión en polea a un brazo, curl femoral a una pierna, gemelo sentado a una pierna, rotación con banda sentado. Quedan fuera del catálogo común: incluirlos allí habría cambiado las sesiones de todo el mundo sin beneficio para quien no los necesita.",
+    holeAnswer: "Sesenta y dos movimientos existen para eso y no aparecen en ningún otro sitio. Máquina, polea, mancuerna, pesa rusa, barra de dominadas, banda — y el peso del cuerpo solo, con una mesa, una pared, una silla y una toalla. La garantía cabe en una frase: lo que tu cuerpo aún puede entrenar no depende de lo que poseas. Se verifica con el peso del cuerpo solo y luego con el peso del cuerpo más cada accesorio, y costó tres intentos. El primero solo medía un gimnasio completo: once músculos quedaban vacíos para quien solo tiene bandas. El segundo solo medía tres equipos: quien va en silla y entrena en casa no tenía ni espalda, ni dorsales, ni core, porque todos los tirones a peso corporal pasaban por el suelo. Una garantía que no se enuncia sobre todas las entradas no se verifica en ninguna.",
 
     programTitle: "El programa, no solo la lista",
     program: [
@@ -141,6 +145,8 @@ const copy = {
       { title: "Las series retiradas no van a ninguna parte", body: "El presupuesto de cada músculo está ajustado a lo que recupera. Verterle las series de otro lo empujaría más allá solo porque quedaba sitio en una tabla. El volumen semanal baja, y esa es la respuesta correcta." },
     ],
 
+    overrideTitle: "La última palabra es tuya",
+    overrideBody: "Todo lo que se retira puede devolverse, desde la misma pantalla. Un interruptor — «entrenar de todos modos los dos lados» — devuelve la barra, los press a dos brazos y los movimientos a dos piernas, además del trabajo a un solo lado, no en su lugar. Estar de pie, bajar al suelo y el equilibrio bajo carga se vuelven a permitir por separado, porque son preguntas distintas. Dos hemiplejías no se parecen: una no levanta el brazo, la otra lo levanta con menos fuerza, y la segunda tiene muy buenas razones para entrenar los dos lados — a menudo es justo lo que se le pide. Una aplicación que decidiera sola que eso es imposible se equivocaría de papel. Una sola advertencia acompaña el ajuste: en un movimiento a dos lados la carga la marca el lado más débil, es el que termina la serie.",
     nothingTitle: "Lo que no retira ningún ejercicio",
     nothingBody: "Una discapacidad visual, auditiva o intelectual no hace desaparecer ningún movimiento del programa. Ninguna impide un gesto: cambian cómo se anuncia, no la posibilidad de hacerlo. Quitarlos «por prudencia» habría sido una forma educada de decidir por alguien. La pantalla lo dice explícitamente, en vez de sugerir un filtrado silencioso.",
 
@@ -202,6 +208,11 @@ export function AdaptiveSection() {
             </article>
           ))}
         </div>
+
+        <h3 className="section__subtitle">{t.overrideTitle}</h3>
+        <article className="card">
+          <p className="card__body">{t.overrideBody}</p>
+        </article>
 
         <h3 className="section__subtitle">{t.nothingTitle}</h3>
         <div className="grid grid--2">

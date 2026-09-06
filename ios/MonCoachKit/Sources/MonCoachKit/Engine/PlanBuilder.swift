@@ -33,7 +33,12 @@ public enum PlanBuilder {
         // tous ceux qui en ont un, pour un manque qui se répare en achetant
         // un haltère. Une situation déclarée, elle, ne se répare pas ; le
         // programme doit en tenir compte dès la première séance.
-        var volume = VolumeEngine.prescription(for: profile)
+        // Le budget d'origine est gardé à part : c'est lui qui dit ce que le
+        // programme *voulait* travailler, et donc ce qui manque une fois le
+        // catalogue filtré. Comparer au budget déjà réduit ne peut rien
+        // trouver — il ne contient que ce qui est entraînable.
+        let prescribed = VolumeEngine.prescription(for: profile)
+        var volume = prescribed
         var dayTemplates = SplitPlanner.days(for: split, daysPerWeek: profile.daysPerWeek)
         let trainable = profile.hasAdaptiveNeeds
             ? ExerciseCatalog.trainableMuscles(for: profile)
@@ -98,7 +103,9 @@ public enum PlanBuilder {
         }
 
         if let needs = profile.adaptive, needs.isActive {
-            rationale.append(adaptiveRationale(needs: needs, trainable: trainable))
+            rationale.append(
+                adaptiveRationale(needs: needs, trainable: trainable, budgeted: prescribed.weeklySets)
+            )
         }
 
         return Mesocycle(
@@ -120,9 +127,15 @@ public enum PlanBuilder {
     /// ses ischio-jambiers n'apparaissent jamais.
     static func adaptiveRationale(
         needs: AdaptiveNeeds,
-        trainable: Set<MuscleGroup>
+        trainable: Set<MuscleGroup>,
+        budgeted: [MuscleGroup: Int]
     ) -> LocalizedText {
-        let untrainable = MuscleGroup.allCases.filter { !trainable.contains($0) }
+        // Ce que la prescription voulait travailler et n'a pas pu. Le budget
+        // reçu ici est celui d'avant filtrage : lui passer le budget réduit
+        // rendrait ce calcul toujours vide, ce qui s'est produit.
+        let untrainable = MuscleGroup.allCases.filter {
+            (budgeted[$0] ?? 0) > 0 && !trainable.contains($0)
+        }
 
         func sentence(_ language: Language) -> String {
             let declared = AdaptiveSituation.allCases
@@ -150,11 +163,11 @@ public enum PlanBuilder {
             let names = untrainable.map { $0.label[language] }.joined(separator: ", ")
             switch language {
             case .french:
-                text += " Le catalogue n'a aucun mouvement pour \(names) dans cette configuration : ces muscles sortent du calcul plutôt que d'apparaître à zéro."
+                text += " Aucun mouvement disponible pour \(names) : ces muscles sortent du calcul plutôt que d'apparaître à zéro."
             case .english:
-                text += " The catalogue has no movement for \(names) in this configuration: those muscles leave the budget rather than showing up at zero."
+                text += " No movement available for \(names): those muscles leave the budget rather than showing up at zero."
             case .spanish:
-                text += " El catálogo no tiene ningún movimiento para \(names) en esta configuración: esos músculos salen del cálculo en lugar de aparecer a cero."
+                text += " Ningún movimiento disponible para \(names): esos músculos salen del cálculo en lugar de aparecer a cero."
             }
             return text
         }

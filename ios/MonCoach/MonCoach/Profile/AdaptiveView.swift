@@ -38,10 +38,11 @@ struct AdaptiveView: View {
                 }
                 if needs.isActive {
                     effectsCard.appears(3)
-                    sportsCard.appears(4)
+                    if !needs.overridable.isEmpty { overrideCard.appears(4) }
+                    sportsCard.appears(5)
                 }
-                reserveCard.appears(5)
-                if hasChanges { applyCard.appears(6) }
+                reserveCard.appears(6)
+                if hasChanges { applyCard.appears(7) }
             }
             .padding(20)
         }
@@ -200,6 +201,20 @@ struct AdaptiveView: View {
                     }
                 }
 
+                // Les descriptions ci-dessus décrivent le réglage par
+                // défaut. Une réautorisation les contredit en partie, et le
+                // taire laisserait deux cartes se contredire à l'écran.
+                if !needs.allowedAnyway.isEmpty {
+                    CoachText(
+                        LocalizedText(
+                            fr: "Tu as réautorisé plus bas ce que ton corps sait faire malgré tout : ces descriptions valent pour le réglage par défaut, ton programme suit ce que tu as coché.",
+                            en: "Below you re-enabled what your body can do anyway: these descriptions are the default setting, your programme follows what you ticked.",
+                            es: "Más abajo has vuelto a permitir lo que tu cuerpo sabe hacer igualmente: estas descripciones son el ajuste por defecto, tu programa sigue lo que has marcado."
+                        ),
+                        font: Theme.captionFont
+                    )
+                }
+
                 if needs.filtersNothing {
                     CoachText(
                         LocalizedText(
@@ -214,11 +229,17 @@ struct AdaptiveView: View {
                 if !untrainable.isEmpty {
                     // Dit avant que quelqu'un cherche pendant des semaines
                     // pourquoi un muscle n'apparaît jamais.
+                    // Dit sans commentaire sur la cause. La phrase
+                    // rassurante qui était ici — « ce n'est pas une limite
+                    // de ton corps » — était vraie quand il manquait du
+                    // matériel et fausse quand les jambes ne répondent pas.
+                    // Une phrase réconfortante à moitié fausse ne réconforte
+                    // personne.
                     CoachText(
                         LocalizedText(
-                            fr: "Le catalogue n'a aucun mouvement pour \(names(untrainable, .french)) dans cette configuration. Ces muscles sortent du calcul plutôt que d'apparaître à zéro — et ce n'est pas une limite de ton corps, c'est une limite de ce que l'application sait proposer.",
-                            en: "The catalogue has no movement for \(names(untrainable, .english)) in this configuration. Those muscles leave the budget rather than showing up at zero — and that is a limit of what the app can offer, not of your body.",
-                            es: "El catálogo no tiene ningún movimiento para \(names(untrainable, .spanish)) en esta configuración. Esos músculos salen del cálculo en lugar de aparecer a cero, y es un límite de lo que la aplicación sabe proponer, no de tu cuerpo."
+                            fr: "Aucun mouvement disponible pour \(names(untrainable, .french)). Ces muscles sortent du calcul plutôt que d'apparaître à zéro. Avec plus de matériel — un élastique suffit souvent — certains reviennent.",
+                            en: "No movement available for \(names(untrainable, .english)). Those muscles leave the budget rather than showing up at zero. With more equipment — a band is often enough — some come back.",
+                            es: "Ningún movimiento disponible para \(names(untrainable, .spanish)). Esos músculos salen del cálculo en lugar de aparecer a cero. Con más material — a menudo basta una banda — algunos vuelven."
                         ),
                         font: Theme.captionFont,
                         color: Theme.warning
@@ -226,6 +247,125 @@ struct AdaptiveView: View {
                 }
             }
         }
+    }
+
+    // MARK: - Ce que l'athlète rend au catalogue
+
+    /// Le dernier mot revient à celui qui s'entraîne.
+    ///
+    /// Le filtrage est un défaut, pas un verdict. Deux hémiplégies ne se
+    /// ressemblent pas : l'une ne lève pas le bras, l'autre le lève moins
+    /// fort, et la seconde a de très bonnes raisons de vouloir travailler
+    /// les deux côtés — c'est même souvent ce qu'on lui demande de faire.
+    /// Une application qui décide seule que c'est impossible se trompe de
+    /// rôle.
+    ///
+    /// Les trois exigences qui disent « les deux côtés fournissent » sont
+    /// derrière un seul interrupteur : les séparer obligerait à répondre
+    /// trois fois à une seule question.
+    private var overrideCard: some View {
+        Card(
+            title: LocalizedText(
+                fr: "Ce que tu peux quand même faire",
+                en: "What you can do anyway",
+                es: "Lo que puedes hacer de todos modos"
+            )[language],
+            subtitle: LocalizedText(
+                fr: "Ce qui est retiré plus haut l'est par défaut. Si ton corps fait mieux que ça, dis-le : les mouvements reviennent dans ton programme.",
+                en: "What is removed above is removed by default. If your body does better than that, say so: the movements come back into your programme.",
+                es: "Lo que se retira arriba se retira por defecto. Si tu cuerpo hace más que eso, dilo: los movimientos vuelven a tu programa."
+            )[language]
+        ) {
+            if !pairedRemoved.isEmpty {
+                Toggle(isOn: bothSides) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(
+                            LocalizedText(
+                                fr: "Je m'entraîne quand même des deux côtés",
+                                en: "Train both sides anyway",
+                                es: "Entrenar de todos modos los dos lados"
+                            )[language]
+                        )
+                        .font(Theme.bodyFont)
+                        .foregroundStyle(Theme.primaryText)
+                        Text(
+                            LocalizedText(
+                                fr: "La barre, le développé à deux bras et les mouvements à deux jambes reviennent, en plus de ceux à un seul côté.",
+                                en: "The barbell, two-armed presses and two-legged movements come back, on top of the single-side ones.",
+                                es: "La barra, los press a dos brazos y los movimientos a dos piernas vuelven, además de los de un solo lado."
+                            )[language]
+                        )
+                        .font(Theme.captionFont)
+                        .foregroundStyle(Theme.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .toggleStyle(.switch)
+                .tint(Theme.accent)
+            }
+
+            // Les exigences restantes, une par une : tenir debout et
+            // descendre au sol sont deux questions différentes, et personne
+            // ne répond « oui » aux deux pour la même raison.
+            ForEach(otherRemoved) { demand in
+                Divider().overlay(Theme.separator)
+                Toggle(isOn: allowing(demand)) {
+                    Text(demand.label[language])
+                        .font(Theme.bodyFont)
+                        .foregroundStyle(Theme.primaryText)
+                }
+                .toggleStyle(.switch)
+                .tint(Theme.accent)
+            }
+
+            if !needs.allowedAnyway.isEmpty {
+                Divider().overlay(Theme.separator)
+                // La seule mise en garde, dite une fois. Les charges se
+                // calculent sur ce que la série a réellement pesé : sur un
+                // mouvement à deux côtés dont un fournit moins, c'est le
+                // côté faible qui décide, et la progression s'y cale.
+                CoachText(
+                    LocalizedText(
+                        fr: "Sur un mouvement à deux côtés, la charge se règle sur le côté le plus faible — c'est lui qui finit la série. Commence bas, monte lentement, et si un côté compense l'autre sans que tu le décides, repasse au travail à un seul côté.",
+                        en: "On a two-sided movement, the load is set by the weaker side — it is the one that finishes the set. Start low, add slowly, and if one side takes over the other without you deciding it, go back to single-side work.",
+                        es: "En un movimiento a dos lados, la carga la marca el lado más débil: es el que termina la serie. Empieza bajo, sube despacio, y si un lado compensa al otro sin que lo decidas, vuelve al trabajo a un solo lado."
+                    ),
+                    font: Theme.captionFont,
+                    color: Theme.warning
+                )
+            }
+        }
+    }
+
+    private var pairedRemoved: Set<BodyDemand> {
+        AdaptiveNeeds.pairedDemands.intersection(needs.overridable)
+    }
+
+    private var otherRemoved: [BodyDemand] {
+        needs.overridable.filter { !AdaptiveNeeds.pairedDemands.contains($0) }
+    }
+
+    private var bothSides: Binding<Bool> {
+        Binding(
+            get: { needs.trainsBothSides },
+            set: { on in
+                if on {
+                    needs.allowedAnyway.formUnion(pairedRemoved)
+                } else {
+                    needs.allowedAnyway.subtract(AdaptiveNeeds.pairedDemands)
+                }
+            }
+        )
+    }
+
+    private func allowing(_ demand: BodyDemand) -> Binding<Bool> {
+        Binding(
+            get: { needs.allowedAnyway.contains(demand) },
+            set: { on in
+                if on { needs.allowedAnyway.insert(demand) }
+                else { needs.allowedAnyway.remove(demand) }
+            }
+        )
     }
 
     // MARK: - Les sports
@@ -339,11 +479,19 @@ struct AdaptiveView: View {
     /// configuration — calculés sur la déclaration en cours, pas sur celle
     /// qui est enregistrée : l'écran doit répondre à ce qu'on vient de
     /// cocher, avant d'avoir enregistré.
+    ///
+    /// Restreints à ceux que le programme travaillerait vraiment. Parcourir
+    /// les quatorze groupes musculaires produisait une liste à faire peur,
+    /// où figuraient des muscles qu'aucune séance de ce profil n'aurait
+    /// budgétés de toute façon.
     private var untrainable: [MuscleGroup] {
         guard var profile = store.profile, needs.isActive else { return [] }
         profile.adaptive = needs
         let trainable = ExerciseCatalog.trainableMuscles(for: profile)
-        return MuscleGroup.allCases.filter { !trainable.contains($0) }
+        let budgeted = VolumeEngine.prescription(for: profile).weeklySets
+        return MuscleGroup.allCases.filter {
+            (budgeted[$0] ?? 0) > 0 && !trainable.contains($0)
+        }
     }
 
     private func names(_ muscles: [MuscleGroup], _ language: Language) -> String {
@@ -364,6 +512,10 @@ struct AdaptiveView: View {
                     if !needs.situations.contains(where: \.hasSide) {
                         needs.affectedSide = nil
                     }
+                    // Une réautorisation qui ne correspond plus à rien de
+                    // retiré n'a plus de sens : la garder ferait revenir une
+                    // réponse à une question qui n'est plus posée.
+                    needs.allowedAnyway.formIntersection(needs.closedDemands)
                 }
             }
         )

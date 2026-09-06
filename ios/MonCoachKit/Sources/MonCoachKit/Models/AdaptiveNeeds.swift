@@ -295,20 +295,73 @@ public struct AdaptiveNeeds: Codable, Sendable, Equatable, Hashable {
     /// bilatérale — et être paraplégique en marchant appareillé.
     public var usesWheelchair: Bool
 
+    /// Ce que l'athlète réautorise, malgré ce que sa situation retire.
+    ///
+    /// Le filtrage est un défaut, pas un verdict. Deux hémiplégies ne se
+    /// ressemblent pas : l'une ne lève pas le bras, l'autre le lève moins
+    /// fort, et la seconde a de très bonnes raisons de vouloir continuer à
+    /// travailler les deux côtés — c'est même souvent ce qu'on lui demande
+    /// de faire. Une application qui décide seule que c'est impossible se
+    /// trompe de rôle, et il n'y a personne d'autre que l'intéressé pour
+    /// trancher.
+    ///
+    /// Retiré après la fermeture, jamais avant : réautoriser « les deux
+    /// bras » rend exactement les mouvements à deux bras, sans rouvrir la
+    /// prise à deux mains qui n'a pas été cochée.
+    public var allowedAnyway: Set<BodyDemand>
+
     public init(
         situations: Set<AdaptiveSituation> = [],
         affectedSide: BodySide? = nil,
-        usesWheelchair: Bool = false
+        usesWheelchair: Bool = false,
+        allowedAnyway: Set<BodyDemand> = []
     ) {
         self.situations = situations
         self.affectedSide = affectedSide
         self.usesWheelchair = usesWheelchair
+        self.allowedAnyway = allowedAnyway
+    }
+
+    /// Écrit à la main pour une seule raison : `allowedAnyway` n'existait pas
+    /// dans les profils enregistrés par les premières versions. Le décodage
+    /// synthétisé refuserait une clé absente et rendrait leur profil
+    /// illisible — pas « sans réautorisation », illisible.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        situations = try container.decodeIfPresent(
+            Set<AdaptiveSituation>.self, forKey: .situations
+        ) ?? []
+        affectedSide = try container.decodeIfPresent(BodySide.self, forKey: .affectedSide)
+        usesWheelchair = try container.decodeIfPresent(Bool.self, forKey: .usesWheelchair) ?? false
+        allowedAnyway = try container.decodeIfPresent(
+            Set<BodyDemand>.self, forKey: .allowedAnyway
+        ) ?? []
     }
 
     /// Rien de déclaré, rien à adapter. Un profil dans cet état se comporte
     /// exactement comme un profil sans la section : c'est ce qui permet de
     /// la laisser toujours visible sans rien changer à personne.
     public var isActive: Bool { !situations.isEmpty || usesWheelchair }
+
+    /// Les trois exigences qui vont ensemble : elles disent toutes « les
+    /// deux côtés fournissent ». Les séparer dans l'écran obligerait à
+    /// cocher trois cases pour répondre à une seule question.
+    public static let pairedDemands: Set<BodyDemand> = [.bothArms, .bothLegs, .gripBothHands]
+
+    /// Ce que la situation retire et que l'athlète pourrait réautoriser.
+    /// Vide quand il n'y a rien à rendre.
+    public var overridable: [BodyDemand] {
+        let removed = closedDemands
+        return BodyDemand.allCases.filter { removed.contains($0) }
+    }
+
+    /// Vrai quand les deux côtés sont réautorisés — donc quand la barre, le
+    /// développé à deux bras et le squat reviennent.
+    public var trainsBothSides: Bool {
+        let removed = closedDemands
+        let paired = Self.pairedDemands.intersection(removed)
+        return !paired.isEmpty && paired.isSubset(of: allowedAnyway)
+    }
 
     /// Le côté qui travaille, quand un seul le peut.
     public var workingSide: BodySide? {
@@ -320,6 +373,11 @@ public struct AdaptiveNeeds: Codable, Sendable, Equatable, Hashable {
     /// deux situations déclarées retirent la somme de leurs impossibilités,
     /// pas leur intersection.
     public var unavailableDemands: Set<BodyDemand> {
+        closedDemands.subtracting(allowedAnyway)
+    }
+
+    /// Ce que les situations retirent, avant que l'athlète n'en rende.
+    public var closedDemands: Set<BodyDemand> {
         var demands = situations.reduce(into: Set<BodyDemand>()) { $0.formUnion($1.unavailableDemands) }
         if usesWheelchair {
             // Le fauteuil ne dit rien des jambes — on peut y être assis avec
