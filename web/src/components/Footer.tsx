@@ -15,6 +15,7 @@ const copy = {
     analysis: "Analyse — sans serveur",
     food: "Alimentation",
     gym: "Salle",
+    adaptive: "Handicap",
     watch: "Apple Watch",
     pricing: "Tarifs",
     app: "Application",
@@ -43,6 +44,7 @@ const copy = {
     analysis: "Analysis — no server",
     food: "Food",
     gym: "Gym",
+    adaptive: "Disability",
     watch: "Apple Watch",
     pricing: "Pricing",
     app: "App",
@@ -71,6 +73,7 @@ const copy = {
     analysis: "Análisis — sin servidor",
     food: "Alimentación",
     gym: "Sala",
+    adaptive: "Discapacidad",
     watch: "Apple Watch",
     pricing: "Precios",
     app: "Aplicación",
@@ -122,6 +125,7 @@ export function Footer() {
             <a href="/#analyse">{t.analysis}</a>
             <a href="/#alimentation">{t.food}</a>
             <a href="/#salle">{t.gym}</a>
+            <a href="/#handicap">{t.adaptive}</a>
             <a href="/#montre">{t.watch}</a>
             <a href="/#tarifs">{t.pricing}</a>
           </nav>

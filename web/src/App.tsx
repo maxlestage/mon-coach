@@ -15,6 +15,7 @@ import { AnalysisSection } from "./components/AnalysisSection.tsx";
 import { FoodSection } from "./components/FoodSection.tsx";
 import { TechniqueSection } from "./components/TechniqueSection.tsx";
 import { GymSection } from "./components/GymSection.tsx";
+import { AdaptiveSection } from "./components/AdaptiveSection.tsx";
 import { simulate } from "./coach/engine.ts";
 import { LanguageProvider } from "./i18n/language.tsx";
 
@@ -36,6 +37,7 @@ export function App() {
         <FoodSection />
         <TechniqueSection />
         <GymSection />
+        <AdaptiveSection />
         <WatchSection />
         <AdaptationSection />
         <PricingSection />

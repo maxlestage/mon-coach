@@ -11,6 +11,7 @@ const copy = {
     running: "Course",
     food: "Alimentation",
     gym: "Salle",
+    adaptive: "Handicap",
     watch: "Montre",
     pricing: "Tarifs",
     faq: "Questions",
@@ -24,6 +25,7 @@ const copy = {
     running: "Running",
     food: "Food",
     gym: "Gym",
+    adaptive: "Disability",
     watch: "Watch",
     pricing: "Pricing",
     faq: "Questions",
@@ -37,6 +39,7 @@ const copy = {
     running: "Carrera",
     food: "Alimentación",
     gym: "Sala",
+    adaptive: "Discapacidad",
     watch: "Reloj",
     pricing: "Precios",
     faq: "Preguntas",
@@ -61,6 +64,7 @@ export function Header() {
           <a href="/#course">{t.running}</a>
           <a href="/#alimentation">{t.food}</a>
           <a href="/#salle">{t.gym}</a>
+          <a href="/#handicap">{t.adaptive}</a>
           <a href="/#montre">{t.watch}</a>
           <a href="/#tarifs">{t.pricing}</a>
         </nav>
