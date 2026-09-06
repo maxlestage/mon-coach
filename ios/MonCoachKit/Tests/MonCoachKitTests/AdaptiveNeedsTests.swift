@@ -111,6 +111,66 @@ struct AdaptiveNeedsTests {
         }
     }
 
+    /// La garantie, et elle tient en une phrase : **ce que le corps peut
+    /// encore travailler ne dépend pas de ce qu'on possède.**
+    ///
+    /// Vérifiée sur le poids du corps seul, puis sur le poids du corps plus
+    /// chaque accessoire. Le poids du corps seul est le cas qui compte : il
+    /// est inclus dans tous les lots que l'inscription propose, donc s'il
+    /// suffit, tout le reste suffit.
+    ///
+    /// Ce test a été écrit après deux passages qui avaient l'air complets.
+    /// Le premier ne mesurait qu'une salle complète, et laissait onze
+    /// muscles vides à qui a des élastiques. Le second ne mesurait que trois
+    /// lots, et laissait sans dos, sans dorsaux et sans gainage quelqu'un en
+    /// fauteuil qui s'entraîne chez lui — parce que tous les tirages au
+    /// poids du corps passaient par le sol. Une garantie qui ne s'énonce pas
+    /// sur toutes les entrées ne se vérifie sur aucune.
+    ///
+    /// La seule exception est nommée, pas contournée : quand aucune jambe ne
+    /// fournit, rien ne remplace les jambes — et c'est vrai avec une salle
+    /// complète exactement comme avec une chaise.
+    @Test("Ce que le corps peut travailler ne dépend pas du matériel")
+    func coverageDoesNotDependOnEquipment() {
+        let legs: Set<MuscleGroup> = [.quads, .hamstrings, .glutes, .calves]
+
+        var kits: [Set<Equipment>] = [[.bodyweight], Equipment.fullGym]
+        for item in Equipment.allCases where item != .bodyweight {
+            kits.append([.bodyweight, item])
+        }
+
+        for kit in kits {
+            for situation in AdaptiveSituation.allCases {
+                let needs = AdaptiveNeeds(situations: [situation], affectedSide: .right)
+                let profile = Fixtures.intermediate(equipment: kit, adaptive: needs)
+                let trainable = ExerciseCatalog.trainableMuscles(for: profile)
+
+                // Aucune jambe qui fournit : les quatre groupes des jambes
+                // sortent, et rien d'autre.
+                let noLeg = needs.unavailableDemands.contains(.oneLeg)
+                let expected = noLeg
+                    ? MuscleGroup.allCases.filter { !legs.contains($0) }
+                    : MuscleGroup.allCases
+
+                for muscle in expected {
+                    #expect(
+                        trainable.contains(muscle),
+                        "\(situation.rawValue) : rien pour \(muscle.rawValue)"
+                    )
+                }
+            }
+
+            // Le fauteuil seul ne dit rien des jambes : elles restent.
+            let rolling = Fixtures.intermediate(
+                equipment: kit, adaptive: AdaptiveNeeds(usesWheelchair: true)
+            )
+            let trainable = ExerciseCatalog.trainableMuscles(for: rolling)
+            for muscle in MuscleGroup.allCases {
+                #expect(trainable.contains(muscle), "fauteuil : rien pour \(muscle.rawValue)")
+            }
+        }
+    }
+
     /// La même exigence pour toutes les situations qui ne retirent pas les
     /// jambes, et pour tous les lots de matériel.
     ///
